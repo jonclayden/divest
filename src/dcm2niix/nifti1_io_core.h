@@ -4,6 +4,10 @@
 #ifndef _NIFTI_IO_CORE_HEADER_
 #define _NIFTI_IO_CORE_HEADER_
 
+#ifdef ZOMGDICOM
+#include "RNifti.h"
+#endif
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -11,12 +15,14 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
+#ifndef ZOMGDICOM
 typedef struct {                   /** 4x4 matrix struct **/
     float m[3][3] ;
 } mat33 ;
 typedef struct {                   /** 4x4 matrix struct **/
     float m[4][4] ;
 } mat44 ;
+#endif
 typedef struct {                   /** x4 vector struct **/
     float v[4] ;
 } vec4 ;

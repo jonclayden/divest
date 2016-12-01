@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <string.h>
-#include "nifti1.h"
 
 #ifndef MRIpro_nii_dcm_h
 

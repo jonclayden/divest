@@ -1,4 +1,3 @@
-#include "nifti1.h"
 #include "nifti1_io_core.h"
 #include "nii_ortho.h"
 #include <math.h>

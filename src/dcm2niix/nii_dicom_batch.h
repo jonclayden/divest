@@ -10,8 +10,6 @@ extern "C" {
 
 #include <stdbool.h>
 #include <string.h>
-#include "nifti1.h"
-#include "nifti1.h"
 #include "nii_dicom.h"
 
     struct TDCMopts {

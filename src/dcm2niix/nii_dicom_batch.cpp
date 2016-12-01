@@ -29,7 +29,6 @@
 	#include <iostream>
 #endif
 #include "nifti1_io_core.h"
-#include "nifti1.h"
 #include "nii_dicom_batch.h"
 #include "nii_dicom.h"
 #include "tinydir.h"

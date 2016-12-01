@@ -16,7 +16,6 @@
 	#include <unistd.h>
 #endif
 //#include <time.h> //clock()
-#include "nifti1.h"
 #include "nii_dicom.h"
 #include <sys/types.h>
 #include <sys/stat.h> // discriminate files from folders
