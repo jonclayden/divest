@@ -261,6 +261,7 @@ float nifti_mat33_colnorm( mat33 A )  // max column norm of 3x3 matrix
     return r1 ;
 }
 
+#ifndef ZOMGDICOM
 mat33 nifti_mat33_polar( mat33 A )
 {
     mat33 X , Y , Z ;
@@ -304,7 +305,6 @@ mat33 nifti_mat33_polar( mat33 A )
     return Z ;
 }
 
-#ifndef ZOMGDICOM
 void nifti_mat44_to_quatern( mat44 R ,
                             float *qb, float *qc, float *qd,
                             float *qx, float *qy, float *qz,
