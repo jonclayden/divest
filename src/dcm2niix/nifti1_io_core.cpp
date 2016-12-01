@@ -167,6 +167,7 @@ mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4])
     return Q44;
 }
 
+#ifndef ZOMGDICOM
 float nifti_mat33_determ( mat33 R )   /* determinant of 3x3 matrix */
 {
     double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
@@ -189,6 +190,7 @@ mat33 nifti_mat33_mul( mat33 A , mat33 B )  /* multiply 2 3x3 matrices */
             + A.m[i][2] * B.m[2][j] ;
     return C ;
 }
+#endif
 
 mat44 nifti_mat44_mul( mat44 A , mat44 B )  /* multiply 2 3x3 matrices */
 {
@@ -212,6 +214,7 @@ mat33 nifti_mat33_transpose( mat33 A )  /* transpose 3x3 matrix */
     return B;
 }
 
+#ifndef ZOMGDICOM
 mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
 {
     double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
@@ -234,6 +237,7 @@ mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
     Q.m[2][2] = deti*( r11*r22-r21*r12) ;
     return Q ;
 }
+#endif
 
 float nifti_mat33_rownorm( mat33 A )  // max row norm of 3x3 matrix
 {
@@ -300,6 +304,7 @@ mat33 nifti_mat33_polar( mat33 A )
     return Z ;
 }
 
+#ifndef ZOMGDICOM
 void nifti_mat44_to_quatern( mat44 R ,
                             float *qb, float *qc, float *qd,
                             float *qx, float *qy, float *qz,
@@ -468,7 +473,7 @@ mat44 nifti_mat44_inverse( mat44 R )
     Q.m[3][3] = (deti == 0.0l) ? 0.0l : 1.0l ; // failure flag if deti == 0
     return Q ;
 }
-
+#endif
 
 
 

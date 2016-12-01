@@ -44,6 +44,10 @@
 ERROR: YOU CAN NOT COMPILE WITH myEnableJasper AND NOT myDisableOpenJPEG OPTIONS SET SIMULTANEOUSLY
 #endif
 
+#ifdef ZOMGDICOM
+#include "RNifti.h"
+#endif
+
 unsigned char * imagetoimg(opj_image_t * image)
 {
     int numcmpts = image->numcomps;
