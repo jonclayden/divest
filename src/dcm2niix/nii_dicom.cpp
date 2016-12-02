@@ -2923,7 +2923,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                         } //if different position from 1st slice in file
                     } //if not first slice in file
                     if (isVerbose > 1)
-                    	printf("   Patient Position 0020,0032 (#,@,X,Y,Z)\t%d\t%d\t%g\t%g\t%g\n", patientPositionNum, lPos, patientPosition[1], patientPosition[2], patientPosition[3]);
+                    	printf("   Patient Position 0020,0032 (#,@,X,Y,Z)\t%d\t%ld\t%g\t%g\t%g\n", patientPositionNum, lPos, patientPosition[1], patientPosition[2], patientPosition[3]);
 
                 } //not after 2005,140F
                 break;
