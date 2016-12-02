@@ -4,7 +4,7 @@
 #ifndef _NIFTI_IO_CORE_HEADER_
 #define _NIFTI_IO_CORE_HEADER_
 
-#ifdef ZOMGDICOM
+#ifdef HAVE_R
 #include "RNifti.h"
 #endif
 
@@ -15,7 +15,7 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#ifndef ZOMGDICOM
+#ifndef HAVE_R
 typedef struct {                   /** 4x4 matrix struct **/
     float m[3][3] ;
 } mat33 ;

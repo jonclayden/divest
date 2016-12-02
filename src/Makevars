@@ -1,4 +1,4 @@
-PKG_CPPFLAGS = -DZOMGDICOM -DmyDisableMiniZ -DmyDisableOpenJPEG -I. -Idcm2niix
+PKG_CPPFLAGS = -DHAVE_R -DmyDisableMiniZ -DmyDisableOpenJPEG -I. -Idcm2niix
 
 OBJECTS_DCM2NIIX = dcm2niix/jpg_0XC3.o dcm2niix/nifti1_io_core.o dcm2niix/nii_dicom.o dcm2niix/nii_dicom_batch.o dcm2niix/nii_ortho.o dcm2niix/ujpeg.o
 

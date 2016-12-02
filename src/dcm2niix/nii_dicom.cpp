@@ -43,7 +43,7 @@
 ERROR: YOU CAN NOT COMPILE WITH myEnableJasper AND NOT myDisableOpenJPEG OPTIONS SET SIMULTANEOUSLY
 #endif
 
-#ifdef ZOMGDICOM
+#ifdef HAVE_R
 #include "RNifti.h"
 #endif
 

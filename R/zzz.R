@@ -1,4 +1,4 @@
 .onLoad <- function (libname, pkgname)
 {
-    .Call("initialise", PACKAGE="zomgdicom")
+    .Call("initialise", PACKAGE="divest")
 }

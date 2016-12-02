@@ -167,7 +167,7 @@ mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4])
     return Q44;
 }
 
-#ifndef ZOMGDICOM
+#ifndef HAVE_R
 float nifti_mat33_determ( mat33 R )   /* determinant of 3x3 matrix */
 {
     double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
@@ -214,7 +214,7 @@ mat33 nifti_mat33_transpose( mat33 A )  /* transpose 3x3 matrix */
     return B;
 }
 
-#ifndef ZOMGDICOM
+#ifndef HAVE_R
 mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
 {
     double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
@@ -261,7 +261,7 @@ float nifti_mat33_colnorm( mat33 A )  // max column norm of 3x3 matrix
     return r1 ;
 }
 
-#ifndef ZOMGDICOM
+#ifndef HAVE_R
 mat33 nifti_mat33_polar( mat33 A )
 {
     mat33 X , Y , Z ;
