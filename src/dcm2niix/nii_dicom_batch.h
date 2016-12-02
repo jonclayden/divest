@@ -16,6 +16,9 @@ extern "C" {
         bool isGz, isFlipY,  isCreateBIDS, isCreateText, isTiltCorrect, isRGBplanar, isOnlySingleFile, isForceStackSameSeries, isCrop;
         int isVerbose, compressFlag; //support for compressed data 0=none,
         char filename[512], outdir[512], indir[512], pigzname[512], optsname[512], indirParent[512];
+#ifdef HAVE_R
+        void *imageList;
+#endif
     };
     void saveIniFile (struct TDCMopts opts);
     void readIniFile (struct TDCMopts *opts, const char * argv[]);

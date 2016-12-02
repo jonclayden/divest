@@ -944,6 +944,21 @@ void writeNiiGz (char * baseName, struct nifti_1_header hdr,  unsigned char* src
 } //writeNiiGz()
 #endif
 
+#ifdef HAVE_R
+
+// Version of nii_saveNII() for R/divest: create nifti_image pointer and push onto stack
+int nii_saveNII (char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts)
+{
+    hdr.vox_offset = 352;
+    NiftiImage image (nifti_convert_nhdr2nim(hdr, niiFilename));
+    image->data = (void *) im;
+    Rcpp::List images(SEXP(opts.imageList));
+    images.push_back(image.toPointer("Converted DICOM series"));
+    return EXIT_SUCCESS;
+}
+
+#else
+
 int nii_saveNII(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts) {
     hdr.vox_offset = 352;
     size_t imgsz = nii_ImgBytes(hdr);
@@ -995,6 +1010,8 @@ int nii_saveNII(char * niiFilename, struct nifti_1_header hdr, unsigned char* im
     }
     return EXIT_SUCCESS;
 }// nii_saveNII()
+
+#endif
 
 int nii_saveNII3D(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts) {
     //save 4D series as sequence of 3D volumes
