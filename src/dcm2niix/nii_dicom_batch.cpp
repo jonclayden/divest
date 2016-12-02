@@ -61,6 +61,10 @@
 	const char kFileSep[2] = "/";
 #endif
 
+#ifdef HAVE_R
+#include "ImageList.h"
+#endif
+
 struct TDCMsort {
     uint64_t indx, img;
 };
@@ -950,10 +954,11 @@ void writeNiiGz (char * baseName, struct nifti_1_header hdr,  unsigned char* src
 int nii_saveNII (char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts)
 {
     hdr.vox_offset = 352;
-    NiftiImage image (nifti_convert_nhdr2nim(hdr, niiFilename));
+    nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
     image->data = (void *) im;
-    Rcpp::List images(SEXP(opts.imageList));
-    images.push_back(image.toPointer("Converted DICOM series"));
+    ImageList *images = (ImageList *) opts.imageList;
+    images->append(image);
+    free(image);
     return EXIT_SUCCESS;
 }
 

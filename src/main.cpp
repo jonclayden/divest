@@ -3,6 +3,7 @@
 #include "RNifti.h"
 #include "RNiftiAPI.h"
 
+#include "ImageList.h"
 #include "nii_dicom_batch.h"
 #include "nii_dicom.h"
 
@@ -31,11 +32,16 @@ BEGIN_RCPP
     options.isVerbose = 0;
     options.compressFlag = 0;
     strcpy(options.indir, path.c_str());
-    options.imageList = (void *) Rcpp::List();
+    strcpy(options.outdir, "");
+    strcpy(options.filename, "");
+    strcpy(options.pigzname, "");
+    
+    ImageList images;
+    options.imageList = (void *) &images;
     
     int returnValue = nii_loadDir(&options);
     if (returnValue == EXIT_SUCCESS)
-        return SEXP(options.imageList);
+        return images;
     else
         return R_NilValue;
 END_RCPP
