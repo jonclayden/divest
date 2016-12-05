@@ -12,6 +12,8 @@
 #include <unistd.h>
 #endif
 
+#include "print.h"
+
 void nifti_swap_8bytes( size_t n , void *ar )    // 4 bytes at a time
 {
     size_t ii ;
@@ -130,7 +132,7 @@ mat44 nifti_dicom2mat(float orient[7], float patientPosition[4], float xyzMM[4])
     mat33 Q, diagVox;
     Q.m[0][0] = orient[1]; Q.m[0][1] = orient[2] ; Q.m[0][2] = orient[3] ; // load Q
     Q.m[1][0] = orient[4]; Q.m[1][1] = orient[5] ; Q.m[1][2] = orient[6];
-    //printf("Orient %g %g %g %g %g %g\n",orient[1],orient[2],orient[3],orient[4],orient[5],orient[6] );
+    //printMessage("Orient %g %g %g %g %g %g\n",orient[1],orient[2],orient[3],orient[4],orient[5],orient[6] );
     /* normalize row 1 */
     double val = Q.m[0][0]*Q.m[0][0] + Q.m[0][1]*Q.m[0][1] + Q.m[0][2]*Q.m[0][2] ;
     if( val > 0.0l ){

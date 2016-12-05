@@ -104,6 +104,7 @@
 // the C standard does not, even though *any* practically useful machine
 // nowadays uses two's complement.
 
+#include "print.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // HEADER SECTION                                                            //
@@ -212,12 +213,12 @@ int main(int argc, char* argv[]) {
     FILE *f;
 
     if (argc < 2) {
-        printf("Usage: %s <input.jpg> [<output.ppm>]\n", argv[0]);
+        printMessage("Usage: %s <input.jpg> [<output.ppm>]\n", argv[0]);
         return 2;
     }
     f = fopen(argv[1], "rb");
     if (!f) {
-        printf("Error opening the input file.\n");
+        print("Error opening the input file.\n");
         return 1;
     }
     fseek(f, 0, SEEK_END);
@@ -230,14 +231,14 @@ int main(int argc, char* argv[]) {
     njInit();
     if (njDecode(buf, size)) {
         free((void*)buf);
-        printf("Error decoding the input file.\n");
+        printMessage("Error decoding the input file.\n");
         return 1;
     }
     free((void*)buf);
 
     f = fopen((argc > 2) ? argv[2] : (njIsColor() ? "nanojpeg_out.ppm" : "nanojpeg_out.pgm"), "wb");
     if (!f) {
-        printf("Error opening the output file.\n");
+        printMessage("Error opening the output file.\n");
         return 1;
     }
     fprintf(f, "P%d\n%d %d\n255\n", njIsColor() ? 6 : 5, njGetWidth(), njGetHeight());

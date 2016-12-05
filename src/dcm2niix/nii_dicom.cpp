@@ -17,6 +17,7 @@
 #endif
 //#include <time.h> //clock()
 #include "nii_dicom.h"
+
 #include <sys/types.h>
 #include <sys/stat.h> // discriminate files from folders
 #include <stdio.h>
@@ -30,6 +31,9 @@
 #include <stdint.h>
 #include "nifti1_io_core.h"
 #include "ujpeg.h"
+
+#include "print.h"
+
 #ifdef myUseCOut
 #include <iostream>
 #endif
@@ -41,10 +45,6 @@
 
 #ifdef myEnableJasper
 ERROR: YOU CAN NOT COMPILE WITH myEnableJasper AND NOT myDisableOpenJPEG OPTIONS SET SIMULTANEOUSLY
-#endif
-
-#ifdef HAVE_R
-#include "RNifti.h"
 #endif
 
 unsigned char * imagetoimg(opj_image_t * image)
@@ -70,15 +70,15 @@ unsigned char * imagetoimg(opj_image_t * image)
     }
     if ((image->comps[0].prec < 1) || (image->comps[0].prec > 16)) isOK = false; //currently we only handle 1 and 2 byte data
     if (!isOK) {
-        printf("jpeg decode failure w*h %d*%d bpp %d sgnd %d components %d OpenJPEG=%s\n", width, height, bpp, sgnd, numcmpts,  opj_version());
+        printMessage("jpeg decode failure w*h %d*%d bpp %d sgnd %d components %d OpenJPEG=%s\n", width, height, bpp, sgnd, numcmpts,  opj_version());
         return NULL;
     }
     #ifdef MY_DEBUG
-    printf("w*h %d*%d bpp %d sgnd %d components %d OpenJPEG=%s\n", width, height, bpp, sgnd, numcmpts,  opj_version());
+    printMessage("w*h %d*%d bpp %d sgnd %d components %d OpenJPEG=%s\n", width, height, bpp, sgnd, numcmpts,  opj_version());
     #endif
     //extract the data
     if ((bpp < 1) || (bpp > 2) || (width < 1) || (height < 1) || (imgbytes < 1)) {
-        printf("Serious catastrophic decompression error\n");
+        printMessage("Serious catastrophic decompression error\n");
         return NULL;
     }
     unsigned char *img = (unsigned char *)malloc(imgbytes);
@@ -87,7 +87,7 @@ unsigned char * imagetoimg(opj_image_t * image)
     if (sgnd) bpp = -bpp;
     if (bpp == -1) {
         free(img);
-        printf("Error: Signed 8-bit DICOM?\n");
+        printError("Signed 8-bit DICOM?\n");
         return NULL;
     }
     //n.b. Analyze rgb-24 are PLANAR e.g. RRR..RGGG..GBBB..B not RGBRGBRGB...RGB
@@ -216,12 +216,12 @@ unsigned char * nii_loadImgCoreOpenJPEG(char* imgname, struct nifti_1_header hdr
     if ( !opj_setup_decoder(codec, &params) ) goto cleanup2;
     // Read the main header of the codestream and if necessary the JP2 boxes
     if(! opj_read_header( stream, codec, &jpx)){
-        printf( "OpenJPEG error: failed to read the header %s\n", imgname);
+        printMessage( "OpenJPEG error: failed to read the header %s\n", imgname);
         goto cleanup2;
     }
     // Get the decoded image
     if ( !( opj_decode(codec, stream, jpx) && opj_end_decompress(codec,stream) ) ) {
-        printf( "OpenJPEG error: j2k_to_image: failed to decode %s\n",imgname);
+        printMessage( "OpenJPEG error: j2k_to_image: failed to decode %s\n",imgname);
         goto cleanup1;
     }
     ret = imagetoimg(jpx);
@@ -269,12 +269,12 @@ int foo (float vx) {
     if ( !opj_setup_decoder(codec, &params) ) goto cleanup2;
     // Read the main header of the codestream and if necessary the JP2 boxes
     if(! opj_read_header( stream, codec, &jpx)){
-        printf( "OpenJPEG error: failed to read the header %s\n",fn);
+        printMessage( "OpenJPEG error: failed to read the header %s\n",fn);
         goto cleanup2;
     }
     // Get the decoded image
     if ( !( opj_decode(codec, stream, jpx) && opj_end_decompress(codec,stream) ) ) {
-        printf( "OpenJPEG error: j2k_to_image: failed to decode %s\n",fn);
+        printMessage( "OpenJPEG error: j2k_to_image: failed to decode %s\n",fn);
         goto cleanup1;
     }
     ret = imagetoimg(jpx);
@@ -300,7 +300,7 @@ int foo2 (float vx) {
     // set a byte stream
     l_stream = opj_stream_create_default_file_stream( fn, OPJ_TRUE);
     if (!l_stream){
-        printf("OpenJPEG error: failed to open the file %s\n", fn);
+        printMessage("OpenJPEG error: failed to open the file %s\n", fn);
         return NULL;
     }
     // get a decoder handle - DICOM specifies JPEG-2000 codestream
@@ -310,7 +310,7 @@ int foo2 (float vx) {
     if ( !opj_setup_decoder(l_codec, &parameters) ) return NULL;
     // Read the main header of the codestream and if necessary the JP2 boxes
     if(! opj_read_header( l_stream, l_codec, &jpx)){
-        printf( "OpenJPEG error: failed to read the header %s\n",fn);
+        printMessage( "OpenJPEG error: failed to read the header %s\n",fn);
         opj_stream_destroy(l_stream);
         opj_destroy_codec(l_codec);
         opj_image_destroy(jpx);
@@ -318,13 +318,13 @@ int foo2 (float vx) {
     }
     // Get the decoded image
     if ( !( opj_decode(l_codec, l_stream, jpx) && opj_end_decompress(l_codec,l_stream) ) ) {
-        printf( "OpenJPEG error: j2k_to_image: failed to decode %s\n",fn);
+        printMessage( "OpenJPEG error: j2k_to_image: failed to decode %s\n",fn);
         opj_stream_destroy(l_stream);
         opj_destroy_codec(l_codec);
         opj_image_destroy(jpx);
         return NULL;
     }
-    printf("image is decoded!\n");
+    printMessage("image is decoded!\n");
     opj_stream_destroy(l_stream);
     ret = imagetoimg(jpx);
     if (ret != NULL) free(ret);
@@ -348,7 +348,7 @@ float deFuzz(float v) {
 }
 
 void reportMat33(char *str, mat33 A) {
-    printf("%s = [%g %g %g ; %g %g %g; %g %g %g ]\n",str,
+    printMessage("%s = [%g %g %g ; %g %g %g; %g %g %g ]\n",str,
            deFuzz(A.m[0][0]),deFuzz(A.m[0][1]),deFuzz(A.m[0][2]),
            deFuzz(A.m[1][0]),deFuzz(A.m[1][1]),deFuzz(A.m[1][2]),
            deFuzz(A.m[2][0]),deFuzz(A.m[2][1]),deFuzz(A.m[2][2]));
@@ -356,7 +356,7 @@ void reportMat33(char *str, mat33 A) {
 
 void reportMat44(char *str, mat44 A) {
 //example: reportMat44((char*)"out",*R);
-    printf("%s = [%g %g %g %g; %g %g %g %g; %g %g %g %g; 0 0 0 1]\n",str,
+    printMessage("%s = [%g %g %g %g; %g %g %g %g; %g %g %g %g; 0 0 0 1]\n",str,
            deFuzz(A.m[0][0]),deFuzz(A.m[0][1]),deFuzz(A.m[0][2]),deFuzz(A.m[0][3]),
            deFuzz(A.m[1][0]),deFuzz(A.m[1][1]),deFuzz(A.m[1][2]),deFuzz(A.m[1][3]),
            deFuzz(A.m[2][0]),deFuzz(A.m[2][1]),deFuzz(A.m[2][2]),deFuzz(A.m[2][3]));
@@ -376,14 +376,14 @@ int verify_slice_dir (struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_
         pos = d2.patientPosition[iSL];
         if (isSameFloat(pos, d.patientPosition[iSL])) pos = NAN;
 #ifdef MY_DEBUG
-        if (!isnan(pos)) printf("position determined using lastFile %f\n",pos);
+        if (!isnan(pos)) printMessage("position determined using lastFile %f\n",pos);
 #endif
     }
     if (isnan(pos) &&( !isnan(d.patientPositionLast[iSL]) ) ) { //patient position fields exist
         pos = d.patientPositionLast[iSL];
         if (isSameFloat(pos, d.patientPosition[iSL])) pos = NAN;
 #ifdef MY_DEBUG
-        if (!isnan(pos)) printf("position determined using last (4d) %f\n",pos);
+        if (!isnan(pos)) printMessage("position determined using last (4d) %f\n",pos);
 #endif
     }
     if (isnan(pos) && ( !isnan(d.stackOffcentre[iSL])) )
@@ -402,7 +402,7 @@ int verify_slice_dir (struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_
 #ifdef myUseCOut
      	std::cout<<"Warning: Unable to determine slice direction: please check whether slices are flipped" <<std::endl;
 #else
-        printf("Warning: Unable to determine slice direction: please check whether slices are flipped\n");
+        printWarning("Unable to determine slice direction: please check whether slices are flipped\n");
 #endif
     }
     if (flip) {
@@ -412,11 +412,11 @@ int verify_slice_dir (struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_
     if (flip)
         iSL = -iSL;
 	#ifdef MY_DEBUG
-    printf("verify slice dir %d %d %d\n",h->dim[1],h->dim[2],h->dim[3]);
+    printMessage("verify slice dir %d %d %d\n",h->dim[1],h->dim[2],h->dim[3]);
     //reportMat44((char*)"Rout",*R);
-    printf("flip = %d\n",flip);
-    printf("sliceDir = %d\n",iSL);
-    printf(" pos1 = %f\n",pos1);
+    printMessage("flip = %d\n",flip);
+    printMessage("sliceDir = %d\n",iSL);
+    printMessage(" pos1 = %f\n",pos1);
 	#endif
 	return iSL;
 } //verify_slice_dir()
@@ -430,7 +430,7 @@ mat44 noNaN(mat44 Q44) //simplify any headers that have NaN values
             if (isnan(ret.m[i][j]))
                 isNaN44 = true;
     if (isNaN44) {
-        printf("Warning: bogus spatial matrix (perhaps non-spatial image): inspect spatial orientation\n");
+        printWarning("bogus spatial matrix (perhaps non-spatial image): inspect spatial orientation\n");
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 if (i == j)
@@ -519,12 +519,12 @@ mat44 xform_mat(struct TDICOMdata d) {
     R = nifti_mat33_transpose(R);
 	//reportMat33((char*)"R",R);
 	ivec3 ixyz = maxCol(R);
-	//printf("%d %d %d\n", ixyz.v[0], ixyz.v[1], ixyz.v[2]);
+	//printMessage("%d %d %d\n", ixyz.v[0], ixyz.v[1], ixyz.v[2]);
 	int iSL = ixyz.v[2]; // 1/2/3 for Sag/Cor/Tra slice
 	float cosSL = R.m[iSL-1][2];
-	//printf("cosSL\t%g\n", cosSL);
+	//printMessage("cosSL\t%g\n", cosSL);
 	//vec3 pixdim = setVec3(d.xyzMM[1], d.xyzMM[2], d.xyzMM[3]);
-	//printf("%g %g %g\n", pixdim.v[0], pixdim.v[1], pixdim.v[2]);
+	//printMessage("%g %g %g\n", pixdim.v[0], pixdim.v[1], pixdim.v[2]);
 	mat33 pixdim;
     LOAD_MAT33(pixdim, d.xyzMM[1], 0.0, 0.0,
     	0.0, d.xyzMM[2], 0.0,
@@ -549,10 +549,10 @@ mat44 xform_mat(struct TDICOMdata d) {
         dim.v[2] = d.CSA.mosaicSlices;
 		vec4 dim4 = setVec4((nRowCol-1)*dim.v[0]/2.0f, (nRowCol-1)*dim.v[1]/2.0f, 0);
 		vec4 offset = nifti_vect44mat44_mul(dim4, R44 );
-        //printf("%g %g %g\n", dim.v[0], dim.v[1], dim.v[2]);
-        //printf("%g %g %g\n", dim4.v[0], dim4.v[1], dim4.v[2]);
-        //printf("%g %g %g %g\n", offset.v[0], offset.v[1], offset.v[2], offset.v[3]);
-		//printf("nRowCol\t%g\n", nRowCol);
+        //printMessage("%g %g %g\n", dim.v[0], dim.v[1], dim.v[2]);
+        //printMessage("%g %g %g\n", dim4.v[0], dim4.v[1], dim4.v[2]);
+        //printMessage("%g %g %g %g\n", offset.v[0], offset.v[1], offset.v[2], offset.v[3]);
+		//printMessage("nRowCol\t%g\n", nRowCol);
 		R44.m[0][3] = offset.v[0];
 		R44.m[1][3] = offset.v[1];
 		R44.m[2][3] = offset.v[2];
@@ -567,11 +567,11 @@ mat44 xform_mat(struct TDICOMdata d) {
 		return R44;
 	} else if (true) {
 //SliceNormalVector TO DO
-		printf("Not completed");
+		printMessage("Not completed");
 		exit(2);
 		return R44;
 	}
-	printf("Unable to determine spatial transform\n");
+	printMessage("Unable to determine spatial transform\n");
 	exit(1);
 }
 
@@ -640,9 +640,9 @@ int headerDcm2NiiSForm(struct TDICOMdata d, struct TDICOMdata d2,  struct nifti_
         d.orient[1] = 1.0f; d.orient[2] = 0.0f;  d.orient[3] = 0.0f;
         d.orient[1] = 0.0f; d.orient[2] = 1.0f;  d.orient[3] = 0.0f;
         if ((d.isNonImage) || ((d.bitsAllocated == 8) && (d.samplesPerPixel == 3) && (d.manufacturer == kMANUFACTURER_SIEMENS)))
-           printf("Unable to determine spatial orientation: 0020,0037 missing (probably not a problem: derived image)\n");
+           printMessage("Unable to determine spatial orientation: 0020,0037 missing (probably not a problem: derived image)\n");
         else
-            printf("Unable to determine spatial orientation: 0020,0037 missing!\n");
+            printMessage("Unable to determine spatial orientation: 0020,0037 missing!\n");
     }
     //mat44 Q44 = set_nii_header(d);
     mat44 Q44 = set_nii_header_x(d, d2, h, &sliceDir);
@@ -796,7 +796,7 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut) {
     cString[lLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lLength);
     //memcpy(cString, test, lLength);
-    //printf("X%dX\n", (unsigned char)d.patientName[1]);
+    //printMessage("X%dX\n", (unsigned char)d.patientName[1]);
     for (int i = 0; i < lLength; i++)
         //assume specificCharacterSet (0008,0005) is ISO_IR 100 http://en.wikipedia.org/wiki/ISO/IEC_8859-1
         if (cString[i]< 1) {
@@ -861,7 +861,7 @@ float dcmFloat(int lByteLength, unsigned char lBuffer[], bool littleEndian) {//r
     outFloat[1] = inFloat[2];
     outFloat[2] = inFloat[1];
     outFloat[3] = inFloat[0];
-    //printf("swapped val = %f\n",swapVal);
+    //printMessage("swapped val = %f\n",swapVal);
     return swapVal;
 } //dcmFloat()
 
@@ -887,7 +887,7 @@ double dcmFloatDouble(int lByteLength, unsigned char lBuffer[], bool littleEndia
     returnFloat[5] = floatToConvert[2];
     returnFloat[6] = floatToConvert[1];
     returnFloat[7] = floatToConvert[0];
-    //printf("swapped val = %f\n",retVal);
+    //printMessage("swapped val = %f\n",retVal);
     return retVal;
 } //dcmFloatDouble()
 
@@ -911,7 +911,7 @@ int dcmStrInt (int lByteLength, unsigned char lBuffer[]) {//read float stored as
 
     cString[lByteLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
-    //printf(" --> *%s* %s%s\n",cString, &lBuffer[0],&lBuffer[1]);
+    //printMessage(" --> *%s* %s%s\n",cString, &lBuffer[0],&lBuffer[1]);
     int ret = atoi(cString);
 #ifdef _MSC_VER
 	free(cString);
@@ -929,7 +929,7 @@ int dcmStrManufacturer (int lByteLength, unsigned char lBuffer[]) {//read float 
 	int ret = kMANUFACTURER_UNKNOWN;
     cString[lByteLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
-    //printf("MANU %s\n",cString);
+    //printMessage("MANU %s\n",cString);
     if ((toupper(cString[0])== 'S') && (toupper(cString[1])== 'I'))
         ret = kMANUFACTURER_SIEMENS;
     if ((toupper(cString[0])== 'G') && (toupper(cString[1])== 'E'))
@@ -991,7 +991,7 @@ float csaMultiFloat (unsigned char buff[], int nItems, float Floats[], int *Item
 #endif
             memcpy(cString, &buff[lPos], sizeof(cString)); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
             lPos += ((itemCSA.xx2_Len +3)/4)*4;
-            //printf(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
+            //printMessage(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
             Floats[lI] = (float) atof(cString);
             *ItemsOK = lI; //some sequences have store empty items
 
@@ -1019,7 +1019,7 @@ bool csaIsPhaseMap (unsigned char buff[], int nItems) {
 #endif
             memcpy(cString, &buff[lPos], sizeof(cString)); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
             lPos += ((itemCSA.xx2_Len +3)/4)*4;
-            //printf(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
+            //printMessage(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
             if (strcmp(cString, "CC:ComplexAdd") == 0)
                 return true;
 #ifdef _MSC_VER
@@ -1032,7 +1032,7 @@ bool csaIsPhaseMap (unsigned char buff[], int nItems) {
 
 int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, int isVerbose, struct TDTI4D *dti4D) {
     //see also http://afni.nimh.nih.gov/pub/dist/src/siemens_dicom_csa.c
-    //printf("%c%c%c%c\n",buff[0],buff[1],buff[2],buff[3]);
+    //printMessage("%c%c%c%c\n",buff[0],buff[1],buff[2],buff[3]);
     if (lLength < 36) return EXIT_FAILURE;
     if ((buff[0] != 'S') || (buff[1] != 'V') || (buff[2] != '1') || (buff[3] != '0') ) return EXIT_FAILURE;
     int lPos = 8; //skip 8 bytes of data, 'SV10' plus  2 32-bit values unused1 and unused2
@@ -1047,7 +1047,7 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
         memcpy(&tagCSA, &buff[lPos], sizeof(tagCSA)); //read tag
         lPos +=sizeof(tagCSA);
         if (isVerbose > 1) //extreme verbosity: show every CSA tag
-        	printf("%d CSA of %s %d\n",lPos, tagCSA.name, tagCSA.nitems);
+        	printMessage("%d CSA of %s %d\n",lPos, tagCSA.name, tagCSA.nitems);
         if (tagCSA.nitems > 0) {
             if (strcmp(tagCSA.name, "ImageHistory") == 0)
                 CSA->isPhaseMap =  csaIsPhaseMap(&buff[lPos], tagCSA.nitems);
@@ -1056,7 +1056,7 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
             else if (strcmp(tagCSA.name, "B_value") == 0) {
                 CSA->dtiV[0] = csaMultiFloat (&buff[lPos], 1,lFloats, &itemsOK);
                 if (CSA->dtiV[0] < 0.0) {
-                    printf("WARNING: (Corrupt) CSA reports negative b-value! %g\n",CSA->dtiV[0]);
+                    printWarning("(Corrupt) CSA reports negative b-value! %g\n",CSA->dtiV[0]);
                     CSA->dtiV[0] = 0.0;
                 }
                 CSA->numDti = 1; //triggered by b-value, as B0 images do not have DiffusionGradientDirection tag
@@ -1066,13 +1066,13 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
                 CSA->dtiV[2] = lFloats[2];
                 CSA->dtiV[3] = lFloats[3];
                 if (isVerbose)
-                    printf("DiffusionGradientDirection %f %f %f\n",lFloats[1],lFloats[2],lFloats[3]);
+                    printMessage("DiffusionGradientDirection %f %f %f\n",lFloats[1],lFloats[2],lFloats[3]);
             } else if ((strcmp(tagCSA.name, "SliceNormalVector") == 0) && (tagCSA.nitems > 2)){
                 CSA->sliceNormV[1] = csaMultiFloat (&buff[lPos], 3,lFloats, &itemsOK);
                 CSA->sliceNormV[2] = lFloats[2];
                 CSA->sliceNormV[3] = lFloats[3];
                 if (isVerbose)
-                    printf("SliceNormalVector %f %f %f\n",CSA->sliceNormV[1],CSA->sliceNormV[2],CSA->sliceNormV[3]);
+                    printMessage("SliceNormalVector %f %f %f\n",CSA->sliceNormV[1],CSA->sliceNormV[2],CSA->sliceNormV[3]);
             } else if (strcmp(tagCSA.name, "SliceMeasurementDuration") == 0)
                 CSA->sliceMeasurementDuration = csaMultiFloat (&buff[lPos], 3,lFloats, &itemsOK);
             else if (strcmp(tagCSA.name, "BandwidthPerPixelPhaseEncode") == 0)
@@ -1101,10 +1101,10 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
                 minTimeValue = sliceTimes[1];
                 maxTimeValue = minTimeValue;
                 if (isVerbose)
-                    printf("sliceTimes %g\t", sliceTimes[1]);
+                    printMessage("sliceTimes %g\t", sliceTimes[1]);
 				for (int z = 2; z <= itemsOK; z++) { //find index and value of fastest time
                     if (isVerbose)
-                        printf("%g\t",  sliceTimes[z]);
+                        printMessage("%g\t",  sliceTimes[z]);
                     if (sliceTimes[z] == 0)
                     	nTimeZero++;
                     if (sliceTimes[z] < minTimeValue) {
@@ -1118,7 +1118,7 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
                     if (sliceTimes[z] == timeValue1) CSA->multiBandFactor++;
 				}
                 if (isVerbose)
-                    printf("\n");
+                    printMessage("\n");
                 CSA->slice_start = minTimeIndex -1;
                 CSA->slice_end = maxTimeIndex -1;
                 if (minTimeIndex == 2)
@@ -1139,11 +1139,11 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
                      [sliceTimesNS addObject:[NSNumber numberWithFloat:sliceTimes[z]]];
                      NSLog(@" Warning: unable to determine slice order for %lu slice mosaic: %@",(unsigned long)[sliceTimesNS count],sliceTimesNS );
                      */
-                    printf("Warning: unable to determine slice order from CSA tag MosaicRefAcqTimes\n");
+                    printWarning("unable to determine slice order from CSA tag MosaicRefAcqTimes\n");
                 }
                 if ((CSA->sliceOrder != NIFTI_SLICE_UNKNOWN) && (nTimeZero > 1)) {
                 	if (isVerbose)
-                		printf(" Multiband x%d sequence: setting slice order as UNKNOWN (instead of %d)\n", nTimeZero, CSA->sliceOrder);
+                		printMessage(" Multiband x%d sequence: setting slice order as UNKNOWN (instead of %d)\n", nTimeZero, CSA->sliceOrder);
                 	CSA->sliceOrder = NIFTI_SLICE_UNKNOWN;
 
                 }
@@ -1182,12 +1182,12 @@ void dcmMultiFloat (int lByteLength, char lBuffer[], int lnFloats, float *lFloat
         if ((isOK) && ((i == (lByteLength)) || (lBuffer[i] == '/')  || (lBuffer[i] == ' ')  || (lBuffer[i] == '\\') )){
             //x strlcpy(temp,&cString[lStart],i-lStart+1);
             snprintf(temp,i-lStart+1,"%s",&cString[lStart]);
-            //printf("dcmMultiFloat %s\n",temp);
+            //printMessage("dcmMultiFloat %s\n",temp);
             if (f < lnFloats) {
                 f ++;
                 lFloats[f] = (float) atof(temp);
                 isOK = false;
-                //printf("%d == %f\n", f, atof(temp));
+                //printMessage("%d == %f\n", f, atof(temp));
             } //if f <= nFloats
             lStart = i+1;
         } //if isOK
@@ -1214,7 +1214,7 @@ float dcmStrFloat (int lByteLength, unsigned char lBuffer[]) { //read float stor
 } //dcmStrFloat()
 
 int headerDcm2Nii(struct TDICOMdata d, struct nifti_1_header *h) {
-    //printf("bytes %dx%dx%d %d, %d\n",d.XYZdim[1],d.XYZdim[2],d.XYZdim[3], d.Allocbits_per_pixel, d.samplesPerPixel);
+    //printMessage("bytes %dx%dx%d %d, %d\n",d.XYZdim[1],d.XYZdim[2],d.XYZdim[3], d.Allocbits_per_pixel, d.samplesPerPixel);
     memset(h, 0, sizeof(nifti_1_header)); //zero-fill structure so unused items are consistent
     for (int i = 0; i < 80; i++) h->descrip[i] = 0;
     for (int i = 0; i < 24; i++) h->aux_file[i] = 0;
@@ -1242,7 +1242,7 @@ int headerDcm2Nii(struct TDICOMdata d, struct nifti_1_header *h) {
 #ifdef myUseCOut
      	std::cout<<"Unsupported DICOM bit-depth " <<d.bitsAllocated << " with " << d.samplesPerPixel << "samples per pixel" <<std::endl;
 #else
-        printf("Unsupported DICOM bit-depth %d with %d samples per pixel\n",d.bitsAllocated,d.samplesPerPixel);
+        printMessage("Unsupported DICOM bit-depth %d with %d samples per pixel\n",d.bitsAllocated,d.samplesPerPixel);
 #endif
         return EXIT_FAILURE;
     }
@@ -1419,7 +1419,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 #ifdef myUseCOut
                     std::cout<<"This software is unable to convert ancient PAR files: please use legacy dcm2nii" <<std::endl;
 #else
-                    printf("This software is unable to convert ancient PAR files: please use legacy dcm2nii\n");
+                    printMessage("This software is unable to convert ancient PAR files: please use legacy dcm2nii\n");
 #endif
                     return d;
                     //nCols = 26; //e.g. PAR 3.0 has 26 relevant columns
@@ -1449,7 +1449,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
                 strcat(d.patientName, Comment[5]);
                 strcat(d.patientName, Comment[6]);
                 strcat(d.patientName, Comment[7]);
-                //printf("%s\n",d.patientName);
+                //printMessage("%s\n",d.patientName);
 
             }
             if ((strcmp(Comment[0], "Protocol") == 0) && (strcmp(Comment[1], "name") == 0)) {
@@ -1458,7 +1458,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
                 strcat(d.protocolName, Comment[5]);
                 strcat(d.protocolName, Comment[6]);
                 strcat(d.protocolName, Comment[7]);
-                //printf("%s\n",d.protocolName);
+                //printMessage("%s\n",d.protocolName);
             }
             if ((strcmp(Comment[0], "Examination") == 0) && (strcmp(Comment[1], "date/time") == 0)) {
                 strcpy(d.studyDate, Comment[3]);
@@ -1492,7 +1492,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 #ifdef myUseCOut
             std::cout<<"Error: PAR files should have 'CLINICAL TRYOUT' line with a version from 2.0-4.2: " << parname<<std::endl;
 #else
-            printf("Error: PAR files should have 'CLINICAL TRYOUT' line with a version from 2.0-4.2: %s\n", parname);
+            printError("PAR files should have 'CLINICAL TRYOUT' line with a version from 2.0-4.2: %s\n", parname);
 #endif
             free (cols);
             return d;
@@ -1527,7 +1527,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 #ifdef myUseCOut
                 std::cout<<"Error: slice dimensions or bit depth varies "<< parname <<std::endl;
 #else
-                printf("Error: slice dimensions or bit depth varies %s\n", parname);
+                printError("slice dimensions or bit depth varies %s\n", parname);
 #endif
                 return d;
             }
@@ -1556,8 +1556,8 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
                 int dir = d.CSA.numDti;
                 if (dir <= kMaxDTI4D) {
                     if (isVerbose ) {
-                        if (d.CSA.numDti == 1) printf("n\tdir\tbValue\tV1\tV2\tV3\n");
-                        printf("%d\t%g\t%g\t%g\t%g\t%g\n", dir-1, cols[kGradientNumber], cols[kbval], cols[kv1], cols[kv2], cols[kv3]);
+                        if (d.CSA.numDti == 1) printMessage("n\tdir\tbValue\tV1\tV2\tV3\n");
+                        printMessage("%d\t%g\t%g\t%g\t%g\t%g\n", dir-1, cols[kGradientNumber], cols[kbval], cols[kv1], cols[kv2], cols[kv3]);
                     }
                     dti4D->S[dir-1].V[0] = cols[kbval];
                     dti4D->S[dir-1].V[1] = cols[kv1];
@@ -1569,7 +1569,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 
             }
         } //if DTI directions
-        //printf("%f %f %lu\n",cols[9],cols[kGradientNumber], strlen(buff))
+        //printMessage("%f %f %lu\n",cols[9],cols[kGradientNumber], strlen(buff))
         p = fgets (buff, LINESZ, fp);//get next line
     }
 
@@ -1579,7 +1579,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
     d.isValid = true;
     d.isSigned = true;
     if ((slice % d.xyzDim[3]) != 0) {
-        printf("Error: slices (%d) not divisible by slices (%d) [acquisition aborted]. Try nii_rescue_par to fix this: %s\n", slice, d.xyzDim[3], parname);
+        printError("slices (%d) not divisible by slices (%d) [acquisition aborted]. Try nii_rescue_par to fix this: %s\n", slice, d.xyzDim[3], parname);
         d.isValid = true;
     }
     d.xyzDim[4] = slice/d.xyzDim[3];
@@ -1590,17 +1590,17 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 
     if (!isIndexSequential)
         std::cout<<"Warning: slice order not saved to disk sequentially! [solution: user dcm2nii instead]" <<std::endl;
-    printf("Warning: slice order not saved to disk sequentially! [solution: user dcm2nii instead]\n");
+    printWarning("slice order not saved to disk sequentially! [solution: user dcm2nii instead]\n");
     std::cout<<"Done reading PAR header version "<< (float)parVers/10<<" with "<< d.CSA.numDti << " volumes"<<std::endl;
 #else
     if (ADCwarning)
-        printf("Warning: PAR/REC dataset includes an ADC map that could disrupt analysis. Please remove volume and ensure vectors are reported correctly\n");
+        printWarning("PAR/REC dataset includes an ADC map that could disrupt analysis. Please remove volume and ensure vectors are reported correctly\n");
 
     if (isIntenScaleVaries)
-       printf("Warning: intensity slope/intercept varies between slices! [solution: user dcm2nii instead]\n");
+       printWarning("intensity slope/intercept varies between slices! [solution: user dcm2nii instead]\n");
         if (!isIndexSequential)
-            printf("Warning: slice order not saved to disk sequentially! [solution: user dcm2nii instead]\n");
-            printf("Done reading PAR header version %.1f, with %d volumes\n", (float)parVers/10, d.CSA.numDti);
+            printWarning("slice order not saved to disk sequentially! [solution: user dcm2nii instead]\n");
+            printMessage("Done reading PAR header version %.1f, with %d volumes\n", (float)parVers/10, d.CSA.numDti);
 #endif
 
             //see Xiangrui Li 's dicm2nii (also BSD license)
@@ -1675,17 +1675,17 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
     d.manufacturer = kMANUFACTURER_PHILIPS;
     d.imageStart = 0;
     if (d.CSA.numDti >= kMaxDTI4D) {
-        printf("Error: unable to convert DTI [increase kMaxDTI4D]\n");
+        printError("unable to convert DTI [increase kMaxDTI4D]\n");
         d.CSA.numDti = 0;
     };
     if ((maxBValue <= 0.0f) && (maxDynTime > minDynTime) && (d.CSA.numDti > 1)) {
     	float TRms =  1000.0f * (maxDynTime - minDynTime) / (float)(d.CSA.numDti-1);
     	if (fabs(TRms - d.TR) > 0.005f)
-    		printf("Warning: reported TR=%gms, measured TR=%gms (prospect. motion corr.?)\n", d.TR, TRms);
+    		printWarning("reported TR=%gms, measured TR=%gms (prospect. motion corr.?)\n", d.TR, TRms);
     	d.TR = TRms;
     }
     if (intenScalePhilips != 0.0) {
-        //printf("Philips Precise RS:RI:SS = %g:%g:%g (see PMC3998685)\n",d.intenScale,d.intenIntercept,intenScalePhilips);
+        //printMessage("Philips Precise RS:RI:SS = %g:%g:%g (see PMC3998685)\n",d.intenScale,d.intenIntercept,intenScalePhilips);
         //we will report calibrated "FP" values http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3998685/
         //# === PIXEL VALUES =============================================================
 		//#  PV = pixel value in REC file, FP = floating point value, DV = displayed value on console
@@ -1754,7 +1754,7 @@ unsigned char * nii_demosaic(unsigned char* inImg, struct nifti_1_header *hdr, i
 #ifdef myUseCOut
      	std::cout<<"WARNING: CSA 'ProtocolSliceNumber' SUGGESTS REVERSED SLICE ORDER: SPATIAL AND DTI COORDINATES UNTESTED" <<std::endl;
 #else
-        printf("WARNING: WEIRD CSA 'ProtocolSliceNumber': SPATIAL AND DTI TRANSFORMS UNTESTED\n");
+        printWarning("WEIRD CSA 'ProtocolSliceNumber': SPATIAL AND DTI TRANSFORMS UNTESTED\n");
 #endif
     }*/
     /*if ((ProtocolSliceNumber1 > 1) && (hdr->dim[3] > 1)) { //exceptionally rare: reverse order of slices - now handled in matrix...
@@ -1844,10 +1844,10 @@ unsigned char * nii_reorderSlices(unsigned char* bImg, struct nifti_1_header *h,
     //flip slice order - Philips scanners can save data in non-contiguous order
     if ((h->dim[3] < 2) || (h->dim[4] > 1)) return bImg;
     if (h->dim[3] >= kMaxDTI4D) {
-    	printf("Warning: unable to reorder slices (%d > %d)\n", h->dim[3], kMaxDTI4D);
+    	printWarning("unable to reorder slices (%d > %d)\n", h->dim[3], kMaxDTI4D);
     	return bImg;
     }
-    //printf("<<< Slices not spatially contiguous: please check output [new feature]\n");
+    //printMessage("<<< Slices not spatially contiguous: please check output [new feature]\n");
     int dim4to7 = 1;
     for (int i = 4; i < 8; i++)
         if (h->dim[i] > 1) dim4to7 = dim4to7 * h->dim[i];
@@ -1886,9 +1886,9 @@ unsigned char * nii_flipZ(unsigned char* bImg, struct nifti_1_header *h){
     LOAD_MAT44(Q44, s.m[0][0],s.m[0][1],s.m[0][2],v.v[0],
                s.m[1][0],s.m[1][1],s.m[1][2],v.v[1],
                s.m[2][0],s.m[2][1],s.m[2][2],v.v[2]);
-    //printf(" ----------> %f %f %f\n",v.v[0],v.v[1],v.v[2]);
+    //printMessage(" ----------> %f %f %f\n",v.v[0],v.v[1],v.v[2]);
     setQSForm(h,Q44);
-    //printf("nii_flipImgY dims %dx%dx%d %d \n",h->dim[1],h->dim[2], dim3to7,h->bitpix/8);
+    //printMessage("nii_flipImgY dims %dx%dx%d %d \n",h->dim[1],h->dim[2], dim3to7,h->bitpix/8);
     return nii_flipImgZ(bImg,h);
 }// nii_flipZ()
 
@@ -1910,7 +1910,7 @@ unsigned char * nii_flipY(unsigned char* bImg, struct nifti_1_header *h){
                s.m[1][0],s.m[1][1],s.m[1][2],v.v[1],
                s.m[2][0],s.m[2][1],s.m[2][2],v.v[2]);
     setQSForm(h,Q44);
-    //printf("nii_flipImgY dims %dx%dx%d %d \n",h->dim[1],h->dim[2], dim3to7,h->bitpix/8);
+    //printMessage("nii_flipImgY dims %dx%dx%d %d \n",h->dim[1],h->dim[2], dim3to7,h->bitpix/8);
     return nii_flipImgY(bImg,h);
 }// nii_flipY()
 
@@ -1918,7 +1918,7 @@ unsigned char * nii_flipY(unsigned char* bImg, struct nifti_1_header *h){
 //convert 12-bit allocated data to 16-bit
 // works for MR-MONO2-12-angio-an1 from http://www.barre.nom.fr/medical/samples/
 // looks wrong: this sample toggles between big and little endian stores
-	printf("Warning: support for images that allocate 12 bits is experimental\n");
+	printWarning("support for images that allocate 12 bits is experimental\n");
 	int nVox = nii_ImgBytes(hdr) / (hdr.bitpix/8);
     for (int i=(nVox-1); i >= 0; i--) {
     	int i16 = i * 2;
@@ -1945,7 +1945,7 @@ void conv12bit16bit(unsigned char * img, struct nifti_1_header hdr) {
 //convert 12-bit allocated data to 16-bit
 // works for MR-MONO2-12-angio-an1 from http://www.barre.nom.fr/medical/samples/
 // looks wrong: this sample toggles between big and little endian stores
-	printf("Warning: support for images that allocate 12 bits is experimental\n");
+	printWarning("support for images that allocate 12 bits is experimental\n");
 	int nVox = (int) nii_ImgBytes(hdr) / (hdr.bitpix/8);
     for (int i=(nVox-1); i >= 0; i--) {
     	int i16 = i * 2;
@@ -1969,13 +1969,13 @@ unsigned char * nii_loadImgCore(char* imgname, struct nifti_1_header hdr, int bi
          imgszRead = round(imgsz * 0.75);
     FILE *file = fopen(imgname , "rb");
 	if (!file) {
-         printf("Error: unable to open %s\n", imgname);
+         printError("unable to open %s\n", imgname);
          return NULL;
     }
 	fseek(file, 0, SEEK_END);
 	long long fileLen=ftell(file);
     if (fileLen < (imgszRead+hdr.vox_offset)) {
-        printf("File not large enough to store image data: %s\n", imgname);
+        printMessage("File not large enough to store image data: %s\n", imgname);
         return NULL;
     }
 	fseek(file, (long) hdr.vox_offset, SEEK_SET);
@@ -1998,7 +1998,7 @@ unsigned char * nii_planar2rgb(unsigned char* bImg, struct nifti_1_header *hdr, 
                         //int sliceBytes24 = hdr->dim[1]*hdr->dim[2] * hdr->bitpix/8;
                         int sliceBytes8 = hdr->dim[1]*hdr->dim[2];
                         int sliceBytes24 = sliceBytes8 * 3;
-    //printf("planar->rgb %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
+    //printMessage("planar->rgb %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
 #ifdef _MSC_VER
                         unsigned char * slice24 = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes24));
 #else
@@ -2042,7 +2042,7 @@ unsigned char * nii_rgb2planar(unsigned char* bImg, struct nifti_1_header *hdr, 
 #else
 	unsigned char  slice24[ sliceBytes24 ];
 #endif
-    //printf("rgb->planar %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
+    //printMessage("rgb->planar %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
     int sliceOffsetR = 0;
     for (int sl = 0; sl < dim3to7; sl++) { //for each 2D slice
         memcpy(slice24, &bImg[sliceOffsetR], sliceBytes24); //TPX memcpy(&slice24, &bImg[sliceOffsetR], sliceBytes24);
@@ -2107,9 +2107,9 @@ unsigned char * nii_XYTZ_XYZT(unsigned char* bImg, struct nifti_1_header *hdr, i
     for (int i = 4; i < 8; i++)
         if (hdr->dim[i] > 1) dim4to7 = dim4to7 * hdr->dim[i];
     if ((hdr->dim[3] < 2) || (dim4to7 < 2)) return bImg;
-    printf("Converting XYTZ to XYZT with %d slices (Z) and %d volumes (T).\n",hdr->dim[3], dim4to7);
+    printMessage("Converting XYTZ to XYZT with %d slices (Z) and %d volumes (T).\n",hdr->dim[3], dim4to7);
     if ((dim4to7 % seqRepeats) != 0) {
-        printf("Error: patient position repeats %d times, but this does not evenly divide number of volumes (%d)\n", seqRepeats,dim4to7);
+        printError("patient position repeats %d times, but this does not evenly divide number of volumes (%d)\n", seqRepeats,dim4to7);
         seqRepeats = 1;
     }
     uint64_t typeRepeats = dim4to7 / seqRepeats;
@@ -2156,20 +2156,20 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
     jas_image_t *image;
     jas_setdbglevel(0);
     if (!(in = jas_stream_fopen(imgname, "rb"))) {
-        printf( "Error: cannot open input image file %s\n", imgname);
+        printMessage( "Error: cannot open input image file %s\n", imgname);
         return NULL;
     }
     //int isSeekable = jas_stream_isseekable(in);
     jas_stream_seek(in, dcm.imageStart, 0);
     int infmt = jas_image_getfmt(in);
     if (infmt < 0) {
-        printf( "Error: input image has unknown format %s offset %d bytes %d\n", imgname, dcm.imageStart, dcm.imageBytes);
+        printMessage( "Error: input image has unknown format %s offset %d bytes %d\n", imgname, dcm.imageStart, dcm.imageBytes);
         return NULL;
     }
     char opt[] = "\0";
     char *inopts = opt;
     if (!(image = jas_image_decode(in, infmt, inopts))) {
-        printf("Error: cannot decode image data %s offset %d bytes %d\n", imgname, dcm.imageStart, dcm.imageBytes);
+        printError("cannot decode image data %s offset %d bytes %d\n", imgname, dcm.imageStart, dcm.imageBytes);
         return NULL;
     }
     int numcmpts;
@@ -2177,7 +2177,7 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
     switch (jas_clrspc_fam(jas_image_clrspc(image))) {
         case JAS_CLRSPC_FAM_RGB:
             if (jas_image_clrspc(image) != JAS_CLRSPC_SRGB)
-                printf("Warning: inaccurate color\n");
+                printWarning("inaccurate color\n");
             numcmpts = 3;
             if ((cmpts[0] = jas_image_getcmptbytype(image,
                                                     JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_RGB_R))) < 0 ||
@@ -2185,22 +2185,22 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
                                                     JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_RGB_G))) < 0 ||
                 (cmpts[2] = jas_image_getcmptbytype(image,
                                                     JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_RGB_B))) < 0) {
-                printf("Error: missing color component\n");
+                printError("missing color component\n");
                 return NULL;
             }
             break;
         case JAS_CLRSPC_FAM_GRAY:
             if (jas_image_clrspc(image) != JAS_CLRSPC_SGRAY)
-                printf("Warning: inaccurate color\n");
+                printWarning("inaccurate color\n");
             numcmpts = 1;
             if ((cmpts[0] = jas_image_getcmptbytype(image,
                                                     JAS_IMAGE_CT_COLOR(JAS_CLRSPC_CHANIND_GRAY_Y))) < 0) {
-                printf("Error: missing color component\n");
+                printError("missing color component\n");
                 return NULL;
             }
             break;
         default:
-            printf("error: unsupported color space\n");
+            printError("unsupported color space\n");
             return NULL;
             break;
     }
@@ -2209,7 +2209,7 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
     int prec = jas_image_cmptprec(image, cmpts[0]);
     int sgnd = jas_image_cmptsgnd(image, cmpts[0]);
     #ifdef MY_DEBUG
-    printf("offset %d w*h %d*%d bpp %d sgnd %d components %d '%s' Jasper=%s\n",dcm.imageStart, width, height, prec, sgnd, numcmpts, imgname, jas_getversion());
+    printMessage("offset %d w*h %d*%d bpp %d sgnd %d components %d '%s' Jasper=%s\n",dcm.imageStart, width, height, prec, sgnd, numcmpts, imgname, jas_getversion());
     #endif
     for (int cmptno = 0; cmptno < numcmpts; ++cmptno) {
         if (jas_image_cmptwidth(image, cmpts[cmptno]) != width ||
@@ -2220,7 +2220,7 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
             jas_image_cmptvstep(image, cmpts[cmptno]) != jas_image_cmptvstep(image, 0) ||
             jas_image_cmpttlx(image, cmpts[cmptno]) != jas_image_cmpttlx(image, 0) ||
             jas_image_cmpttly(image, cmpts[cmptno]) != jas_image_cmpttly(image, 0)) {
-            printf("The NIfTI format cannot be used to represent an image with this geometry.\n");
+            printMessage("The NIfTI format cannot be used to represent an image with this geometry.\n");
             return NULL;
         }
     }
@@ -2228,7 +2228,7 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
     int bpp = (prec + 7) >> 3; //e.g. 12 bits requires 2 bytes
     int imgbytes = bpp * width * height * numcmpts;
     if ((bpp < 1) || (bpp > 2) || (width < 1) || (height < 1) || (imgbytes < 1)) {
-        printf("Serious catastrophic error decompression error\n");
+        printMessage("Serious catastrophic error decompression error\n");
         return NULL;
     }
     jas_seqent_t v;
@@ -2237,7 +2237,7 @@ unsigned char * nii_loadImgCoreJasper(char* imgname, struct nifti_1_header hdr, 
     int16_t * img16i = (int16_t*) img; //signed 16-bit
     if (sgnd) bpp = -bpp;
     if (bpp == -1) {
-        printf("Error: Signed 8-bit DICOM?\n");
+        printError("Signed 8-bit DICOM?\n");
         return NULL;
     }
     jas_matrix_t *data;
@@ -2296,7 +2296,7 @@ TJPEG *  decode_JPEG_SOF_0XC3_stack (const char *fn, int skipBytes, bool isVerbo
     fseek(reader, 0, SEEK_END);
     long lRawSz = ftell(reader)- skipBytes;
     if (lRawSz <= 8) {
-        printf("Error opening %s\n", fn);
+        printError("Cannot open %s\n", fn);
         abortGoto(); //read failure
     }
     fseek(reader, skipBytes, SEEK_SET);
@@ -2311,11 +2311,11 @@ TJPEG *  decode_JPEG_SOF_0XC3_stack (const char *fn, int skipBytes, bool isVerbo
         int tagLength = dcmInt(4,&lRawRA[lRawPos],isLittleEndian);
         long tagEnd =lRawPos + tagLength + 4;
         if (isVerbose)
-            printf("Tag %#x length %d end at %ld\n", tag, tagLength, tagEnd+skipBytes);
+            printMessage("Tag %#x length %d end at %ld\n", tag, tagLength, tagEnd+skipBytes);
         lRawPos += 4; //read tag length
         if ((lRawRA[lRawPos] != 0xFF) || (lRawRA[lRawPos+1] != 0xD8) || (lRawRA[lRawPos +2] != 0xFF)) {
             if (isVerbose)
-                printf("Warning: JPEG signature 0xFFD8FF not found at offset %d of %s\n", skipBytes, fn);
+                printWarning("JPEG signature 0xFFD8FF not found at offset %d of %s\n", skipBytes, fn);
         } else {
             lOffsetRA[frame].offset = lRawPos+skipBytes;
             lOffsetRA[frame].size = tagLength;
@@ -2325,7 +2325,7 @@ TJPEG *  decode_JPEG_SOF_0XC3_stack (const char *fn, int skipBytes, bool isVerbo
     }
     free(lRawRA);
     if (frame < frames) {
-        printf("Only found %d of %d JPEG fragments. Please use dcmdjpeg to uncompress data.\n", frame, frames);
+        printMessage("Only found %d of %d JPEG fragments. Please use dcmdjpeg to uncompress data.\n", frame, frames);
         abortGoto();
     }
     return lOffsetRA;
@@ -2336,9 +2336,9 @@ unsigned char * nii_loadImgJPEGC3(char* imgname, struct nifti_1_header hdr, stru
     int dimX, dimY, bits, frames;
     //clock_t start = clock();
     unsigned char * ret = decode_JPEG_SOF_0XC3 (imgname, dcm.imageStart, isVerbose, &dimX, &dimY, &bits, &frames, 0);
-    //printf("JPEG %fms\n", ((double)(clock()-start))/1000);
+    //printMessage("JPEG %fms\n", ((double)(clock()-start))/1000);
     if (hdr.dim[3] != frames) { //multi-slice image saved as multiple image fragments rather than a single image
-        //printf("Unable to decode all slices (%d/%d). Please use dcmdjpeg to uncompress data.\n", frames, hdr.dim[3]);
+        //printMessage("Unable to decode all slices (%d/%d). Please use dcmdjpeg to uncompress data.\n", frames, hdr.dim[3]);
         if (ret != NULL) free(ret);
         TJPEG * offsetRA = decode_JPEG_SOF_0XC3_stack (imgname, dcm.imageStart-8, isVerbose, hdr.dim[3], dcm.isLittleEndian);
         if (offsetRA == NULL) return NULL;
@@ -2348,10 +2348,10 @@ unsigned char * nii_loadImgJPEGC3(char* imgname, struct nifti_1_header hdr, stru
         unsigned char *bImg = (unsigned char *)malloc(imgsz);
         for (int frame = 0; frame < hdr.dim[3]; frame++) {
             if (isVerbose)
-                printf("JPEG frame %d has %ld bytes @ %ld\n", frame, offsetRA[frame].size, offsetRA[frame].offset);
+                printMessage("JPEG frame %d has %ld bytes @ %ld\n", frame, offsetRA[frame].size, offsetRA[frame].offset);
             unsigned char * ret = decode_JPEG_SOF_0XC3 (imgname, (int)offsetRA[frame].offset, false, &dimX, &dimY, &bits, &frames, (int)offsetRA[frame].size);
             if (ret == NULL) {
-                printf("Unable to decode JPEG. Please use dcmdjpeg to uncompress data.\n");
+                printMessage("Unable to decode JPEG. Please use dcmdjpeg to uncompress data.\n");
                 free(bImg);
                 return NULL;
             }
@@ -2370,9 +2370,9 @@ unsigned char * nii_loadImgJPEGC3(char* imgname, struct nifti_1_header hdr, stru
 #endif
 
 unsigned char * nii_loadImgJPEG50(char* imgname, struct nifti_1_header hdr, struct TDICOMdata dcm) {
-    //printf("50 offset %d\n", dcm.imageStart);
+    //printMessage("50 offset %d\n", dcm.imageStart);
     if( access(imgname, F_OK ) == -1 ) {
-        printf("Error: unable to find '%s'\n", imgname);
+        printError("unable to find '%s'\n", imgname);
         return NULL;
     }
     //load compressed data
@@ -2381,7 +2381,7 @@ unsigned char * nii_loadImgJPEG50(char* imgname, struct nifti_1_header hdr, stru
     int size = (int) ftell(f);
     size = size - dcm.imageStart;
     if (size < 8) {
-        printf("Error file too small\n");
+        printError("file too small\n");
         fclose(f);
         return NULL;
     }
@@ -2392,7 +2392,7 @@ unsigned char * nii_loadImgJPEG50(char* imgname, struct nifti_1_header hdr, stru
     //decode
     njInit();
     if (njDecode(buf, size)) {
-        printf("Error decoding JPEG image.\n");
+        printError("problem decoding JPEG image.\n");
         return NULL;
     }
     free(buf);
@@ -2423,7 +2423,7 @@ unsigned char * nii_loadImgXL(char* imgname, struct nifti_1_header *hdr, struct 
         #endif
     #endif
     if (dcm.compressionScheme == kCompressYes) {
-        printf("Software not set up to decompress DICOM\n");
+        printMessage("Software not set up to decompress DICOM\n");
         return NULL;
     } else
         img = nii_loadImgCore(imgname, *hdr, dcm.bitsAllocated);
@@ -2491,7 +2491,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
     struct stat s;
     if( stat(fname,&s) == 0 ) {
         if( !(s.st_mode & S_IFREG) ){
-            printf( "DICOM read fail: not a valid file (perhaps a directory) %s\n",fname);
+            printMessage( "DICOM read fail: not a valid file (perhaps a directory) %s\n",fname);
             return d;
         }
     }
@@ -2508,7 +2508,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #ifdef myUseCOut
      	std::cout<<"Unable to open file "<< fname <<std::endl;
 #else
-        printf( "Unable to open file %s\n", fname);
+        printMessage( "Unable to open file %s\n", fname);
 #endif
 		return d;
 	}
@@ -2518,7 +2518,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #ifdef myUseCOut
      	std::cout<<"File too small to be a DICOM image "<< fname <<std::endl;
 #else
-        printf( "File too small to be a DICOM image %s\n", fname);
+        printMessage( "File too small to be a DICOM image %s\n", fname);
 #endif
 		return d;
 	}
@@ -2526,7 +2526,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 	//Allocate memory
 	unsigned char *buffer=(unsigned char *)malloc(fileLen+1);
 	if (!buffer) {
-		printf( "Memory error!");
+		printMessage( "Memory error!");
         fclose(file);
 		return d;
 	}
@@ -2541,7 +2541,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
     //	}
     //	isPart10prefix = false; //no 132 byte header, not a valid part 10 file http://fileformats.archiveteam.org/wiki/DICOM
     //	d.isExplicitVR = false;
-    //	//printf("Warning: not a valid part 10 DICOM (missing 'DICM' signature): %s\n", fname);
+    //	//printWarning("not a valid part 10 DICOM (missing 'DICM' signature): %s\n", fname);
     //}
     //DEFINE DICOM TAGS
 #define  kUnused 0x0001+(0x0001 << 16 )
@@ -2651,7 +2651,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
     	#ifdef myUseCOut
             std::cout<<"DICOM appears corrupt: first group:element should be 0x0002:0x0000" <<std::endl;
     	#else
-        	printf("DICOM appears corrupt: first group:element should be 0x0002:0x0000\n");
+        	printMessage("DICOM appears corrupt: first group:element should be 0x0002:0x0000\n");
     	#endif
     }
     char vr[2];
@@ -2693,7 +2693,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
             vr[0] = 'N';
             vr[1] = 'A';
             if (groupElement == kUnnest2) sqDepth--;
-            //if (groupElement == kUnnest2) printf("SQend %d\n", sqDepth);
+            //if (groupElement == kUnnest2) printMessage("SQend %d\n", sqDepth);
 
             //if (groupElement == kUnnest) geiisBug = false; //don't exit if there is a proprietary thumbnail
             lLength = 4;
@@ -2743,14 +2743,14 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 
         if   ((vr[0] == 'S') && (vr[1] == 'Q')) {
             sqDepth++;
-            //printf("SQstart %d\n", sqDepth);
+            //printMessage("SQstart %d\n", sqDepth);
         }
         if ((groupElement == kNest) || ((vr[0] == 'S') && (vr[1] == 'Q'))) nest++;
         if (groupElement == kUnnest) nest--;
         //next: look for required tags
         if ((groupElement == kNest)  && (isEncapsulatedData)) {
             d.imageBytes = dcmInt(4,&buffer[lPos-4],d.isLittleEndian);
-            //printf("compressed data %d-> %ld\n",d.imageBytes, lPos);
+            //printMessage("compressed data %d-> %ld\n",d.imageBytes, lPos);
             if (d.imageBytes > 12) {
                 d.imageStart = (int)lPos;
             }
@@ -2758,21 +2758,21 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
         if ((isIconImageSequence) && ((groupElement & 0x0028) == 0x0028 )) groupElement = kUnused; //ignore icon dimensions
         if (true) { //(nest <= 0) { //some Philips images have different 0020,0013
         //verbose reporting :
-        // printf("Pos %ld GroupElement %#08x,%#08x Length %d isLittle %d\n", lPos, (groupElement & 0xFFFF), (groupElement >> 16), lLength, d.isLittleEndian);
+        // printMessage("Pos %ld GroupElement %#08x,%#08x Length %d isLittle %d\n", lPos, (groupElement & 0xFFFF), (groupElement >> 16), lLength, d.isLittleEndian);
         switch ( groupElement ) {
             case 	kTransferSyntax: {
                 char transferSyntax[kDICOMStr];
                 dcmStr (lLength, &buffer[lPos], transferSyntax);
-                //printf("transfer syntax '%s'\n", transferSyntax);
+                //printMessage("transfer syntax '%s'\n", transferSyntax);
                 if (strcmp(transferSyntax, "1.2.840.10008.1.2.1") == 0)
                     ; //default isExplicitVR=true; //d.isLittleEndian=true
                 else if  (strcmp(transferSyntax, "1.2.840.10008.1.2.4.50") == 0) {
                     d.compressionScheme = kCompress50;
-                    //printf("Lossy JPEG: please decompress with Osirix or dcmdjpg. %s\n", transferSyntax);
+                    //printMessage("Lossy JPEG: please decompress with Osirix or dcmdjpg. %s\n", transferSyntax);
                     //d.imageStart = 1;//abort as invalid (imageStart MUST be >128)
                 } else if (strcmp(transferSyntax, "1.2.840.10008.1.2.4.51") == 0) {
                         d.compressionScheme = kCompress50;
-                        //printf("Lossy JPEG: please decompress with Osirix or dcmdjpg. %s\n", transferSyntax);
+                        //printMessage("Lossy JPEG: please decompress with Osirix or dcmdjpg. %s\n", transferSyntax);
                         //d.imageStart = 1;//abort as invalid (imageStart MUST be >128)
                 //uJPEG does not decode these: ..53 ...55
                 // } else if (strcmp(transferSyntax, "1.2.840.10008.1.2.4.53") == 0) {
@@ -2781,18 +2781,18 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                     //d.isCompressed = true;
                     //https://www.medicalconnections.co.uk/kb/Transfer_Syntax should be SOF = 0xC3
                     d.compressionScheme = kCompressC3;
-                    //printf("Ancient JPEG-lossless (SOF type 0xc3): please check conversion\n");
+                    //printMessage("Ancient JPEG-lossless (SOF type 0xc3): please check conversion\n");
                 } else if (strcmp(transferSyntax, "1.2.840.10008.1.2.4.70") == 0) {
                     //d.isCompressed = true;
                     d.compressionScheme = kCompressC3;
-                    //printf("Ancient JPEG-lossless (SOF type 0xc3): please check conversion\n");
+                    //printMessage("Ancient JPEG-lossless (SOF type 0xc3): please check conversion\n");
                     //d.imageStart = 1;//abort as invalid (imageStart MUST be >128)
                 } else if ((compressFlag != kCompressNone) && (strcmp(transferSyntax, "1.2.840.10008.1.2.4.90") == 0)) {
                     d.compressionScheme = kCompressYes;
-                    //printf("JPEG2000 Lossless support is new: please validate conversion\n");
+                    //printMessage("JPEG2000 Lossless support is new: please validate conversion\n");
                 } else if ((compressFlag != kCompressNone) && (strcmp(transferSyntax, "1.2.840.10008.1.2.4.91") == 0)) {
                     d.compressionScheme = kCompressYes;
-                    //printf("JPEG2000 support is new: please validate conversion\n");
+                    //printMessage("JPEG2000 support is new: please validate conversion\n");
                 } else if (strcmp(transferSyntax, "1.2.840.10008.1.2.2") == 0)
                     isSwitchToBigEndian = true; //isExplicitVR=true;
                 //else if (strcmp(transferSyntax, "1.2.840.10008.1.2.4.91") == 0)
@@ -2803,7 +2803,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #ifdef myUseCOut
                     std::cout<<"Unsupported transfer syntax "<< transferSyntax<<std::endl;
 #else
-                    printf("Unsupported transfer syntax '%s' (see www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)\n",transferSyntax);
+                    printMessage("Unsupported transfer syntax '%s' (see www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)\n",transferSyntax);
 #endif
                     d.imageStart = 1;//abort as invalid (imageStart MUST be >128)
                 }
@@ -2877,7 +2877,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                 break;
                 /*case kDiffusionBFactorSiemens :
                  if (d.manufacturer == kMANUFACTURER_SIEMENS)
-                 printf(">>>>%f\n,",dcmStrFloat(lLength, &buffer[lPos]));
+                 printMessage(">>>>%f\n,",dcmStrFloat(lLength, &buffer[lPos]));
 
                  break;*/
             case kDiffusionDirectionGEX :
@@ -2899,7 +2899,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                         std::cout<<"Warning: Philips R3.2.2 can report different positions for the same slice. Attempting patch." <<std::endl;
 #else
                     if (!is2005140FSQwarned)
-                        printf("Warning: Philips R3.2.2 can report different positions for the same slice. Attempting patch.\n");
+                        printWarning("Philips R3.2.2 can report different positions for the same slice. Attempting patch.\n");
 #endif
                     is2005140FSQwarned = true;
                 } else {
@@ -2923,7 +2923,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                         } //if different position from 1st slice in file
                     } //if not first slice in file
                     if (isVerbose > 1)
-                    	printf("   Patient Position 0020,0032 (#,@,X,Y,Z)\t%d\t%ld\t%g\t%g\t%g\n", patientPositionNum, lPos, patientPosition[1], patientPosition[2], patientPosition[3]);
+                    	printMessage("   Patient Position 0020,0032 (#,@,X,Y,Z)\t%d\t%ld\t%g\t%g\t%g\n", patientPositionNum, lPos, patientPosition[1], patientPosition[2], patientPosition[3]);
 
                 } //not after 2005,140F
                 break;
@@ -3155,7 +3155,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                     d.CSA.dtiV[3] = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);
                     if ((d.CSA.numDti > 1) && (d.CSA.numDti < kMaxDTI4D))
                         dti4D->S[d.CSA.numDti-1].V[3] = d.CSA.dtiV[3];
-                    //printf("dti XYZ %g %g %g\n",d.CSA.dtiV[1],d.CSA.dtiV[2],d.CSA.dtiV[3]);
+                    //printMessage("dti XYZ %g %g %g\n",d.CSA.dtiV[1],d.CSA.dtiV[2],d.CSA.dtiV[3]);
                 }
                 /*if ((d.manufacturer == kMANUFACTURER_PHILIPS) && (isAtFirstPatientPosition) && (d.CSA.numDti > 0) && (d.CSA.numDti <= kMaxDTIv))
                     d.CSA.dtiV[d.CSA.numDti-1][3] = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);*/
@@ -3166,7 +3166,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #ifdef myUseCOut
                 std::cout<<"Skipping DICOM (audio not image) " <<std::endl;
 #else
-                printf("Skipping DICOM (audio not image) '%s'\n", fname);
+                printMessage("Skipping DICOM (audio not image) '%s'\n", fname);
 #endif
                 break;
             case 	kCSAImageHeaderInfo:
@@ -3174,7 +3174,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                 d.isHasPhase = d.CSA.isPhaseMap;
                 break;
                 //case kObjectGraphics:
-                //    printf("---->%d,",lLength);
+                //    printMessage("---->%d,",lLength);
                 //    break;
             case 	kRealWorldIntercept:
                 if (isSameFloat(0.0, d.intenIntercept)) //give precedence to standard value
@@ -3193,7 +3193,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #ifdef myUseCOut
                     std::cout<<"Warning: GEIIS violates the DICOM standard. Inspect results and admonish your vendor." <<std::endl;
 #else
-                    printf("Warning: GEIIS violates the DICOM standard. Inspect results and admonish your vendor.\n");
+                    printWarning("GEIIS violates the DICOM standard. Inspect results and admonish your vendor.\n");
 #endif
                     isIconImageSequence = true;
                     //geiisBug = true; //compressed thumbnails do not follow transfer syntax! GE should not re-use pulbic tags for these proprietary images http://sonca.kasshin.net/gdcm/Doc/GE_ImageThumbnails
@@ -3230,7 +3230,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                 isIconImageSequence = false;
                 break;
             case 	kImageStartDouble:
-                printf("WARNING: double-precision DICOM conversion untested: please provide samples to developer\n");
+                printWarning("double-precision DICOM conversion untested: please provide samples to developer\n");
                 d.isFloat = true;
                 if (!isIconImageSequence) //do not exit for proprietary thumbnails
                     d.imageStart = (int)lPos;
@@ -3245,18 +3245,18 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
         		char tagStr[kDICOMStr];
             	tagStr[0] = 'X'; //avoid compiler warning: orientStr filled by dcmStr
                 dcmStr (lLength, &buffer[lPos], tagStr);
-            	printf(" Tag\t%04x,%04x\tSize=%u\tOffset=%ld\tnest=%d\t%s\n",   groupElement & 65535,groupElement>>16, lLength, lPos, nest, tagStr);
+            	printMessage(" Tag\t%04x,%04x\tSize=%u\tOffset=%ld\tnest=%d\t%s\n",   groupElement & 65535,groupElement>>16, lLength, lPos, nest, tagStr);
             }	else
-            	printf(" Tag\t%04x,%04x\tSize=%u\tOffset=%ld\tnest=%d\n",   groupElement & 65535,groupElement>>16, lLength, lPos, nest);
-        }   //printf(" tag=%04x,%04x length=%u pos=%ld %c%c nest=%d\n",   groupElement & 65535,groupElement>>16, lLength, lPos,vr[0], vr[1], nest);
+            	printMessage(" Tag\t%04x,%04x\tSize=%u\tOffset=%ld\tnest=%d\n",   groupElement & 65535,groupElement>>16, lLength, lPos, nest);
+        }   //printMessage(" tag=%04x,%04x length=%u pos=%ld %c%c nest=%d\n",   groupElement & 65535,groupElement>>16, lLength, lPos,vr[0], vr[1], nest);
         //#endif
         lPos = lPos + (lLength);
-        //printf("%d\n",d.imageStart);
+        //printMessage("%d\n",d.imageStart);
     } //while d.imageStart == 0
 
     free (buffer);
     d.dateTime = (atof(d.studyDate)* 1000000) + atof(d.studyTime);
-    //printf("slices in Acq %d %d\n",d.locationsInAcquisition,locationsInAcquisitionPhilips);
+    //printMessage("slices in Acq %d %d\n",d.locationsInAcquisition,locationsInAcquisitionPhilips);
     if ((d.manufacturer == kMANUFACTURER_PHILIPS) && (d.locationsInAcquisition == 0))
         d.locationsInAcquisition = locationsInAcquisitionPhilips;
     if ((d.manufacturer == kMANUFACTURER_GE) && (imagesInAcquisition > 0))
@@ -3265,27 +3265,27 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
         d.locationsInAcquisition = locationsInAcquisitionGE;
     if (zSpacing > 0)
     	d.xyzMM[3] = zSpacing; //use zSpacing if provided: depending on vendor, kZThick may or may not include a slice gap
-    //printf("patientPositions = %d XYZT = %d slicePerVol = %d numberOfDynamicScans %d\n",patientPositionNum,d.xyzDim[3], d.locationsInAcquisition, d.numberOfDynamicScans);
+    //printMessage("patientPositions = %d XYZT = %d slicePerVol = %d numberOfDynamicScans %d\n",patientPositionNum,d.xyzDim[3], d.locationsInAcquisition, d.numberOfDynamicScans);
     if ((d.manufacturer == kMANUFACTURER_PHILIPS) && (patientPositionNum > d.xyzDim[3]))
-        printf("Please check slice thicknesses: Philips R3.2.2 bug can disrupt estimation (%d positions reported for %d slices)\n",patientPositionNum, d.xyzDim[3]); //Philips reported different positions for each slice!
+        printMessage("Please check slice thicknesses: Philips R3.2.2 bug can disrupt estimation (%d positions reported for %d slices)\n",patientPositionNum, d.xyzDim[3]); //Philips reported different positions for each slice!
     if ((d.imageStart > 144) && (d.xyzDim[1] > 1) && (d.xyzDim[2] > 1))
     	d.isValid = true;
     if ((d.xyzMM[1] > FLT_EPSILON) && (d.xyzMM[2] < FLT_EPSILON)) {
-    	printf("Please check voxel size\n");
+    	printMessage("Please check voxel size\n");
         d.xyzMM[2] = d.xyzMM[1];
     }
     if ((d.xyzMM[2] > FLT_EPSILON) && (d.xyzMM[1] < FLT_EPSILON)) {
-        printf("Please check voxel size\n");
+        printMessage("Please check voxel size\n");
         d.xyzMM[1] = d.xyzMM[2];
     }
 
     if ((d.xyzMM[3] < FLT_EPSILON)) {
-        printf("Unable to determine slice thickness: please check voxel size\n");
+        printMessage("Unable to determine slice thickness: please check voxel size\n");
         d.xyzMM[3] = 1.0;
     }
-    //printf("Patient Position\t%g\t%g\t%g\tThick\t%g\n",d.patientPosition[1],d.patientPosition[2],d.patientPosition[3], d.xyzMM[3]);
-    //printf("Patient Position\t%g\t%g\t%g\tThick\t%g\tStart\t%d\n",d.patientPosition[1],d.patientPosition[2],d.patientPosition[3], d.xyzMM[3], d.imageStart);
-    // printf("ser %ld\n", d.seriesNum);
+    //printMessage("Patient Position\t%g\t%g\t%g\tThick\t%g\n",d.patientPosition[1],d.patientPosition[2],d.patientPosition[3], d.xyzMM[3]);
+    //printMessage("Patient Position\t%g\t%g\t%g\tThick\t%g\tStart\t%d\n",d.patientPosition[1],d.patientPosition[2],d.patientPosition[3], d.xyzMM[3], d.imageStart);
+    // printMessage("ser %ld\n", d.seriesNum);
 
 
     //int kEchoMult = 100; //For Siemens/GE Series 1,2,3... save 2nd echo as 201, 3rd as 301, etc
@@ -3297,12 +3297,12 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
     //    d.seriesNum = d.seriesNum + (kEchoMult*d.echoNum);
     if ((d.compressionScheme == kCompress50) && (d.bitsAllocated > 8) ) {
         //dcmcjpg with +ee can create .51 syntax images that are 8,12,16,24-bit: we can only decode 8/24-bit
-        printf("Error: unable to decode %d-bit images with Transfer Syntax 1.2.840.10008.1.2.4.51, decompress with dcmdjpg\n", d.bitsAllocated);
+        printError("unable to decode %d-bit images with Transfer Syntax 1.2.840.10008.1.2.4.51, decompress with dcmdjpg\n", d.bitsAllocated);
         d.isValid = false;
     }
     if ((d.manufacturer == kMANUFACTURER_SIEMENS) && (isMosaic) && (d.CSA.mosaicSlices < 1) && (phaseEncodingSteps > 0) && ((d.xyzDim[1] % phaseEncodingSteps) == 0) && ((d.xyzDim[2] % phaseEncodingSteps) == 0) ) {
     	d.CSA.mosaicSlices = (d.xyzDim[1] / phaseEncodingSteps) * (d.xyzDim[2] / phaseEncodingSteps);
-    	printf("Warning: mosaic inferred without CSA header (check number of slices and spatial orientation)\n");
+    	printWarning("mosaic inferred without CSA header (check number of slices and spatial orientation)\n");
     }
     if ((d.manufacturer == kMANUFACTURER_SIEMENS) && (d.CSA.dtiV[1] < -1.0) && (d.CSA.dtiV[2] < -1.0) && (d.CSA.dtiV[3] < -1.0))
     	d.CSA.dtiV[0] = 0; //SiemensTrio-Syngo2004A reports B=0 images as having impossible b-vectors.
@@ -3314,11 +3314,11 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 		strcpy(d.protocolName, d.sequenceName);
 	//     if (!isOrient) {
 	//     	if (d.isNonImage)
-	//     		printf("Warning: spatial orientation ambiguous  (tag 0020,0037 not found) [probably not important: derived image]: %s\n", fname);
+	//     		printWarning("spatial orientation ambiguous  (tag 0020,0037 not found) [probably not important: derived image]: %s\n", fname);
 	//     	else if (((d.manufacturer == kMANUFACTURER_SIEMENS)) && (d.samplesPerPixel != 1))
-	//     		printf("Warning: spatial orientation ambiguous (tag 0020,0037 not found) [perhaps derived FA that is not required]: %s\n", fname);
+	//     		printWarning("spatial orientation ambiguous (tag 0020,0037 not found) [perhaps derived FA that is not required]: %s\n", fname);
 	//     	else
-	//     		printf("Serious error: spatial orientation ambiguous (tag 0020,0037 not found): %s\n", fname);
+	//     		printMessage("Serious error: spatial orientation ambiguous (tag 0020,0037 not found): %s\n", fname);
 	//     }
 	if ((d.numberOfDynamicScans < 2) && (!d.isSlicesSpatiallySequentialPhilips) && (patientPositionStartPhilips[1] != NAN) && (patientPositionEndPhilips[1] != NAN)) {
 		//to do: check for d.numberOfDynamicScans > 1
@@ -3326,20 +3326,20 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 			d.patientPosition[k] = patientPositionStartPhilips[k];
 			d.patientPositionLast[k] = patientPositionEndPhilips[k];
 		}
-		printf("<<< Slices not spatially contiguous: please check output [new feature]\n");
+		printMessage("<<< Slices not spatially contiguous: please check output [new feature]\n");
     }
     if (isVerbose) {
-        printf("%s\n patient position\t%g\t%g\t%g\n",fname, d.patientPosition[1],d.patientPosition[2],d.patientPosition[3]);
-        printf(" acq %d img %d ser %ld dim %dx%dx%d mm %gx%gx%g offset %d dyn %d loc %d valid %d ph %d mag %d posReps %d nDTI %d 3d %d bits %d littleEndian %d echo %d coil %d\n",d.acquNum,d.imageNum,d.seriesNum,d.xyzDim[1],d.xyzDim[2],d.xyzDim[3],d.xyzMM[1],d.xyzMM[2],d.xyzMM[3],d.imageStart, d.numberOfDynamicScans, d.locationsInAcquisition, d.isValid, d.isHasPhase, d.isHasMagnitude,d.patientPositionSequentialRepeats, d.CSA.numDti, d.is3DAcq, d.bitsAllocated, d.isLittleEndian, d.echoNum, d.coilNum);
+        printMessage("%s\n patient position\t%g\t%g\t%g\n",fname, d.patientPosition[1],d.patientPosition[2],d.patientPosition[3]);
+        printMessage(" acq %d img %d ser %ld dim %dx%dx%d mm %gx%gx%g offset %d dyn %d loc %d valid %d ph %d mag %d posReps %d nDTI %d 3d %d bits %d littleEndian %d echo %d coil %d\n",d.acquNum,d.imageNum,d.seriesNum,d.xyzDim[1],d.xyzDim[2],d.xyzDim[3],d.xyzMM[1],d.xyzMM[2],d.xyzMM[3],d.imageStart, d.numberOfDynamicScans, d.locationsInAcquisition, d.isValid, d.isHasPhase, d.isHasMagnitude,d.patientPositionSequentialRepeats, d.CSA.numDti, d.is3DAcq, d.bitsAllocated, d.isLittleEndian, d.echoNum, d.coilNum);
         if (d.CSA.dtiV[0] > 0)
-        	printf(" DWI bxyz %g %g %g %g\n", d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3]);
+        	printMessage(" DWI bxyz %g %g %g %g\n", d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3]);
     }
     if (d.CSA.numDti >= kMaxDTI4D) {
-        printf("Error: unable to convert DTI [increase kMaxDTI4D]\n");
+        printError("unable to convert DTI [increase kMaxDTI4D]\n");
         d.CSA.numDti = 0;
     }
     if (intenScalePhilips != 0.0) {
-        printf("Philips Precise RS:RI:SS = %g:%g:%g (see PMC3998685)\n",d.intenScale,d.intenIntercept,intenScalePhilips);
+        printMessage("Philips Precise RS:RI:SS = %g:%g:%g (see PMC3998685)\n",d.intenScale,d.intenIntercept,intenScalePhilips);
         //we will report calibrated "FP" values http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3998685/
         float l0 = PhilipsPreciseVal (0, d.intenScale, d.intenIntercept, intenScalePhilips);
         float l1 = PhilipsPreciseVal (1, d.intenScale, d.intenIntercept, intenScalePhilips);

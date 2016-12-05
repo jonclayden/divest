@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include "jpg_0XC3.h"
 
+#include "print.h"
+
 unsigned char  readByte(unsigned char *lRawRA, long *lRawPos, long lRawSz) {
     unsigned char ret = 0x00;
     if (*lRawPos < lRawSz)
@@ -111,7 +113,7 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
     if ((diskBytes > 0) && (diskBytes < lRawSz)) //only if diskBytes is known and does not exceed length of file
         lRawSz = diskBytes;
     if (lRawSz <= 8) {
-        printf("Error opening %s\n", fn);
+        printError("cannot open %s\n", fn);
         return NULL; //read failure
     }
     fseek(reader, skipBytes, SEEK_SET);
@@ -119,11 +121,11 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
     fread(lRawRA, 1, lRawSz, reader);
     fclose(reader);
     if ((lRawRA[0] != 0xFF) || (lRawRA[1] != 0xD8) || (lRawRA[2] != 0xFF)) {
-        printf("Error: JPEG signature 0xFFD8FF not found at offset %d of %s\n", skipBytes, fn);
+        printError("JPEG signature 0xFFD8FF not found at offset %d of %s\n", skipBytes, fn);
         abortGoto();//goto abortGoto; //signature failure http://en.wikipedia.org/wiki/List_of_file_signatures
     }
     if (verbose)
-        printf("JPEG signature 0xFFD8FF found at offset %d of %s\n", skipBytes, fn);
+        printMessage("JPEG signature 0xFFD8FF found at offset %d of %s\n", skipBytes, fn);
     //next: read header
     long lRawPos = 2; //Skip initial 0xFFD8, begin with third byte
     //long lRawPos = 0; //Skip initial 0xFFD8, begin with third byte
@@ -138,7 +140,7 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
         do {
             btS1 = readByte(lRawRA, &lRawPos, lRawSz);
             if (btS1 != 0xFF) {
-                printf("JPEG header tag must begin with 0xFF\n");
+                printMessage("JPEG header tag must begin with 0xFF\n");
                 abortGoto(); //goto abortGoto;
             }
             btMarkerType =  readByte(lRawRA, &lRawPos, lRawSz);
@@ -152,7 +154,7 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
             abortGoto(); //goto abortGoto;
         }
         if (verbose)
-            printf("btMarkerType %#02X length %d@%ld\n", btMarkerType, lSegmentLength, lRawPos);
+            printMessage("btMarkerType %#02X length %d@%ld\n", btMarkerType, lSegmentLength, lRawPos);
         if ( ((btMarkerType >= 0xC0) && (btMarkerType <= 0xC3)) || ((btMarkerType >= 0xC5) && (btMarkerType <= 0xCB)) || ((btMarkerType >= 0xCD) && (btMarkerType <= 0xCF)) )  {
             //if Start-Of-Frame (SOF) marker
             SOFprecision = readByte(lRawRA, &lRawPos, lRawSz);
@@ -161,18 +163,18 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
             SOFnf = readByte(lRawRA, &lRawPos, lRawSz);
             //SOFarrayPos = lRawPos;
             lRawPos = (lSegmentEnd);
-            if (verbose) printf(" [Precision %d X*Y %d*%d Frames %d]\n", SOFprecision, SOFxdim, SOFydim, SOFnf);
+            if (verbose) printMessage(" [Precision %d X*Y %d*%d Frames %d]\n", SOFprecision, SOFxdim, SOFydim, SOFnf);
             if (btMarkerType != 0xC3) { //lImgTypeC3 = true;
-                printf("This JPEG decoder can only decompress lossless JPEG ITU-T81 images (SoF must be 0XC3, not %#02X)\n",btMarkerType );
+                printMessage("This JPEG decoder can only decompress lossless JPEG ITU-T81 images (SoF must be 0XC3, not %#02X)\n",btMarkerType );
                 abortGoto(); //goto abortGoto;
             }
             if ( (SOFprecision < 1) || (SOFprecision > 16) || (SOFnf < 1) || (SOFnf == 2) || (SOFnf > 3)
                 || ((SOFnf == 3) &&  (SOFprecision > 8))   ) {
-                printf("Scalar data must be 1..16 bit, RGB data must be 8-bit (%d-bit, %d frames)\n", SOFprecision, SOFnf);
+                printMessage("Scalar data must be 1..16 bit, RGB data must be 8-bit (%d-bit, %d frames)\n", SOFprecision, SOFnf);
                 abortGoto(); //goto abortGoto;
             }
         } else if (btMarkerType == 0xC4) {//if SOF marker else if define-Huffman-tables marker (DHT)
-            if (verbose) printf(" [Huffman Length %d]\n", lSegmentLength);
+            if (verbose) printMessage(" [Huffman Length %d]\n", lSegmentLength);
             int lFrameCount = 1;
             do {
                 uint8_t DHTnLi = readByte(lRawRA, &lRawPos, lRawSz ); //we read but ignore DHTtcth.
@@ -184,7 +186,7 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
                     if (l[lFrameCount].DHTliRA[lInc] != 0) l[lFrameCount].MaxHufSi = lInc;
                 }
                 if (DHTnLi > 17) {
-                    printf("Huffman table corrupted.\n");
+                    printMessage("Huffman table corrupted.\n");
                     abortGoto(); //goto abortGoto;
                 }
                 int lIncY = 0; //frequency
@@ -204,7 +206,7 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
                             if ((btS1 >= 0) && (btS1 <= 16))
                                 l[lFrameCount].HufSz[lIncY] = lInc;
                             else {
-                                printf("Huffman size array corrupted.\n");
+                                printMessage("Huffman size array corrupted.\n");
                                 abortGoto(); //goto abortGoto;
                             }
                         }
@@ -229,14 +231,14 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
                 } while (K <= DHTnLi);
                 //if (verbose)
                 //    for (int j = 1; j <= DHTnLi; j++)
-                //        printf(" [%d Sz %d Code %d Value %d]\n", j, l[lFrameCount].HufSz[j], l[lFrameCount].HufCode[j], l[lFrameCount].HufVal[j]);
+                //        printMessage(" [%d Sz %d Code %d Value %d]\n", j, l[lFrameCount].HufSz[j], l[lFrameCount].HufCode[j], l[lFrameCount].HufVal[j]);
                 lFrameCount++;
             } while ((lSegmentEnd-lRawPos) >= 18);
             lnHufTables = lFrameCount - 1;
             lRawPos = (lSegmentEnd);
-            if (verbose) printf(" [FrameCount %d]\n", lnHufTables);
+            if (verbose) printMessage(" [FrameCount %d]\n", lnHufTables);
         } else if (btMarkerType == 0xDD) {  //if DHT marker else if Define restart interval (DRI) marker
-            printf("This image uses Restart Segments - please contact Chris Rorden to add support for this format.\n");
+            printMessage("This image uses Restart Segments - please contact Chris Rorden to add support for this format.\n");
             abortGoto(); //goto abortGoto;
             //lRestartSegmentSz = ReadWord(lRawRA, &lRawPos, lRawSz);
             //lRawPos = lSegmentEnd;
@@ -258,14 +260,14 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
             SOSahal = readByte(lRawRA, &lRawPos, lRawSz); //lower 4bits= pointtransform
             SOSpttrans = SOSahal & 16;
             if (verbose)
-                printf(" [Predictor: %d Transform %d]\n", SOSss, SOSahal);
+                printMessage(" [Predictor: %d Transform %d]\n", SOSss, SOSahal);
             lRawPos = (lSegmentEnd);
         } else  //if SOS marker else skip marker
             lRawPos = (lSegmentEnd);
     } while ((lRawPos < lRawSz) && (btMarkerType != 0xDA)); //0xDA=Start of scan: loop for reading header
     //NEXT: Huffman decoding
     if (lnHufTables < 1) {
-        printf("Decoding error: no Huffman tables.\n");
+        printMessage("Decoding error: no Huffman tables.\n");
         abortGoto(); //goto abortGoto;
     }
     //NEXT: unpad data - delete byte that follows $FF
@@ -307,7 +309,7 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
                         }
                     } else
                         l[lFrameCount].LookUpRA[k] = lHufVal; //SSSS
-                    //printf("Frame %d SSSS %d Size %d Code %d SHL %d EmptyBits %ld\n", lFrameCount, lHufRA[lFrameCount][lIncY].HufVal, lHufRA[lFrameCount][lIncY].HufSz,lHufRA[lFrameCount][lIncY].HufCode, k, lInc);
+                    //printMessage("Frame %d SSSS %d Size %d Code %d SHL %d EmptyBits %ld\n", lFrameCount, lHufRA[lFrameCount][lIncY].HufVal, lHufRA[lFrameCount][lIncY].HufSz,lHufRA[lFrameCount][lIncY].HufCode, k, lInc);
                 } //Set SSSS
             } //Length of size lInc > 0
         } //for lInc := 1 to 8
@@ -490,6 +492,6 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
     *dimY = SOFydim;
     *frames = SOFnf;
     if (verbose)
-        printf("JPEG ends %ld@%ld\n", lRawPos, lRawPos+skipBytes);
+        printMessage("JPEG ends %ld@%ld\n", lRawPos, lRawPos+skipBytes);
     return lImgRA8;
 }// decode_JPEG_SOF_0XC3()
