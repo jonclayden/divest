@@ -543,6 +543,7 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
         } //for each direction
     }
     //printMessage("%f\t%f\t%f",dcmList[indx0].CSA.dtiV[1][1],dcmList[indx0].CSA.dtiV[1][2],dcmList[indx0].CSA.dtiV[1][3]);
+#ifndef HAVE_R
     char txtname[2048] = {""};
     strcpy (txtname,pathoutname);
     strcat (txtname,".bval");
@@ -580,6 +581,7 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
         fprintf(fp, "%g\n", vx[numDti-1].V[v]);
     }
     fclose(fp);
+#endif
     free(vx);
     return numFinalADC;
 }// nii_SaveDTI()
