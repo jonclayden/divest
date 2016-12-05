@@ -7,6 +7,8 @@
 #include "nii_dicom_batch.h"
 #include "nii_dicom.h"
 
+using namespace Rcpp;
+
 RcppExport SEXP initialise ()
 {
 BEGIN_RCPP
@@ -14,14 +16,14 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP readDirectory (SEXP path_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP verbosity_)
 {
 BEGIN_RCPP
-    const std::string path = Rcpp::as<std::string>(path_);
+    const std::string path = as<std::string>(path_);
     
-    struct TDCMopts options;
+    TDCMopts options;
     options.isGz = false;
-    options.isFlipY = true;
+    options.isFlipY = as<bool>(flipY_);
     options.isCreateBIDS = false;
     options.isCreateText = false;
     options.isTiltCorrect = false;
@@ -29,7 +31,7 @@ BEGIN_RCPP
     options.isOnlySingleFile = false;
     options.isForceStackSameSeries = false;
     options.isCrop = false;
-    options.isVerbose = 0;
+    options.isVerbose = as<int>(verbosity_);
     options.compressFlag = 0;
     strcpy(options.indir, path.c_str());
     strcpy(options.outdir, "");

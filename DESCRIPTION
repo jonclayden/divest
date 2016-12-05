@@ -6,11 +6,16 @@ Author: Jon Clayden, based on dcm2niix by Chris Rorden
 Authors@R: c(person("Jon","Clayden",role=c("cre","aut"),email="code@clayden.org"),
              person("Chris","Rorden",role="aut"))
 Maintainer: Jon Clayden <code@clayden.org>
-Imports: Rcpp (>= 0.11.0), RNifti (>= 0.2.0), ore
-Suggests: testthat
+Imports:
+    Rcpp (>= 0.11.0),
+    RNifti (>= 0.2.0),
+    ore
+Suggests:
+    testthat
 LinkingTo: Rcpp, RNifti
 Description: Provides tools to convert DICOM-format files to NIfTI-1 format.
 License: GPL-2
 URL: https://github.com/jonclayden/divest
 BugReports: https://github.com/jonclayden/divest/issues
 Encoding: UTF-8
+RoxygenNote: 5.0.1
