@@ -22,9 +22,5 @@
 readDicom <- function (path, flipY = TRUE, verbosity = 0L)
 {
     results <- lapply(path, function(p) .Call("readDirectory",path.expand(p),flipY,verbosity,PACKAGE="divest"))
-    
-    if (length(results) > 1)
-        return (do.call(c, results))
-    else
-        return (results)
+    return (do.call(c, results))
 }
