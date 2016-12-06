@@ -9,8 +9,6 @@
 
 #include <R_ext/Print.h>
 
-static int verbose;
-
 #define printMessage Rprintf
 #define printWarning Rf_warning
 #define printError(...) { REprintf("Error: "); REprintf(__VA_ARGS__); }
