@@ -18,11 +18,11 @@ public:
         return list;
     }
     
-    void append (nifti_image * const image)
+    void append (nifti_image * const image, const std::string &name)
     {
         NiftiImage wrapper(image);
         wrapper.setPersistence(true);
-        list.push_back(wrapper.toPointer("Converted DICOM series"));
+        list.push_back(wrapper.toPointer(name));
     }
     
     template <typename ValueType>

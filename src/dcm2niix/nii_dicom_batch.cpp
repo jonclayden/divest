@@ -956,13 +956,23 @@ void writeNiiGz (char * baseName, struct nifti_1_header hdr,  unsigned char* src
 #ifdef HAVE_R
 
 // Version of nii_saveNII() for R/divest: create nifti_image pointer and push onto stack
-int nii_saveNII (char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts)
+int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts)
 {
     hdr.vox_offset = 352;
+    
+    // Extract the basename from the full file path
+    // R always uses '/' as the path separator, so this should work on all platforms
+    char *start = niiFilename + strlen(niiFilename);
+    while (*start != '/')
+        start--;
+    std::string name(++start);
+    
     nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
     image->data = (void *) im;
+    
     ImageList *images = (ImageList *) opts.imageList;
-    images->append(image);
+    images->append(image, name);
+    
     free(image);
     return EXIT_SUCCESS;
 }
