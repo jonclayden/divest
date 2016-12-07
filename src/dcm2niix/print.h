@@ -10,7 +10,7 @@
 #include <R_ext/Print.h>
 
 #define printMessage Rprintf
-#define printWarning Rf_warning
+#define printWarning(...) { REprintf("Warning: "); REprintf(__VA_ARGS__); }
 #define printError(...) { REprintf("Error: "); REprintf(__VA_ARGS__); }
 
 #else
