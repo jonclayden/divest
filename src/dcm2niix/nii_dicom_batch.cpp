@@ -968,6 +968,8 @@ int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im
     std::string name(++start);
     
     nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
+    if (image == NULL)
+        return EXIT_FAILURE;
     image->data = (void *) im;
     
     ImageList *images = (ImageList *) opts.imageList;
@@ -1648,9 +1650,12 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
             nii_saveNII(pathoutnameADC, hdr0, imgM, opts);
             hdr0.dim[4] = hdr0.dim[4]-numFinalADC;
         };
-        nii_saveNII(pathoutname, hdr0, imgM, opts);
 #ifdef HAVE_R
-        nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts);
+        int returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts);
+        if (returnCode == EXIT_SUCCESS)
+            nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts);
+#else
+        nii_saveNII(pathoutname, hdr0, imgM, opts);
 #endif
     }
 #endif
