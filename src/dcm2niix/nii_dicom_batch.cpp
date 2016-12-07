@@ -967,6 +967,57 @@ int nii_saveNII (char * niiFilename, struct nifti_1_header hdr, unsigned char* i
     return EXIT_SUCCESS;
 }
 
+void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header, struct TDCMopts &opts)
+{
+    ImageList *images = (ImageList *) opts.imageList;
+    
+    switch (data.manufacturer)
+    {
+        case kMANUFACTURER_SIEMENS:
+        images->addAttribute("manufacturer", "Siemens");
+        break;
+        
+        case kMANUFACTURER_GE:
+        images->addAttribute("manufacturer", "GE");
+        break;
+        
+        case kMANUFACTURER_PHILIPS:
+        images->addAttribute("manufacturer", "Philips");
+        break;
+        
+        case kMANUFACTURER_TOSHIBA:
+        images->addAttribute("manufacturer", "Toshiba");
+        break;
+    }
+    
+    if (strlen(data.manufacturersModelName) > 0)
+        images->addAttribute("scannerModelName", data.manufacturersModelName);
+    if (strlen(data.imageType) > 0)
+        images->addAttribute("imageType", data.imageType);
+    if (data.acquisitionTime > 0.0)
+        images->addAttribute("acquisitionTime", data.acquisitionTime);
+    if (data.acquisitionDate > 0.0)
+        images->addAttribute("acquisitionDate", data.acquisitionDate);
+    if (data.fieldStrength > 0.0)
+        images->addAttribute("fieldStrength", data.fieldStrength);
+    if (data.flipAngle > 0.0)
+        images->addAttribute("flipAngle", data.flipAngle);
+    if (data.TE > 0.0)
+        images->addAttribute("echoTime", data.TE);
+    if (data.TR > 0.0)
+        images->addAttribute("repetitionTime", data.TR);
+    if ((data.CSA.bandwidthPerPixelPhaseEncode > 0.0) && (header.dim[2] > 0) && (header.dim[1] > 0)) {
+        if (data.phaseEncodingRC =='C')
+            images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[2]);
+        else
+            images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[1]);
+    }
+    if (data.phaseEncodingRC == 'C')
+        images->addAttribute("phaseEncodingDirection", "j");
+    else
+        images->addAttribute("phaseEncodingDirection", "i");
+}
+
 #else
 
 int nii_saveNII(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts) {
@@ -1588,6 +1639,9 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
             hdr0.dim[4] = hdr0.dim[4]-numFinalADC;
         };
         nii_saveNII(pathoutname, hdr0, imgM, opts);
+#ifdef HAVE_R
+        nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts);
+#endif
     }
 #endif
     if (dcmList[indx0].gantryTilt != 0.0) {

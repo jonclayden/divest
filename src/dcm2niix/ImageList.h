@@ -24,6 +24,13 @@ public:
         wrapper.setPersistence(true);
         list.push_back(wrapper.toPointer("Converted DICOM series"));
     }
+    
+    template <typename ValueType>
+    void addAttribute (const std::string &name, const ValueType &value)
+    {
+        Rcpp::RObject element = list[list.length()-1];
+        element.attr(name) = value;
+    }
 };
 
 #endif
