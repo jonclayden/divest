@@ -1384,8 +1384,7 @@ void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
     	return;
     }
     smooth1D(slices, sliceSums);
-    for (int i = 0; i  < slices; i++)
-    	sliceSums[i] = sliceSums[i] / maxSliceVal; //so brightest slice has value 1
+    for (int i = 0; i  < slices; i++) sliceSums[i] = sliceSums[i] / maxSliceVal; //so brightest slice has value 1
 	//dorsal crop: eliminate slices with more than 5% brightness
 	int dorsalCrop;
 	for (dorsalCrop = (slices-1); dorsalCrop >= 1; dorsalCrop--)
@@ -1591,8 +1590,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
         return EXIT_FAILURE;
     }
     int sliceDir = 0;
-    if (hdr0.dim[3] > 1)
-        sliceDir = headerDcm2Nii2(dcmList[dcmSort[0].indx],dcmList[dcmSort[nConvert-1].indx] , &hdr0);
+    if (hdr0.dim[3] > 1)sliceDir = headerDcm2Nii2(dcmList[dcmSort[0].indx],dcmList[dcmSort[nConvert-1].indx] , &hdr0);
 	//UNCOMMENT NEXT TWO LINES TO RE-ORDER MOSAIC WHERE CSA's protocolSliceNumber does not start with 1
 	if (dcmList[dcmSort[0].indx].CSA.protocolSliceNumber1 > 1) {
 		printWarning("WEIRD CSA 'ProtocolSliceNumber': SPATIAL, SLICE-ORDER AND DTI TRANSFORMS UNTESTED\n");
@@ -1916,12 +1914,12 @@ int removeDuplicatesVerbose(int nConvert, struct TDCMsort dcmSort[], struct TSea
         }
     }
     if (nDuplicates > 0)
-            #ifdef myUseCOut
+        #ifdef myUseCOut
     	std::cout<<"Some images have identical time, series, acquisition and image values. Duplicates removed."<<std::endl;
 		#else
     	printMessage("Some images have identical time, series, acquisition and image values. Duplicates removed.\n");
     	#endif
-    	return nConvert - nDuplicates;
+    return nConvert - nDuplicates;
 }// removeDuplicates()
 
 int strcicmp(char const *a, char const *b) //case insensitive compare
@@ -1979,7 +1977,7 @@ bool isExt (char *file_name, const char* ext) {
     unsigned char buffer[BIORAD_HEADER_SIZE];
     FILE *f = fopen(fname, "rb");
     if (f)
-        n = fread(&buffer, BIORAD_HEADER_SIZE, 1, f);
+        n = fread(&buffer, 1, BIORAD_HEADER_SIZE, f);
     if(!f || n!=1) {
         printMessage("Problem reading biorad file!\n");
         fclose(f);
@@ -2013,15 +2011,16 @@ bool isExt (char *file_name, const char* ext) {
         char noteheaderbuf[BIORAD_NOTE_HEADER_SIZE];
         char note[BIORAD_NOTE_SIZE];
         while (!feof(f)) {
-            fread(&noteheaderbuf, BIORAD_NOTE_HEADER_SIZE, 1, f);
-            fread(&note, BIORAD_NOTE_SIZE, 1, f);
+            size_t sz = fread(&noteheaderbuf, 1, BIORAD_NOTE_HEADER_SIZE, f);
+            if (sz < BIORAD_NOTE_HEADER_SIZE) return EXIT_FAILURE;
+            sz = fread(&note, 1, BIORAD_NOTE_SIZE, f);
+            if (sz < BIORAD_NOTE_SIZE) return EXIT_FAILURE;
             memcpy(&nh.note_flag, noteheaderbuf+2, sizeof(nh.note_flag));
             memcpy(&nh.note_type, noteheaderbuf+10, sizeof(nh.note_type));
             //		printMessage("regular note line %s\n",note);
             //		printMessage("note flag = %d, note type = %d\n",nh.note_flag,nh.note_type);
             // These are not interesting notes
             if(nh.note_type==1) continue;
-
             // Look for calibration information
             double d1, d2, d3;
             if ( 3 == sscanf( note, "AXIS_2 %lf %lf %lf", &d1, &d2, &d3 ) )
@@ -2041,7 +2040,6 @@ bool isExt (char *file_name, const char* ext) {
     convertForeignToNifti(nhdr);
     return EXIT_SUCCESS;
 }
-
 
 int convert_foreign(struct TDCMopts opts) {
     nifti_1_header nhdr ;

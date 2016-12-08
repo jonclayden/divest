@@ -199,8 +199,9 @@ unsigned char * nii_loadImgCoreOpenJPEG(char* imgname, struct nifti_1_header hdr
     if (size <= 8) return NULL;
     fseek(reader, dcm.imageStart, SEEK_SET);
     unsigned char *data = (unsigned char*) malloc(size);
-    fread(data, 1, size, reader);
+    size_t sz = fread(data, 1, size, reader);
     fclose(reader);
+    if (sz < size) return NULL;
     OPJ_CODEC_FORMAT format = OPJ_CODEC_JP2;
     //DICOM JPEG2k is SUPPOSED to start with codestream, but some vendors include a header
     if (data[0] == 0xFF && data[1] == 0x4F && data[2] == 0xFF && data[3] == 0x51) format = OPJ_CODEC_J2K;
@@ -252,8 +253,9 @@ int foo (float vx) {
     if (size <= 8) return NULL;
     fseek(reader, dcmimageStart, SEEK_SET);
     unsigned char *data = (unsigned char*) malloc(size);
-    fread(data, 1, size, reader);
+    size_t sz = fread(data, 1, size, reader);
     fclose(reader);
+    if (sz < size) return NULL;
     OPJ_CODEC_FORMAT format = OPJ_CODEC_JP2;
     //DICOM JPEG2k is SUPPOSED to start with codestream, but some vendors include a header
     if (data[0] == 0xFF && data[1] == 0x4F && data[2] == 0xFF && data[3] == 0x51) format = OPJ_CODEC_J2K;
@@ -629,7 +631,11 @@ int headerDcm2NiiSForm(struct TDICOMdata d, struct TDICOMdata d2,  struct nifti_
     //see http://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1_io.c
     //returns sliceDir: 0=unknown,1=sag,2=coro,3=axial,-=reversed slices
     int sliceDir = 0;
-    if (h->dim[3] < 2) return sliceDir; //don't care direction for single slice
+    if (h->dim[3] < 2) {
+    	mat44 Q44 = set_nii_header_x(d, d2, h, &sliceDir);
+    	setQSForm(h,Q44);
+    	return sliceDir; //don't care direction for single slice
+    }
     h->sform_code = NIFTI_XFORM_UNKNOWN;
     h->qform_code = NIFTI_XFORM_UNKNOWN;
     bool isOK = false;
@@ -644,7 +650,6 @@ int headerDcm2NiiSForm(struct TDICOMdata d, struct TDICOMdata d2,  struct nifti_
         else
             printMessage("Unable to determine spatial orientation: 0020,0037 missing!\n");
     }
-    //mat44 Q44 = set_nii_header(d);
     mat44 Q44 = set_nii_header_x(d, d2, h, &sliceDir);
     setQSForm(h,Q44);
     return sliceDir;
@@ -851,7 +856,8 @@ float dcmFloat(int lByteLength, unsigned char lBuffer[], bool littleEndian) {//r
 #else
     bool swap = !littleEndian;
 #endif
-    float retVal;
+    float retVal = 0;
+    if (lByteLength < 4) return retVal;
     memcpy(&retVal, (char*)&lBuffer[0], 4);
     if (!swap) return retVal;
     float swapVal;
@@ -1597,19 +1603,18 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
         printWarning("PAR/REC dataset includes an ADC map that could disrupt analysis. Please remove volume and ensure vectors are reported correctly\n");
 
     if (isIntenScaleVaries)
-       printWarning("intensity slope/intercept varies between slices! [solution: user dcm2nii instead]\n");
-        if (!isIndexSequential)
-            printWarning("slice order not saved to disk sequentially! [solution: user dcm2nii instead]\n");
-            printMessage("Done reading PAR header version %.1f, with %d volumes\n", (float)parVers/10, d.CSA.numDti);
+        printWarning("intensity slope/intercept varies between slices! [solution: user dcm2nii instead]\n");
+    if (!isIndexSequential)
+        printWarning("slice order not saved to disk sequentially! [solution: user dcm2nii instead]\n");
+    printMessage("Done reading PAR header version %.1f, with %d volumes\n", (float)parVers/10, d.CSA.numDti);
 #endif
-
-            //see Xiangrui Li 's dicm2nii (also BSD license)
-            // http://www.mathworks.com/matlabcentral/fileexchange/42997-dicom-to-nifti-converter
-            // Rotation order and signs are figured out by try and err, not 100% sure
-            float d2r = (float) (M_PI/180.0);
-            vec3 ca = setVec3(cos(d.angulation[1]*d2r),cos(d.angulation[2]*d2r),cos(d.angulation[3]*d2r));
-            vec3 sa = setVec3(sin(d.angulation[1]*d2r),sin(d.angulation[2]*d2r),sin(d.angulation[3]*d2r));
-            mat33 rx,ry,rz;
+	//see Xiangrui Li 's dicm2nii (also BSD license)
+	// http://www.mathworks.com/matlabcentral/fileexchange/42997-dicom-to-nifti-converter
+	// Rotation order and signs are figured out by try and err, not 100% sure
+	float d2r = (float) (M_PI/180.0);
+	vec3 ca = setVec3(cos(d.angulation[1]*d2r),cos(d.angulation[2]*d2r),cos(d.angulation[3]*d2r));
+	vec3 sa = setVec3(sin(d.angulation[1]*d2r),sin(d.angulation[2]*d2r),sin(d.angulation[3]*d2r));
+	mat33 rx,ry,rz;
     LOAD_MAT33(rx,1.0f, 0.0f, 0.0f, 0.0f, ca.v[0], -sa.v[0], 0.0f, sa.v[0], ca.v[0]);
     LOAD_MAT33(ry, ca.v[1], 0.0f, sa.v[1], 0.0f, 1.0f, 0.0f, -sa.v[1], 0.0f, ca.v[1]);
     LOAD_MAT33(rz, ca.v[2], -sa.v[2], 0.0f, sa.v[2], ca.v[2], 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1639,9 +1644,9 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
     vec3 x;
     if (parVers > 40) //guess
         x = setVec3(((float)d.xyzDim[1]-1)/2,((float)d.xyzDim[2]-1)/2,((float)d.xyzDim[3]-1)/2);
-        else
-            x = setVec3((float)d.xyzDim[1]/2,(float)d.xyzDim[2]/2,((float)d.xyzDim[3]-1)/2);
-            mat44 eye;
+    else
+        x = setVec3((float)d.xyzDim[1]/2,(float)d.xyzDim[2]/2,((float)d.xyzDim[3]-1)/2);
+    mat44 eye;
     LOAD_MAT44(eye, 1.0f,0.0f,0.0f,x.v[0],
                0.0f,1.0f,0.0f,x.v[1],
                0.0f,0.0f,1.0f,x.v[2]);
@@ -1980,8 +1985,12 @@ unsigned char * nii_loadImgCore(char* imgname, struct nifti_1_header hdr, int bi
     }
 	fseek(file, (long) hdr.vox_offset, SEEK_SET);
     unsigned char *bImg = (unsigned char *)malloc(imgsz);
-    fread(bImg, imgszRead, 1, file);
+    size_t  sz = fread(bImg, 1, imgszRead, file);
 	fclose(file);
+	if (sz < imgszRead) {
+         printf("Error: only loaded %zu of %zu bytes for %s\n", sz, imgszRead, imgname);
+         return NULL;
+    }
 	if (bitsAllocated == 12)
 	 conv12bit16bit(bImg, hdr);
     return bImg;
@@ -2301,8 +2310,12 @@ TJPEG *  decode_JPEG_SOF_0XC3_stack (const char *fn, int skipBytes, bool isVerbo
     }
     fseek(reader, skipBytes, SEEK_SET);
     unsigned char *lRawRA = (unsigned char*) malloc(lRawSz);
-    fread(lRawRA, 1, lRawSz, reader);
+    size_t lSz = fread(lRawRA, 1, lRawSz, reader);
     fclose(reader);
+    if (lSz < lRawSz) {
+        printf("Error reading %s\n", fn);
+        abortGoto(); //read failure
+    }
     long lRawPos = 0; //starting position
     int frame = 0;
     while ((frame < frames) && ((lRawPos+10) < lRawSz)) {
@@ -2470,8 +2483,9 @@ int isDICOMfile(const char * fname) { //0=NotDICOM, 1=DICOM, 2=Maybe(not Part 10
     }
 	fseek(fp, 0, SEEK_SET);
 	unsigned char buffer[256];
-	fread(buffer, 256, 1, fp);
+	size_t sz = fread(buffer, 1, 256, fp);
 	fclose(fp);
+	if (sz < 256) return 0;
     if ((buffer[128] == 'D') && (buffer[129] == 'I')  && (buffer[130] == 'C') && (buffer[131] == 'M'))
     	return 1; //valid DICOM
     if ((buffer[0] == 8) && (buffer[1] == 0)  && (buffer[3] == 0))
@@ -2531,8 +2545,12 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 		return d;
 	}
 	//Read file contents into buffer
-	fread(buffer, fileLen, 1, file);
+	size_t sz = fread(buffer, 1, fileLen, file);
 	fclose(file);
+	if (sz < fileLen) {
+         printf("Error: only loaded %zu of %lld bytes for %s\n", sz, fileLen, fname);
+         return d;
+    }
 	//bool isPart10prefix = true; //assume 132 byte header http://nipy.bic.berkeley.edu/nightly/nibabel/doc/dicom/dicom_intro.html
     //if ((buffer[128] != 'D') || (buffer[129] != 'I')  || (buffer[130] != 'C') || (buffer[131] != 'M')) {
     //    if ((buffer[0] != 8) || (buffer[1] != 0)  || (buffer[2] != 5) || (buffer[3] != 0)){
@@ -2924,7 +2942,6 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                     } //if not first slice in file
                     if (isVerbose > 1)
                     	printMessage("   Patient Position 0020,0032 (#,@,X,Y,Z)\t%d\t%ld\t%g\t%g\t%g\n", patientPositionNum, lPos, patientPosition[1], patientPosition[2], patientPosition[3]);
-
                 } //not after 2005,140F
                 break;
             case 	kInPlanePhaseEncodingDirection:
