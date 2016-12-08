@@ -20,7 +20,7 @@ public:
     
     void append (nifti_image * const image, const std::string &name)
     {
-        NiftiImage wrapper(image);
+        RNifti::NiftiImage wrapper(image);
         wrapper.setPersistence(true);
         list.push_back(wrapper.toPointer(name));
     }

@@ -14,6 +14,7 @@
 
 #include "print.h"
 
+#ifndef HAVE_R
 void nifti_swap_8bytes( size_t n , void *ar )    // 4 bytes at a time
 {
     size_t ii ;
@@ -60,6 +61,7 @@ void nifti_swap_2bytes( size_t n , void *ar )    // 2 bytes at a time
     }
     return ;
 }
+#endif
 
 int isSameFloat (float a, float b) {
     return (fabs (a - b) <= FLT_EPSILON);
@@ -239,7 +241,6 @@ mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
     Q.m[2][2] = deti*( r11*r22-r21*r12) ;
     return Q ;
 }
-#endif
 
 float nifti_mat33_rownorm( mat33 A )  // max row norm of 3x3 matrix
 {
@@ -263,7 +264,6 @@ float nifti_mat33_colnorm( mat33 A )  // max column norm of 3x3 matrix
     return r1 ;
 }
 
-#ifndef HAVE_R
 mat33 nifti_mat33_polar( mat33 A )
 {
     mat33 X , Y , Z ;
