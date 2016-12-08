@@ -12,7 +12,7 @@ Suggests:
     testthat
 LinkingTo: Rcpp, RNifti
 Description: Provides tools to convert DICOM-format files to NIfTI-1 format.
-License: GPL-2
+License: BSD_3_clause + file LICENCE
 URL: https://github.com/jonclayden/divest
 BugReports: https://github.com/jonclayden/divest/issues
 Encoding: UTF-8
