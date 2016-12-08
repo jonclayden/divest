@@ -1988,7 +1988,7 @@ unsigned char * nii_loadImgCore(char* imgname, struct nifti_1_header hdr, int bi
     size_t  sz = fread(bImg, 1, imgszRead, file);
 	fclose(file);
 	if (sz < imgszRead) {
-         printf("Error: only loaded %zu of %zu bytes for %s\n", sz, imgszRead, imgname);
+         printError("only loaded %zu of %zu bytes for %s\n", sz, imgszRead, imgname);
          return NULL;
     }
 	if (bitsAllocated == 12)
@@ -2313,7 +2313,7 @@ TJPEG *  decode_JPEG_SOF_0XC3_stack (const char *fn, int skipBytes, bool isVerbo
     size_t lSz = fread(lRawRA, 1, lRawSz, reader);
     fclose(reader);
     if (lSz < lRawSz) {
-        printf("Error reading %s\n", fn);
+        printError("Cannot read %s\n", fn);
         abortGoto(); //read failure
     }
     long lRawPos = 0; //starting position
@@ -2548,7 +2548,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 	size_t sz = fread(buffer, 1, fileLen, file);
 	fclose(file);
 	if (sz < fileLen) {
-         printf("Error: only loaded %zu of %lld bytes for %s\n", sz, fileLen, fname);
+         printError("Only loaded %zu of %lld bytes for %s\n", sz, fileLen, fname);
          return d;
     }
 	//bool isPart10prefix = true; //assume 132 byte header http://nipy.bic.berkeley.edu/nightly/nibabel/doc/dicom/dicom_intro.html
