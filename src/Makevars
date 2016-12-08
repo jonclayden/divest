@@ -1,5 +1,7 @@
-PKG_CPPFLAGS = -DHAVE_R -DmyDisableMiniZ -DmyDisableOpenJPEG -I. -Idcm2niix
+PKG_CPPFLAGS = -DHAVE_R -DmyDisableMiniZ -DmyDisableOpenJPEG -I. -Idcm2niix -Iujpeg
 
-OBJECTS_DCM2NIIX = dcm2niix/jpg_0XC3.o dcm2niix/nifti1_io_core.o dcm2niix/nii_dicom.o dcm2niix/nii_dicom_batch.o dcm2niix/nii_ortho.o dcm2niix/ujpeg.o
+OBJECTS_LIBS = ujpeg/ujpeg.o
 
-OBJECTS = main.o $(OBJECTS_DCM2NIIX)
+OBJECTS_DCM2NIIX = dcm2niix/jpg_0XC3.o dcm2niix/nifti1_io_core.o dcm2niix/nii_dicom.o dcm2niix/nii_dicom_batch.o dcm2niix/nii_ortho.o
+
+OBJECTS = main.o $(OBJECTS_DCM2NIIX) $(OBJECTS_LIBS)
