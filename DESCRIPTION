@@ -6,8 +6,7 @@ Author: Jon Clayden, based on dcm2niix by Chris Rorden
 Maintainer: Jon Clayden <code@clayden.org>
 Imports:
     Rcpp (>= 0.11.0),
-    RNifti (>= 0.3.0),
-    ore
+    RNifti (>= 0.3.0)
 Suggests:
     testthat
 LinkingTo: Rcpp, RNifti
