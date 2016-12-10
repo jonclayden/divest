@@ -3,6 +3,7 @@
 
 #ifdef HAVE_R
 
+#define STRICT_R_HEADERS
 #include <Rcpp.h>
 
 #include "RNifti.h"

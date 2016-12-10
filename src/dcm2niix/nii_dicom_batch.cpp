@@ -64,6 +64,9 @@
 
 #ifdef HAVE_R
 #include "ImageList.h"
+
+#undef isnan
+#define isnan ISNAN
 #endif
 
 #include "print.h"

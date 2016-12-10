@@ -5,6 +5,7 @@
 #define _NIFTI_IO_CORE_HEADER_
 
 #ifdef HAVE_R
+#define STRICT_R_HEADERS
 #include "RNifti.h"
 #endif
 

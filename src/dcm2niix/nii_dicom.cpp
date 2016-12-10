@@ -34,6 +34,11 @@
 
 #include "print.h"
 
+#ifdef HAVE_R
+#undef isnan
+#define isnan ISNAN
+#endif
+
 #ifdef myUseCOut
 #include <iostream>
 #endif
