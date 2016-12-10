@@ -793,11 +793,7 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut) {
     //lLength = (int)strlen(test);
 
     if (lLength < 1) return;
-#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lLength + 1));
-#else
-	char cString[lLength + 1];
-#endif
     cString[lLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lLength);
     //memcpy(cString, test, lLength);
@@ -844,9 +840,7 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut) {
     len = dcmStrLen(len);
     memcpy(lOut,cString,len-1);
     lOut[len-1] = 0;
-#ifdef _MSC_VER
 	free(cString);
-#endif
 } //dcmStr()
 
 float dcmFloat(int lByteLength, unsigned char lBuffer[], bool littleEndian) {//read binary 32-bit float
@@ -909,29 +903,19 @@ int dcmInt (int lByteLength, unsigned char lBuffer[], bool littleEndian) { //rea
 } //dcmInt()
 
 int dcmStrInt (int lByteLength, unsigned char lBuffer[]) {//read float stored as a string
-#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
-#else
-	char cString[lByteLength + 1];
-#endif
 
     cString[lByteLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
     //printMessage(" --> *%s* %s%s\n",cString, &lBuffer[0],&lBuffer[1]);
     int ret = atoi(cString);
-#ifdef _MSC_VER
 	free(cString);
-#endif
 	return ret;
 } //dcmStrInt()
 
 int dcmStrManufacturer (int lByteLength, unsigned char lBuffer[]) {//read float stored as a string
     if (lByteLength < 2) return kMANUFACTURER_UNKNOWN;
-#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
-#else
-	char cString[lByteLength + 1];
-#endif
 	int ret = kMANUFACTURER_UNKNOWN;
     cString[lByteLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
@@ -944,9 +928,7 @@ int dcmStrManufacturer (int lByteLength, unsigned char lBuffer[]) {//read float 
         ret = kMANUFACTURER_PHILIPS;
     if ((toupper(cString[0])== 'T') && (toupper(cString[1])== 'O'))
         ret = kMANUFACTURER_TOSHIBA;
-#ifdef _MSC_VER
 	free(cString);
-#endif
 	return ret;
 } //dcmStrManufacturer
 
@@ -990,20 +972,14 @@ float csaMultiFloat (unsigned char buff[], int nItems, float Floats[], int *Item
         memcpy(&itemCSA, &buff[lPos], sizeof(itemCSA));
         lPos +=sizeof(itemCSA);
         if (itemCSA.xx2_Len > 0) {
-#ifdef _MSC_VER
 			char * cString = (char *)malloc(sizeof(char) * (itemCSA.xx2_Len));
-#else
-			char cString[itemCSA.xx2_Len];
-#endif
             memcpy(cString, &buff[lPos], sizeof(cString)); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
             lPos += ((itemCSA.xx2_Len +3)/4)*4;
             //printMessage(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
             Floats[lI] = (float) atof(cString);
             *ItemsOK = lI; //some sequences have store empty items
 
-#ifdef _MSC_VER
 			free(cString);
-#endif
         }
     } //for each item
     return Floats[1];
@@ -1018,19 +994,13 @@ bool csaIsPhaseMap (unsigned char buff[], int nItems) {
         memcpy(&itemCSA, &buff[lPos], sizeof(itemCSA));
         lPos +=sizeof(itemCSA);
         if (itemCSA.xx2_Len > 0) {
-#ifdef _MSC_VER
             char * cString = (char *)malloc(sizeof(char) * (itemCSA.xx2_Len));
-#else
-            char cString[itemCSA.xx2_Len];
-#endif
             memcpy(cString, &buff[lPos], sizeof(cString)); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
             lPos += ((itemCSA.xx2_Len +3)/4)*4;
             //printMessage(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
             if (strcmp(cString, "CC:ComplexAdd") == 0)
                 return true;
-#ifdef _MSC_VER
             free(cString);
-#endif
         }
     } //for each item
     return false;
@@ -1084,11 +1054,7 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
             else if (strcmp(tagCSA.name, "BandwidthPerPixelPhaseEncode") == 0)
                 CSA->bandwidthPerPixelPhaseEncode = csaMultiFloat (&buff[lPos], 3,lFloats, &itemsOK);
             else if ((strcmp(tagCSA.name, "MosaicRefAcqTimes") == 0) && (tagCSA.nitems > 3)  ){
-#ifdef _MSC_VER
 				float * sliceTimes = (float *)malloc(sizeof(float) * (tagCSA.nitems + 1));
-#else
-				float sliceTimes[tagCSA.nitems + 1];
-#endif
                 csaMultiFloat (&buff[lPos], tagCSA.nitems,sliceTimes, &itemsOK);
                 float maxTimeValue, minTimeValue, timeValue1;
                 for (int z = 0; z < kMaxDTI4D; z++)
@@ -1153,9 +1119,7 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
                 	CSA->sliceOrder = NIFTI_SLICE_UNKNOWN;
 
                 }
-#ifdef _MSC_VER
 				free(sliceTimes);
-#endif
             } else if (strcmp(tagCSA.name, "ProtocolSliceNumber") == 0)
                 CSA->protocolSliceNumber1 = (int) round (csaMultiFloat (&buff[lPos], 1,lFloats, &itemsOK));
             else if (strcmp(tagCSA.name, "PhaseEncodingDirectionPositive") == 0)
@@ -1173,11 +1137,7 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
 void dcmMultiFloat (int lByteLength, char lBuffer[], int lnFloats, float *lFloats) {
     //warning: lFloats indexed from 1! will fill lFloats[1]..[nFloats]
     if ((lnFloats < 1) || (lByteLength < 1)) return;
-#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
-#else
-	char cString[lByteLength + 1];
-#endif
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
     cString[lByteLength] = 0; //null terminate
     char *temp=( char *)malloc(lByteLength+1);
@@ -1199,23 +1159,15 @@ void dcmMultiFloat (int lByteLength, char lBuffer[], int lnFloats, float *lFloat
         } //if isOK
     }  //for i to length
     free(temp);
-#ifdef _MSC_VER
 	free(cString);
-#endif
 } //dcmMultiFloat()
 
 float dcmStrFloat (int lByteLength, unsigned char lBuffer[]) { //read float stored as a string
-#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
-#else
-	char cString[lByteLength + 1];
-#endif
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
     cString[lByteLength] = 0; //null terminate
     float ret = (float) atof(cString);
-#ifdef _MSC_VER
 	free(cString);
-#endif
 	return ret;
 } //dcmStrFloat()
 
@@ -1788,11 +1740,7 @@ unsigned char * nii_flipImgY(unsigned char* bImg, struct nifti_1_header *hdr){
         lineBytes = hdr->dim[1];
         dim3to7 = dim3to7 * 3;
     } //rgb data saved planar (RRR..RGGGG..GBBB..B
-#ifdef _MSC_VER
 	unsigned char * line = (unsigned char *)malloc(sizeof(unsigned char) * (lineBytes));
-#else
-	unsigned char line[lineBytes];
-#endif
     size_t sliceBytes = hdr->dim[2] * lineBytes;
     int halfY = hdr->dim[2] / 2; //note truncated toward zero, so halfY=2 regardless of 4 or 5 columns
     for (int sl = 0; sl < dim3to7; sl++) { //for each 2D slice
@@ -1807,9 +1755,7 @@ unsigned char * nii_flipImgY(unsigned char* bImg, struct nifti_1_header *hdr){
             slBottom += lineBytes;
         } //for y
     } //for each slice
-#ifdef _MSC_VER
 	free(line);
-#endif
     return bImg;
 } // nii_flipImgY()
 
@@ -1822,11 +1768,7 @@ unsigned char * nii_flipImgZ(unsigned char* bImg, struct nifti_1_header *hdr){
         if (hdr->dim[i] > 1) dim4to7 = dim4to7 * hdr->dim[i];
     int sliceBytes = hdr->dim[1] * hdr->dim[2] * hdr->bitpix/8;
     long long volBytes = sliceBytes * hdr->dim[3];
-#ifdef _MSC_VER
 	unsigned char * slice = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes));
-#else
-	unsigned char slice[sliceBytes];
-#endif
     for (int vol = 0; vol < dim4to7; vol++) { //for each 2D slice
         long long slBottom = vol*volBytes;
         long long slTop = ((vol+1)*volBytes)-sliceBytes;
@@ -1839,9 +1781,7 @@ unsigned char * nii_flipImgZ(unsigned char* bImg, struct nifti_1_header *hdr){
             slBottom += sliceBytes;
         } //for Z
     } //for each volume
-#ifdef _MSC_VER
 	free(slice);
-#endif
     return bImg;
 } // nii_flipImgZ()
 
@@ -2008,11 +1948,7 @@ unsigned char * nii_planar2rgb(unsigned char* bImg, struct nifti_1_header *hdr, 
                         int sliceBytes8 = hdr->dim[1]*hdr->dim[2];
                         int sliceBytes24 = sliceBytes8 * 3;
     //printMessage("planar->rgb %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
-#ifdef _MSC_VER
                         unsigned char * slice24 = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes24));
-#else
-                        unsigned char  slice24[ sliceBytes24 ];
-#endif
     int sliceOffsetRGB = 0;
                         int sliceOffsetR = 0;
                         int sliceOffsetG = sliceOffsetR + sliceBytes8;
@@ -2029,9 +1965,7 @@ unsigned char * nii_planar2rgb(unsigned char* bImg, struct nifti_1_header *hdr, 
                             }
                             sliceOffsetRGB += sliceBytes24;
                         } //for each slice
-#ifdef _MSC_VER
                         free(slice24);
-#endif
                         return bImg;
 } //nii_rgb2Planar()
 
@@ -2046,11 +1980,7 @@ unsigned char * nii_rgb2planar(unsigned char* bImg, struct nifti_1_header *hdr, 
     //int sliceBytes24 = hdr->dim[1]*hdr->dim[2] * hdr->bitpix/8;
     int sliceBytes8 = hdr->dim[1]*hdr->dim[2];
     int sliceBytes24 = sliceBytes8 * 3;
-#ifdef _MSC_VER
 	unsigned char * slice24 = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes24));
-#else
-	unsigned char  slice24[ sliceBytes24 ];
-#endif
     //printMessage("rgb->planar %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
     int sliceOffsetR = 0;
     for (int sl = 0; sl < dim3to7; sl++) { //for each 2D slice
@@ -2067,9 +1997,7 @@ unsigned char * nii_rgb2planar(unsigned char* bImg, struct nifti_1_header *hdr, 
         }
         sliceOffsetR += sliceBytes24;
     } //for each slice
-#ifdef _MSC_VER
 	free(slice24);
-#endif
     return bImg;
 } //nii_rgb2Planar()
 
