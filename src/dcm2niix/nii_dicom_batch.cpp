@@ -2163,7 +2163,7 @@ int nii_loadDir(struct TDCMopts* opts) {
         free(nameList.str); //ignore compile warning - memory only freed on first of 2 passes
         return EXIT_FAILURE;
     }
-    long long nDcm = nameList.numItems;
+    size_t nDcm = nameList.numItems;
     #ifdef myUseCOut
     //stdout is piped in XCode just like printf, if this works with QT then we could replace these duplicate commands...
     //try this out the next QT build:

@@ -1772,11 +1772,11 @@ unsigned char * nii_flipImgZ(unsigned char* bImg, struct nifti_1_header *hdr){
     for (int i = 4; i < 8; i++)
         if (hdr->dim[i] > 1) dim4to7 = dim4to7 * hdr->dim[i];
     int sliceBytes = hdr->dim[1] * hdr->dim[2] * hdr->bitpix/8;
-    long long volBytes = sliceBytes * hdr->dim[3];
+    size_t volBytes = sliceBytes * hdr->dim[3];
 	unsigned char * slice = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes));
     for (int vol = 0; vol < dim4to7; vol++) { //for each 2D slice
-        long long slBottom = vol*volBytes;
-        long long slTop = ((vol+1)*volBytes)-sliceBytes;
+        size_t slBottom = vol*volBytes;
+        size_t slTop = ((vol+1)*volBytes)-sliceBytes;
         for (int z = 0; z < halfZ; z++) {
             //swap order of lines
             memcpy(slice, &bImg[slBottom], sliceBytes); //TPX memcpy(&slice, &bImg[slBottom], sliceBytes);
@@ -1803,10 +1803,10 @@ unsigned char * nii_reorderSlices(unsigned char* bImg, struct nifti_1_header *h,
         if (h->dim[i] > 1) dim4to7 = dim4to7 * h->dim[i];
     int sliceBytes = h->dim[1] * h->dim[2] * h->bitpix/8;
     if (sliceBytes < 0)  return bImg;
-    long long volBytes = sliceBytes * h->dim[3];
+    size_t volBytes = sliceBytes * h->dim[3];
     unsigned char *srcImg = (unsigned char *)malloc(volBytes);
     for (int v = 0; v < dim4to7; v++) {
-    	long long volStart = v * volBytes;
+    	size_t volStart = v * volBytes;
     	memcpy(&srcImg[volStart], &bImg[volStart], volBytes); //dest, src, size
     	for (int z = 0; z < h->dim[3]; z++) { //for each slice
 			int src = dti4D->S[z].sliceNumberMrPhilips - 1; //-1 as Philips indexes slices from 1 not 0
@@ -1923,7 +1923,7 @@ unsigned char * nii_loadImgCore(char* imgname, struct nifti_1_header hdr, int bi
          return NULL;
     }
 	fseek(file, 0, SEEK_END);
-	long long fileLen=ftell(file);
+	size_t fileLen=ftell(file);
     if (fileLen < (imgszRead+hdr.vox_offset)) {
         printMessage("File not large enough to store image data: %s\n", imgname);
         return NULL;
@@ -2409,7 +2409,7 @@ int isDICOMfile(const char * fname) { //0=NotDICOM, 1=DICOM, 2=Maybe(not Part 10
     FILE *fp = fopen(fname, "rb");
 	if (!fp)  return 0;
 	fseek(fp, 0, SEEK_END);
-	long long fileLen=ftell(fp);
+	size_t fileLen=ftell(fp);
     if (fileLen < 256) {
         fclose(fp);
         return 0;
@@ -2460,7 +2460,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 		return d;
 	}
 	fseek(file, 0, SEEK_END);
-	long long fileLen=ftell(file); //Get file length
+	size_t fileLen=ftell(file); //Get file length
     if (fileLen < 256) {
 #ifdef myUseCOut
      	std::cout<<"File too small to be a DICOM image "<< fname <<std::endl;
