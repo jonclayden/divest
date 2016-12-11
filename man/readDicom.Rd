@@ -29,6 +29,10 @@ provided by \code{dcm2niix}. It scans directories containing DICOM files,
 potentially pertaining to more than one image series, reads them and merges
 them into a list of \code{niftiImage} objects.
 }
+\examples{
+path <- system.file("extdata", "testdata", package="divest")
+readDicom(path)
+}
 \author{
 Jon Clayden <code@clayden.org>
 }

@@ -17,6 +17,9 @@
 #'   \code{RNifti} package. If the process fails, the result will be
 #'   \code{NULL}.
 #' 
+#' @examples
+#' path <- system.file("extdata", "testdata", package="divest")
+#' readDicom(path)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
 readDicom <- function (path, flipY = TRUE, verbosity = 0L)
