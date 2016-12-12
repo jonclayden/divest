@@ -5,9 +5,10 @@ test_that("DICOM-reading code works", {
     expect_output(d <- readDicom(path), "Found 4 DICOM")
     
     expect_identical(length(d), 2L)
-    expect_equal(dim(d[[1]]), c(2,224,256))
-    expect_equal(attr(d[[1]],"flipAngle"), 15)
+    i <- which(sapply(d,RNifti::ndim) == 3L)
+    expect_equal(dim(d[[i]]), c(2,224,256))
+    expect_equal(attr(d[[i]],"flipAngle"), 15)
     
-    origin <- RNifti::worldToVoxel(c(0,0,0), d[[1]])
+    origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
     expect_equal(round(origin), c(-16,95,135))
 })
