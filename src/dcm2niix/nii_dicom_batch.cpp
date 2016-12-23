@@ -282,12 +282,13 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
         for (int v= 0; v < 4; v++)
             if (vx[i].V[v] == -0.0f) vx[i].V[v] = 0.0f; //remove sign from values that are virtually zero
     } //for each direction
-    if (abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant)
+    if (abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant) {
        printWarning("Please validate DTI vectors (matrix had a negative determinant, perhaps Siemens sagittal).\n");
-    else if ( d->sliceOrient == kSliceOrientTra)
+    } else if ( d->sliceOrient == kSliceOrientTra) {
         printMessage("Saving %d DTI gradients. Please validate if you are conducting DTI analyses.\n", d->CSA.numDti);
-    else
+    } else {
         printWarning("DTI gradient directions only tested for axial (transverse) acquisitions. Please validate bvec files.\n");
+    }
 }// siemensPhilipsCorrectBvecs()
 
 bool isNanPosition(struct TDICOMdata d) { //in 2007 some Siemens RGB DICOMs did not include the PatientPosition 0020,0032 tag

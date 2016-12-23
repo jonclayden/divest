@@ -16,7 +16,6 @@
 	#include <unistd.h>
 #endif
 //#include <time.h> //clock()
-#include "nifti1.h"
 #include "print.h"
 #include "nii_dicom.h"
 #include <sys/types.h>
@@ -886,7 +885,7 @@ float csaMultiFloat (unsigned char buff[], int nItems, float Floats[], int *Item
         
         if (itemCSA.xx2_Len > 0) {
             char * cString = (char *)malloc(sizeof(char) * (itemCSA.xx2_Len));
-            memcpy(cString, &buff[lPos], sizeof(cString)); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
+            memcpy(cString, &buff[lPos], itemCSA.xx2_Len); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
             lPos += ((itemCSA.xx2_Len +3)/4)*4;
             //printMessage(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
             Floats[lI] = (float) atof(cString);
