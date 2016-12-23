@@ -25,14 +25,11 @@
         #include <zlib.h>
     #endif
 #endif
-#ifdef myUseCOut
-	#include <iostream>
-#endif
 #include "tinydir.h"
+#include "print.h"
 #include "nifti1_io_core.h"
 #include "nii_dicom_batch.h"
 #include "nii_dicom.h"
-
 #include <ctype.h> //toupper
 #include <float.h>
 #include <math.h>
@@ -68,8 +65,6 @@
 #undef isnan
 #define isnan ISNAN
 #endif
-
-#include "print.h"
 
 struct TDCMsort {
     uint64_t indx, img;
@@ -185,18 +180,14 @@ void geCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI *vx){
     if ((toupper(d->patientOrient[0])== 'H') && (toupper(d->patientOrient[1])== 'F') && (toupper(d->patientOrient[2])== 'S'))
         ; //participant was head first supine
     else {
-    	#ifdef myUseCOut
-     	std::cout<<"GE DTI directions require head first supine acquisition" <<std::endl;
-    	#else
-        printMessage("GE DTI directions require head first supine acquisition\n");
-		#endif
-        return;
+    	printMessage("GE DTI directions require head first supine acquisition\n");
+		return;
     }
     bool col = false;
     if (d->phaseEncodingRC== 'C')
         col = true;
     else if (d->phaseEncodingRC!= 'R') {
-        printError("Unable to determine DTI gradients, 0018,1312 should be either R or C");
+        printWarning("Unable to determine DTI gradients, 0018,1312 should be either R or C");
         return;
     }
     if (abs(sliceDir) != 3)
@@ -261,11 +252,7 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
     if ((toupper(d->patientOrient[0])== 'H') && (toupper(d->patientOrient[1])== 'F') && (toupper(d->patientOrient[2])== 'S'))
         ; //participant was head first supine
     else {
-    #ifdef myUseCOut
-    std::cout<<"Siemens/Philips DTI directions require head first supine acquisition"<<std::endl;
-    #else
         printMessage("Siemens/Philips DTI directions require head first supine acquisition\n");
-        #endif
         return;
     }
     vec3 read_vector = setVec3(d->orient[1],d->orient[2],d->orient[3]);
@@ -280,7 +267,7 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
                           + (vx[i].V[3]*vx[i].V[3]));
         if ((vx[i].V[0] <= FLT_EPSILON)|| (vLen <= FLT_EPSILON) ) { //bvalue=0
             if (vx[i].V[0] > FLT_EPSILON)
-                printWarning("volume %d appears to be an ADC map (non-zero b-value with zero vector length)\n", i);
+                printWarning("Volume %d appears to be an ADC map (non-zero b-value with zero vector length)\n", i);
             //for (int v= 0; v < 4; v++)
             //    vx[i].V[v] =0.0f;
             continue; //do not normalize or reorient b0 vectors
@@ -295,12 +282,11 @@ void siemensPhilipsCorrectBvecs(struct TDICOMdata *d, int sliceDir, struct TDTI 
         for (int v= 0; v < 4; v++)
             if (vx[i].V[v] == -0.0f) vx[i].V[v] = 0.0f; //remove sign from values that are virtually zero
     } //for each direction
-
-    if (abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant) {
-       printWarning("please validate DTI vectors (matrix had a negative determinant, perhaps Siemens sagittal).\n");
-    } else if ( d->sliceOrient == kSliceOrientTra) {
+    if (abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant)
+       printWarning("Please validate DTI vectors (matrix had a negative determinant, perhaps Siemens sagittal).\n");
+    else if ( d->sliceOrient == kSliceOrientTra)
         printMessage("Saving %d DTI gradients. Please validate if you are conducting DTI analyses.\n", d->CSA.numDti);
-    } else
+    else
         printWarning("DTI gradient directions only tested for axial (transverse) acquisitions. Please validate bvec files.\n");
 }// siemensPhilipsCorrectBvecs()
 
@@ -363,6 +349,10 @@ void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts,
 			break;
 	};
 	fprintf(fp, "\t\"ManufacturersModelName\": \"%s\",\n", d.manufacturersModelName );
+	if (strlen(d.procedureStepDescription) > 0)
+		fprintf(fp, "\t\"ProcedureStepDescription\": \"%s\",\n", d.procedureStepDescription );
+	if (strlen(d.protocolName) > 0)
+		fprintf(fp, "\t\"ProtocolName\": \"%s\",\n", d.protocolName );
 	if (strlen(d.imageType) > 0) {
 		fprintf(fp, "\t\"ImageType\": [\"");
 		bool isSep = false;
@@ -391,8 +381,8 @@ void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts,
      if (count) {
         // ISO 8601 specifies a sign must exist for distant years.
         fprintf(fp, "\t\"AcquisitionDateTime\": ");
-        fprintf(fp, (ayear >= 0 && ayear <= 9999) ? "%4d" : "%+4d", ayear);
-        fprintf(fp, "-%02d-%02dT%02d:%02d:%02.6f,\n", amonth, aday, ahour, amin, asec);
+        fprintf(fp, (ayear >= 0 && ayear <= 9999) ? "\"%4d" : "\"%+4d", ayear);
+        fprintf(fp, "-%02d-%02dT%02d:%02d:%02.6f\",\n", amonth, aday, ahour, amin, asec);
         }
   }
 
@@ -486,7 +476,7 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
         }
         for (int i = 1; i < numDti; i++)
                 printMessage("bxyz %g %g %g %g\n",vx[i].V[0],vx[i].V[1],vx[i].V[2],vx[i].V[3]);
-        printError("only one B-value reported for all volumes: %g\n",vx[0].V[0]);
+        printWarning("No bvec/bval files created. Only one B-value reported for all volumes: %g\n",vx[0].V[0]);
         free(vx);
         return false;
     }
@@ -496,17 +486,9 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
             firstB0 = i;
             break;
         }
-    #ifdef myUseCOut
-    if (firstB0 < 0)
-    	std::cout<<"Warning: this diffusion series does not have a B0 (reference) volume"<<std::endl;
-	if (firstB0 > 0)
-    	std::cout<<"Note: B0 not the first volume in the series (FSL eddy reference volume is "<<firstB0<<")"<<std::endl;
-
-	#else
-    if (firstB0 < 0) printWarning("this diffusion series does not have a B0 (reference) volume\n");
+    if (firstB0 < 0) printWarning("This diffusion series does not have a B0 (reference) volume\n");
     if (firstB0 > 0) printMessage("Note: B0 not the first volume in the series (FSL eddy reference volume is %d)\n", firstB0);
-	#endif
-    int numFinalADC = 0;
+	int numFinalADC = 0;
     if (dcmList[dcmSort[0].indx].manufacturer == kMANUFACTURER_PHILIPS) {
         int i = numDti - 1;
         while ((i > 0) && (!isSameFloat(vx[i].V[0],0.0f)) && //not a B-0 image
@@ -525,7 +507,7 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
                 ((isSameFloat(vx[i].V[1],0.0f)) &&
                  (isSameFloat(vx[i].V[2],0.0f)) &&
                  (isSameFloat(vx[i].V[3],0.0f)) ) )
-                printWarning("volume %d appears to be an ADC volume %g %g %g\n", i+1, vx[i].V[1], vx[i].V[2], vx[i].V[3]);
+                printWarning("Volume %d appears to be an ADC volume %g %g %g\n", i+1, vx[i].V[1], vx[i].V[2], vx[i].V[3]);
 
         }*/
     }
@@ -687,18 +669,10 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
             if (getcwd(pth, sizeof(pth)) != NULL) {
             w =access(pth,W_OK);
             if (w != 0) {
-            	#ifdef myUseCOut
-    			std::cout<<"Error: you do not have write permissions for the directory "<<opts.outdir<<std::endl;
-				#else
-                printError("you do not have write permissions for the directory %s\n",opts.outdir);
-                #endif
+            	printError("You do not have write permissions for the directory %s\n",opts.outdir);
                 return EXIT_FAILURE;
             }
-            #ifdef myUseCOut
-    		std::cout<<"Warning: "<<opts.outdir<<" write permission denied. Saving to working directory "<<pth<<std::endl;
-			#else
             printWarning("%s write permission denied. Saving to working directory %s \n", opts.outdir, pth);
-            #endif
             }
         }
      }
@@ -728,19 +702,21 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
                 sprintf(newstr, "%02d", dcm.coilNum);
                 strcat (outname,newstr);
             }
+            if (f == 'C')
+                strcat (outname,dcm.imageComments);
+            if (f == 'D')
+                strcat (outname,dcm.seriesDescription);
         	if (f == 'E') {
         		isEchoReported = true;
                 sprintf(newstr, "%d", dcm.echoNum);
                 strcat (outname,newstr);
             }
-            if (f == 'C')
-                strcat (outname,dcm.imageComments);
-            if (f == 'D')
-                strcat (outname,dcm.seriesDescription);
             if (f == 'F')
                 strcat (outname,opts.indirParent);
             if (f == 'I')
                 strcat (outname,dcm.patientID);
+            if (f == 'L') //"L"ocal Institution-generated description or classification of the Procedure Step that was performed.
+                strcat (outname,dcm.procedureStepDescription);
             if (f == 'M') {
                 if (dcm.manufacturer == kMANUFACTURER_GE)
                     strcat (outname,"GE");
@@ -759,16 +735,6 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
                 strcat (outname,dcm.protocolName);
             if (f == 'Q')
                 strcat (outname,dcm.scanningSequence);
-            if ((f >= '0') && (f <= '9')) {
-                if ((pos<strlen(inname)) && (toupper(inname[pos+1]) == 'S')) {
-                    char zeroPad[12] = {""};
-                    //sprintf(zeroPad,"%%0%dd",atoi(&f));
-                    sprintf(zeroPad,"%%0%dd",f - '0');
-                    sprintf(newstr, zeroPad, dcm.seriesNum);
-                    strcat (outname,newstr);
-                    pos++; // e.g. %3f requires extra increment: skip both number and following character
-                }
-            }
             if (f == 'S') {
                 sprintf(newstr, "%ld", dcm.seriesNum);
                 strcat (outname,newstr);
@@ -782,11 +748,21 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
 				sprintf(newstr, "%d", dcm.acquNum);
 				strcat (outname,newstr);
 				#else
-    			printWarning("ignoring '%%f' in output filename (recompile to segment by acquisition)\n");
+    			printWarning("Ignoring '%%f' in output filename (recompile to segment by acquisition)\n");
     			#endif
 			}
             if (f == 'Z')
                 strcat (outname,dcm.sequenceName);
+            if ((f >= '0') && (f <= '9')) {
+                if ((pos<strlen(inname)) && (toupper(inname[pos+1]) == 'S')) {
+                    char zeroPad[12] = {""};
+                    //sprintf(zeroPad,"%%0%dd",atoi(&f));
+                    sprintf(zeroPad,"%%0%dd",f - '0');
+                    sprintf(newstr, zeroPad, dcm.seriesNum);
+                    strcat (outname,newstr);
+                    pos++; // e.g. %3f requires extra increment: skip both number and following character
+                }
+            }
             start = pos + 1;
         } //found a % character
         pos++;
@@ -833,11 +809,7 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
         i++;
     }
     if (i >= 26) {
-            #ifdef myUseCOut
-    		std::cout<<"Error: too many NIFTI images with the name "<<baseoutname<<std::endl;
-			#else
-        printError("too many NIFTI images with the name %s\n", baseoutname);
-        #endif
+        printError("Too many NIFTI images with the name %s\n", baseoutname);
         return EXIT_FAILURE;
     }
     //printMessage("-->%s\n",pathoutname); return EXIT_SUCCESS;
@@ -1072,11 +1044,7 @@ int nii_saveNII(char * niiFilename, struct nifti_1_header hdr, unsigned char* im
     	#else //if win else linux
         system(command);
         #endif //else linux
-        #ifdef myUseCOut
-    	std::cout<<"compress: "<<command<<std::endl;
-		#else
         printMessage("compress: %s\n",command);
-        #endif
     }
     return EXIT_SUCCESS;
 }// nii_saveNII()
@@ -1137,11 +1105,7 @@ int siemensCtKludge(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     for (int i = 1; i < nConvert; i++) {
         float dx = intersliceDistance(dcmList[indx0],dcmList[dcmSort[i].indx]);
         if ((!isSameFloat(dx,0.0f)) && (dx < prevDx)) {
-            #ifdef myUseCOut
-            std::cout<<"Slices skipped: image position not sequential, admonish your vendor (Siemens OOG?)"<<std::endl;
-            #else
             printMessage("Slices skipped: image position not sequential, admonish your vendor (Siemens OOG?)\n");
-            #endif
             return i;
         }
         prevDx = dx;
@@ -1468,11 +1432,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     struct nifti_1_header hdr0;
     unsigned char * img = nii_loadImgXL(nameList->str[indx], &hdr0,dcmList[indx], iVaries, opts.compressFlag, opts.isVerbose);
     if (opts.isVerbose)
-    #ifdef myUseCOut
-    	std::cout<<"Converting "<<nameList->str[indx]<<std::endl;
-	#else
         printMessage("Converting %s\n",nameList->str[indx]);
-    #endif
     if (img == NULL) return EXIT_FAILURE;
     //if (iVaries) img = nii_iVaries(img, &hdr0);
     size_t imgsz = nii_ImgBytes(hdr0);
@@ -1482,7 +1442,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     //printMessage(" %d %d %d %d %lu\n", hdr0.dim[1], hdr0.dim[2], hdr0.dim[3], hdr0.dim[4], (unsigned long)[imgM length]);
     if (nConvert > 1) {
         if (dcmList[indx0].gantryTilt != 0.0f)
-            printWarning("note these images have gantry tilt of %g degrees (manufacturer ID = %d)\n", dcmList[indx0].gantryTilt, dcmList[indx0].manufacturer);
+            printMessage(" Warning: note these images have gantry tilt of %g degrees (manufacturer ID = %d)\n", dcmList[indx0].gantryTilt, dcmList[indx0].manufacturer);
         if (hdr0.dim[3] < 2) {
             //stack volumes with multiple acquisitions
             int nAcq = 1;
@@ -1524,7 +1484,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
                     sliceMMarray = (float *) malloc(sizeof(float)*nConvert);
                     sliceMMarray[0] = 0.0f;
                     printMessage("Dims %d %d %d %d %d\n", hdr0.dim[1], hdr0.dim[2], hdr0.dim[3], hdr0.dim[4], nAcq);
-                    printWarning("interslice distance varies in this volume (incompatible with NIfTI format).\n");
+                    printWarning("Interslice distance varies in this volume (incompatible with NIfTI format).\n");
                     printMessage(" Distance from first slice:\n");
                     printMessage("dx=[0");
                     for (int i = 1; i < nConvert; i++) {
@@ -1541,7 +1501,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
                 printMessage("swizzling 3rd and 4th dimensions (XYTZ -> XYZT), assuming interslice distance is %f\n",dx);
             }
             if ((dx == 0.0 ) && (!dxVaries)) { //all images are the same slice - 16 Dec 2014
-                printWarning("all images appear to be a single slice - please check slice/vector orientation\n");
+                printMessage(" Warning: all images appear to be a single slice - please check slice/vector orientation\n");
                 hdr0.dim[3] = 1;
                 hdr0.dim[4] = nConvert;
                 hdr0.dim[0] = 4;
@@ -1564,11 +1524,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
             img = nii_loadImgXL(nameList->str[indx], &hdrI, dcmList[indx],iVaries, opts.compressFlag, opts.isVerbose);
             if (img == NULL) return EXIT_FAILURE;
             if ((hdr0.dim[1] != hdrI.dim[1]) || (hdr0.dim[2] != hdrI.dim[2]) || (hdr0.bitpix != hdrI.bitpix)) {
-                    #ifdef myUseCOut
-    	std::cout<<"Error: image dimensions differ "<<nameList->str[dcmSort[0].indx]<<"  "<<nameList->str[indx]<<std::endl;
-		#else
-                printError("image dimensions differ %s %s",nameList->str[dcmSort[0].indx], nameList->str[indx]);
-                #endif
+                printError("Image dimensions differ %s %s",nameList->str[dcmSort[0].indx], nameList->str[indx]);
                 free(imgM);
                 free(img);
                 return EXIT_FAILURE;
@@ -1590,7 +1546,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     if (hdr0.dim[3] > 1)sliceDir = headerDcm2Nii2(dcmList[dcmSort[0].indx],dcmList[dcmSort[nConvert-1].indx] , &hdr0);
 	//UNCOMMENT NEXT TWO LINES TO RE-ORDER MOSAIC WHERE CSA's protocolSliceNumber does not start with 1
 	if (dcmList[dcmSort[0].indx].CSA.protocolSliceNumber1 > 1) {
-		printWarning("WEIRD CSA 'ProtocolSliceNumber': SPATIAL, SLICE-ORDER AND DTI TRANSFORMS UNTESTED\n");
+		printWarning("Weird CSA 'ProtocolSliceNumber' (%d): SPATIAL, SLICE-ORDER AND DTI TRANSFORMS UNTESTED\n", dcmList[dcmSort[0].indx].CSA.protocolSliceNumber1);
 		//see https://github.com/neurolabusc/dcm2niix/issues/40
 		sliceDir = -1; //not sure how to handle negative determinants?
 	}
@@ -1603,20 +1559,11 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     int numFinalADC = nii_SaveDTI(pathoutname,nConvert, dcmSort, dcmList, opts, sliceDir, dti4D);
     numFinalADC = numFinalADC; //simply to silence compiler warning when myNoSave defined
     if ((hdr0.datatype == DT_UINT16) &&  (!dcmList[dcmSort[0].indx].isSigned)) nii_check16bitUnsigned(imgM, &hdr0);
-    #ifdef myUseCOut
-     std::cout<<"Convert "<<nConvert<<" DICOM as "<<pathoutname<<
-     	" ("<<hdr0.dim[1]<<"x"<<hdr0.dim[2]<<"x"<<hdr0.dim[3]<<"x"<<hdr0.dim[4]<<")" <<std::endl;
-    #else
     printMessage( "Convert %d DICOM as %s (%dx%dx%dx%d)\n",  nConvert, pathoutname, hdr0.dim[1],hdr0.dim[2],hdr0.dim[3],hdr0.dim[4]);
-    #endif
     if (!dcmList[dcmSort[0].indx].isSlicesSpatiallySequentialPhilips)
     	nii_reorderSlices(imgM, &hdr0, dti4D);
     if (hdr0.dim[3] < 2)
-    #ifdef myUseCOut
-    	std::cout<<"WARNING: check that 2D images are not mirrored"<<std::endl;
-		#else
-        printWarning("check that 2D images are not mirrored.\n");
-        #endif
+    	printWarning("Check that 2D images are not mirrored.\n");
 #ifndef HAVE_R
     else
         fflush(stdout); //GUI buffers printf, display all results
@@ -1626,11 +1573,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     else if (opts.isFlipY)//(FLIP_Y) //(dcmList[indx0].CSA.mosaicSlices < 2) &&
         imgM = nii_flipY(imgM, &hdr0);
     else
-    #ifdef myUseCOut
-    	std::cout<<"DICOM row order preserved: may appear upside down in tools that ignore spatial transforms"<<std::endl;
-		#else
-        printMessage("DICOM row order preserved: may appear upside down in tools that ignore spatial transforms\n");
-        #endif
+    	printMessage("DICOM row order preserved: may appear upside down in tools that ignore spatial transforms\n");
 #ifndef myNoSave
     //printMessage(" x--> %d ----\n", nConvert);
     if (! opts.isRGBplanar) //save RGB as packed RGBRGBRGB... instead of planar RRR..RGGG..GBBB..B
@@ -1740,7 +1683,9 @@ bool isSameSet (struct TDICOMdata d1, struct TDICOMdata d2, bool isForceStackSam
     	return false;
     }
     if ((d1.TE != d2.TE) || (d1.echoNum != d2.echoNum)) {
-        if (!warnings->echoVaries)
+        if ((!warnings->echoVaries) && (d1.isXRay)) //for CT/XRay we check DICOM tag 0018,1152 (XRayExposure)
+        	printMessage("slices not stacked: X-Ray Exposure varies (%g, %g; number %d, %d)\n", d1.TE, d2.TE,d1.echoNum, d2.echoNum );
+        if ((!warnings->echoVaries) && (!d1.isXRay)) //for MRI
         	printMessage("slices not stacked: echo varies (TE %g, %g; echo %d, %d)\n", d1.TE, d2.TE,d1.echoNum, d2.echoNum );
         warnings->echoVaries = true;
         return false;
@@ -1784,7 +1729,7 @@ void  convertForeign2Nii(char * fname, struct TDCMopts* opts) {//, struct TDCMop
             if (getcwd(pth, sizeof(pth)) != NULL) {
                 w =access(pth,W_OK);
                 if (w != 0) {
-                    printError("you do not have write permissions for the directory %s\n",opts->outdir);
+                    printError("You do not have write permissions for the directory %s\n",opts->outdir);
                     return;
                 }
                 printWarning("%s write permission denied. Saving to working directory %s \n", opts->outdir, pth);
@@ -1811,7 +1756,7 @@ int singleDICOM(struct TDCMopts* opts, char *fname) {
     char filename[768] ="";
     strcat(filename, fname);
     if (isDICOMfile(filename) == 0) {
-        printError("not a DICOM image : %s\n", filename);
+        printError("Not a DICOM image : %s\n", filename);
         return 0;
     }
     struct TDICOMdata *dcmList  = (struct TDICOMdata *)malloc( sizeof(struct  TDICOMdata));
@@ -1860,11 +1805,7 @@ void searchDirForDICOM(char *path, struct TSearchList *nameList, int maxDepth, i
             //convertForeign2Nii(filename, opts);
             #endif
         #ifdef MY_DEBUG
-            #ifdef myUseCOut
-                std::cout<<"Not a dicom"<< filename <<std::endl;
-            #else
-                printMessage("Not a dicom:\t%s\n", filename);
-            #endif
+            printMessage("Not a dicom:\t%s\n", filename);
         #endif
         }
         tinydir_next(&dir);
@@ -1885,11 +1826,7 @@ int removeDuplicates(int nConvert, struct TDCMsort dcmSort[]){
         }
     }
     if (nDuplicates > 0)
-        #ifdef myUseCOut
-    	std::cout<<"Some images have identical time, series, acquisition and image values. DUPLICATES REMOVED."<<std::endl;
-		#else
-    	printMessage("Some images have identical time, series, acquisition and image values. DUPLICATES REMOVED.\n");
-    	#endif
+        printMessage("Some images have identical time, series, acquisition and image values. DUPLICATES REMOVED.\n");
     return nConvert - nDuplicates;
 }// removeDuplicates()
 
@@ -1899,23 +1836,15 @@ int removeDuplicatesVerbose(int nConvert, struct TDCMsort dcmSort[], struct TSea
     int nDuplicates = 0;
     for (int i = 1; i < nConvert; i++) {
         if (dcmSort[i].img == dcmSort[i-1].img) {
-                #ifdef myUseCOut
-    	std::cout<<"\t"<<nameList->str[dcmSort[i-1].indx]<<"\t=\t"<<nameList->str[dcmSort[i].indx] <<std::endl;
-		#else
             printMessage("\t%s\t=\t%s\n",nameList->str[dcmSort[i-1].indx],nameList->str[dcmSort[i].indx]);
-            #endif
             nDuplicates ++;
-        }else {
+        } else {
             dcmSort[i-nDuplicates].img = dcmSort[i].img;
             dcmSort[i-nDuplicates].indx = dcmSort[i].indx;
         }
     }
     if (nDuplicates > 0)
-        #ifdef myUseCOut
-    	std::cout<<"Some images have identical time, series, acquisition and image values. Duplicates removed."<<std::endl;
-		#else
-    	printMessage("Some images have identical time, series, acquisition and image values. Duplicates removed.\n");
-    	#endif
+        printMessage("Some images have identical time, series, acquisition and image values. Duplicates removed.\n");
     return nConvert - nDuplicates;
 }// removeDuplicates()
 
@@ -2060,13 +1989,8 @@ int convert_parRec(struct TDCMopts opts) {
     dcmSort[0].indx = 0;
     saveDcm2Nii(1, dcmSort, dcmList, &nameList, opts, &dti4D);
     free(dcmList);//if (nConvertTotal == 0)
-    if (nameList.numItems < 1) {
-     #ifdef myUseCOut
-    	std::cout<<"No valid PAR/REC files were found"<<std::endl;
-		#else
-		printMessage("No valid PAR/REC files were found\n");
-		#endif
-    }
+    if (nameList.numItems < 1)
+    	printMessage("No valid PAR/REC files were found\n");
     if (nameList.numItems > 0)
         for (int i = 0; i < nameList.numItems; i++)
             free(nameList.str[i]);
@@ -2088,11 +2012,7 @@ void freeNameList(struct TSearchList nameList) {
 int nii_loadDir(struct TDCMopts* opts) {
     //Identifies all the DICOM files in a folder and its subfolders
     if (strlen(opts->indir) < 1) {
-         #ifdef myUseCOut
-    	std::cout<<"No input"<<std::endl;
-		#else
         printMessage("No input\n");
-        #endif
         return EXIT_FAILURE;
     }
     char indir[512];
@@ -2108,10 +2028,10 @@ int nii_loadDir(struct TDCMopts* opts) {
         dropFilenameFromPath(opts->outdir);//getParentFolder(opts.indir, opts.indir);
     if (!is_dir(opts->outdir,true)) {
 		#ifdef myUseInDirIfOutDirUnavailable
-		printWarning("output folder invalid %s will try %s\n",opts->outdir,opts->indir);
+		printWarning("Output folder invalid %s will try %s\n",opts->outdir,opts->indir);
 		strcpy(opts->outdir,opts->indir);
 		#else
-		printError("output folder invalid: %s\n",opts->outdir);
+		printError("Output folder invalid: %s\n",opts->outdir);
 		return EXIT_FAILURE;
 		#endif
     }
@@ -2133,11 +2053,14 @@ int nii_loadDir(struct TDCMopts* opts) {
         strcpy(rname,indir);
         changeExt (pname, "PAR");
         changeExt (rname, "REC");
+        #ifndef _MSC_VER //Linux is case sensitive, #include <unistd.h>
+   		if( access( rname, F_OK ) != 0 ) changeExt (rname, "rec");
+   		if( access( pname, F_OK ) != 0 ) changeExt (pname, "par");
+		#endif
         if (is_fileNotDir(rname)  &&  is_fileNotDir(pname) ) {
             strcpy(opts->indir, pname); //set to original file name, not path
             return convert_parRec(*opts);
-        } else if (isExt(indir, ".par")) //Linux is case sensitive...
-            return convert_parRec(*opts);
+        };
     }
     if ((isFile) && (opts->isOnlySingleFile))
         return singleDICOM(opts, indir);
@@ -2155,23 +2078,12 @@ int nii_loadDir(struct TDCMopts* opts) {
         //printMessage("Second pass required, found %ld images\n", nameList.numItems);
     }
     if (nameList.numItems < 1) {
-        #ifdef myUseCOut
-    	std::cout << "Error: unable to find any DICOM images in "<< opts->indir <<std::endl;
-    	#else
-        printError("unable to find any DICOM images in %s\n", opts->indir);
-        #endif
+        printError("Unable to find any DICOM images in %s\n", opts->indir);
         free(nameList.str); //ignore compile warning - memory only freed on first of 2 passes
         return EXIT_FAILURE;
     }
     size_t nDcm = nameList.numItems;
-    #ifdef myUseCOut
-    //stdout is piped in XCode just like printf, if this works with QT then we could replace these duplicate commands...
-    //try this out the next QT build:
-    fprintf(stdout, "STDOUT PIPE TEST\n");
-    std::cout << "Found "<< nameList.numItems <<" DICOM images" <<std::endl;
-    #else
     printMessage( "Found %lu DICOM image(s)\n", nameList.numItems);
-    #endif
     // struct TDICOMdata dcmList [nameList.numItems]; //<- this exhausts the stack for large arrays
     struct TDICOMdata *dcmList  = (struct TDICOMdata *)malloc(nameList.numItems * sizeof(struct  TDICOMdata));
     struct TDTI4D dti4D;
@@ -2224,11 +2136,7 @@ int nii_loadDir(struct TDCMopts* opts) {
     }
     free(dcmList);
     if (nConvertTotal == 0) {
-        #ifdef myUseCOut
-    	std::cout << "No valid DICOM files were found\n" <<std::endl;
-    	#else
-    	printMessage("No valid DICOM files were found\n");
-    	#endif
+        printMessage("No valid DICOM files were found\n");
     }
     freeNameList(nameList);
     //if (nameList.numItems > 0)
@@ -2266,19 +2174,11 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
     #if defined(_WIN64) || defined(_WIN32)
     strcpy(opts->pigzname,"pigz.exe");
     if (!is_exe(opts->pigzname)) {
-    #ifdef myUseCOut
-        #ifdef myDisableZLib
-        std::cout << "Compression requires "<<opts->pigzname<<" in the same folder as the executable"<<std::endl;
-		#else //myUseZLib
- 		std::cout << "Compression will be faster with "<<opts->pigzname<<" in the same folder as the executable "<<std::endl;
-		#endif
-    #else
         #ifdef myDisableZLib
         printMessage("Compression requires %s in the same folder as the executable\n",opts->pigzname);
 		#else //myUseZLib
  		printMessage("Compression will be faster with %s in the same folder as the executable\n",opts->pigzname);
 		#endif
-	#endif
         strcpy(opts->pigzname,"");
     } else
     	strcpy(opts->pigzname,".\\pigz"); //drop
@@ -2290,7 +2190,12 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
         strcpy(opts->pigzname,"/usr/bin/pigz");
         if (!is_exe(opts->pigzname)) {
         strcpy(opts->pigzname,"/usr/local/bin/pigz_mricron");
-        if (!is_exe(opts->pigzname)) {
+        if (argv == NULL) { //no exectuable path provided
+			if (!is_exe(opts->pigzname))
+				strcpy(opts->pigzname,"");
+        	return;
+        }
+        if (!is_exe(opts->pigzname))  {
             strcpy(opts->pigzname,argv[0]);
             dropFilenameFromPath(opts->pigzname);//, opts.pigzname);
             char appendChar[2] = {"a"};
@@ -2301,26 +2206,50 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
             strcat(opts->pigzname,".exe");
             #endif
             if (!is_exe(opts->pigzname)) {
-             #ifdef myUseCOut
-              #ifdef myDisableZLib
-                std::cout << "Compression requires "<<pigz<<std::endl;
-                #else //myUseZLib
-                std::cout << "Compression will be faster with "<<pigz<<std::endl;
-            	#endif
-    		#else
-            	#ifdef myDisableZLib
+             	#ifdef myDisableZLib
                 printMessage("Compression requires %s\n",pigz);
             	#else //myUseZLib
                 printMessage("Compression will be faster with %s\n",pigz);
             	#endif
-            #endif
-                strcpy(opts->pigzname,"");
+            	strcpy(opts->pigzname,"");
             } //no pigz_mricron in exe's folder
         } //no /usr/local/pigz_mricron
        }//no /usr/bin/pigz
     } //no /usr/local/pigz
     #endif
 } //readFindPigz()
+
+void setDefaultOpts (struct TDCMopts *opts, const char * argv[]) { //either "setDefaultOpts(opts,NULL)" or "setDefaultOpts(opts,argv)" where argv[0] is path to search
+    strcpy(opts->pigzname,"");
+    readFindPigz(opts, argv);
+    #ifdef myEnableJasper
+    opts->compressFlag = kCompressYes; //JASPER for JPEG2000
+	#else
+		#ifdef myDisableOpenJPEG
+		opts->compressFlag = kCompressNone; //no decompressor
+		#else
+		opts->compressFlag = kCompressYes; //OPENJPEG for JPEG2000
+		#endif
+	#endif
+    //printMessage("%d %s\n",opts->compressFlag, opts->compressname);
+    strcpy(opts->indir,"");
+    strcpy(opts->outdir,"");
+    opts->isOnlySingleFile = false; //convert all files in a directory, not just a single file
+    opts->isForceStackSameSeries = false;
+    opts->isCrop = false;
+    opts->isGz = false;
+    opts->isFlipY = true; //false: images in raw DICOM orientation, true: image rows flipped to cartesian coordinates
+    opts->isRGBplanar = false;
+    opts->isCreateBIDS =  false;
+    opts->isCreateText = false;
+#ifdef myDebug
+        opts->isVerbose =   true;
+#else
+        opts->isVerbose = false;
+#endif
+    opts->isTiltCorrect = true;
+    strcpy(opts->filename,"%f_%p_%t_%s");
+} // setDefaultOpts()
 
 #if defined(_WIN64) || defined(_WIN32)
 //windows has unusual file permissions for many users - lets save preferences to the registry
@@ -2339,33 +2268,7 @@ DWORD dwValue    = opts.isGz;
 } //saveIniFile()
 
 void readIniFile (struct TDCMopts *opts, const char * argv[]) {
-    readFindPigz(opts, argv);
-    #ifdef myEnableJasper
-    opts->compressFlag = kCompressYes; //JASPER for JPEG2000
-	#else
-		#ifdef myDisableOpenJPEG
-		opts->compressFlag = kCompressNone; //no decompressor
-		#else
-		opts->compressFlag = kCompressYes; //OPENJPEG for JPEG2000
-		#endif
-	#endif
-    strcpy(opts->indir,"");
-    strcpy(opts->outdir,"");
-    opts->isOnlySingleFile = false; //convert all files in a directory, not just a single file
-    opts->isForceStackSameSeries = false;
-    opts->isCrop = false;
-    opts->isGz = false;
-    opts->isFlipY = true;
-    opts->isRGBplanar = false;
-    opts->isCreateBIDS =  false;
-    opts->isCreateText = false;
-#ifdef myDebug
-    opts->isVerbose =   true;
-#else
-    opts->isVerbose = false;
-#endif
-    opts->isTiltCorrect = true;
-    strcpy(opts->filename,"%f_%p_%t_%s");
+    setDefaultOpts(opts, argv);
      HKEY  hKey;
     DWORD vSize     = 0;
     DWORD dwDataType = 0;
@@ -2392,35 +2295,8 @@ void readIniFile (struct TDCMopts *opts, const char * argv[]) {
 #define STATUSFILENAME "/.dcm2nii.ini"
 
 void readIniFile (struct TDCMopts *opts, const char * argv[]) {
-    readFindPigz(opts, argv);
-    #ifdef myEnableJasper
-    opts->compressFlag = kCompressYes; //JASPER for JPEG2000
-	#else
-		#ifdef myDisableOpenJPEG
-		opts->compressFlag = kCompressNone; //no decompressor
-		#else
-		opts->compressFlag = kCompressYes; //OPENJPEG for JPEG2000
-		#endif
-	#endif
-    //printMessage("%d %s\n",opts->compressFlag, opts->compressname);
+	setDefaultOpts(opts, argv);
     sprintf(opts->optsname, "%s%s", getenv("HOME"), STATUSFILENAME);
-    strcpy(opts->indir,"");
-    strcpy(opts->outdir,"");
-    opts->isOnlySingleFile = false; //convert all files in a directory, not just a single file
-    opts->isForceStackSameSeries = false;
-    opts->isCrop = false;
-    opts->isGz = false;
-    opts->isFlipY = true; //false: images in raw DICOM orientation, true: image rows flipped to cartesian coordinates
-    opts->isRGBplanar = false;
-    opts->isCreateBIDS =  false;
-    opts->isCreateText = false;
-#ifdef myDebug
-        opts->isVerbose =   true;
-#else
-        opts->isVerbose = false;
-#endif
-    opts->isTiltCorrect = true;
-    strcpy(opts->filename,"%f_%p_%t_%s");
     FILE *fp = fopen(opts->optsname, "r");
     if (fp == NULL) return;
     char Setting[20],Value[255];

@@ -21,6 +21,7 @@ extern "C" {
 #endif
     };
     void saveIniFile (struct TDCMopts opts);
+    void setDefaultOpts (struct TDCMopts *opts, const char * argv[]); //either "setDefaultOpts(opts,NULL)" or "setDefaultOpts(opts,argv)" where argv[0] is path to search
     void readIniFile (struct TDCMopts *opts, const char * argv[]);
     int nii_saveNII(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts);
     //void readIniFile (struct TDCMopts *opts);
