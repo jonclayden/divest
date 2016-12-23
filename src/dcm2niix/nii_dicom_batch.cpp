@@ -2105,6 +2105,42 @@ int nii_loadDir(struct TDCMopts* opts) {
         	printMessage("Image Decompression is new: please validate conversions\n");
     	}
     }
+#ifdef HAVE_R
+    if (opts->isScanOnly) {
+        TWarnings warnings = setWarnings();
+        
+        // Create the first series from the first DICOM file
+        TDicomSeries firstSeries;
+        firstSeries.representativeData = dcmList[0];
+        firstSeries.files.push_back(nameList.str[0]);
+        opts->series.push_back(firstSeries);
+        
+        // Iterate over the remaining files
+        for (size_t i = 1; i < nDcm; i++) {
+            bool matched = false;
+            
+            // If the file matches an existing series, add it to the corresponding file list
+            for (int j = 0; j < opts->series.size(); j++) {
+                if (isSameSet(opts->series[j].representativeData, dcmList[i], opts->isForceStackSameSeries, &warnings)) {
+                    opts->series[j].files.push_back(nameList.str[i]);
+                    matched = true;
+                    break;
+                }
+            }
+            
+            // If not, create a new series object
+            if (!matched) {
+                TDicomSeries nextSeries;
+                nextSeries.representativeData = dcmList[i];
+                nextSeries.files.push_back(nameList.str[i]);
+                opts->series.push_back(nextSeries);
+            }
+        }
+        
+        // To avoid a spurious warning below
+        nConvertTotal = nDcm;
+    } else {
+#endif
     //3: stack DICOMs with the same Series
     for (int i = 0; i < nDcm; i++ ) {
 		if ((dcmList[i].converted2NII == 0) && (dcmList[i].isValid)) {
@@ -2135,6 +2171,9 @@ int nii_loadDir(struct TDCMopts* opts) {
 			free(dcmSort);
 		}//convert all images of this series
     }
+#ifdef HAVE_R
+    }
+#endif
     free(dcmList);
     if (nConvertTotal == 0) {
         printMessage("No valid DICOM files were found\n");
