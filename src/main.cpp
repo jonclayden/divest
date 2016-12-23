@@ -16,7 +16,7 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP verbosity_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP verbosity_, SEXP scanOnly_)
 {
 BEGIN_RCPP
     const std::string path = as<std::string>(path_);
@@ -31,6 +31,7 @@ BEGIN_RCPP
     options.isOnlySingleFile = false;
     options.isForceStackSameSeries = false;
     options.isCrop = false;
+    options.isScanOnly = as<bool>(scanOnly_);
     options.isVerbose = as<int>(verbosity_);
     options.compressFlag = 0;
     strcpy(options.indir, path.c_str());
@@ -43,7 +44,38 @@ BEGIN_RCPP
     
     int returnValue = nii_loadDir(&options);
     if (returnValue == EXIT_SUCCESS)
-        return images;
+    {
+        if (options.isScanOnly)
+        {
+            List series(options.series.size());
+            for (int i = 0; i < options.series.size(); i++)
+            {
+                const TDICOMdata &data = options.series[i].representativeData;
+                std::ostringstream description;
+                description << "Series " << data.seriesNum;
+                if (strlen(data.seriesDescription) > 0)
+                    description << " \"" << data.seriesDescription << "\"";
+                if (strlen(data.patientName) > 0)
+                    description << ", patient \"" << data.patientName << "\"";
+                if (strlen(data.studyDate) > 0 && strcmp(data.studyDate,"00000000") != 0)
+                    description << ", acquired on " << data.studyDate;
+                if (data.TE > 0.0)
+                    description << ", TE " << data.TE << " ms";
+                if (data.TR > 0.0)
+                    description << ", TR " << data.TR << " ms";
+                if (data.echoNum > 1)
+                    description << ", echo " << data.echoNum;
+                if (data.isHasPhase)
+                    description << ", phase";
+                RObject element = wrap(description.str());
+                element.attr("paths") = wrap(options.series[i].files);
+                series[i] = element;
+            }
+            return series;
+        }
+        else
+            return images;
+    }
     else
         return R_NilValue;
 END_RCPP

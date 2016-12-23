@@ -24,6 +24,6 @@
 #' @export
 readDicom <- function (path, flipY = TRUE, verbosity = 0L)
 {
-    results <- lapply(path, function(p) .Call("readDirectory",path.expand(p),flipY,verbosity,PACKAGE="divest"))
+    results <- lapply(path, function(p) .Call("readDirectory",path.expand(p),flipY,verbosity,FALSE,PACKAGE="divest"))
     return (do.call(c, results))
 }
