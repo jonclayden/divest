@@ -22,8 +22,43 @@
 #' readDicom(path)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
-readDicom <- function (path, flipY = TRUE, verbosity = 0L)
+readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::interactive())
 {
-    results <- lapply(path, function(p) .Call("readDirectory",path.expand(p),flipY,verbosity,FALSE,PACKAGE="divest"))
+    results <- lapply(path, function(p) {
+        if (interactive)
+        {
+            p <- path.expand(p)
+            series <- .Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest")
+            
+            nSeries <- length(series)
+            if (nSeries < 1)
+                return (NULL)
+            
+            digits <- floor(log10(nSeries))
+            seriesNumbers <- sprintf(paste0("%",digits,"d: "), seq_len(nSeries))
+            cat(paste0("\n", seriesNumbers, unlist(series)))
+            cat("\n\nType <Enter> for all series, 0 for none, or indices separated by spaces or commas")
+            selection <- readline("\nSelected series: ")
+            if (selection == "")
+                .Call("readDirectory", p, flipY, verbosity, FALSE, PACKAGE="divest")
+            else if (selection == "0")
+                return (NULL)
+            else
+            {
+                selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
+                files <- do.call(c, lapply(series[selection], attr, "paths"))
+                files <- paste("..", substring(files,nchar(p)+1), sep=.Platform$file.sep)
+                tempDirectory <- file.path(p, ".divest")
+                dir.create(tempDirectory)
+                success <- file.symlink(files, tempDirectory)
+                result <- .Call("readDirectory", tempDirectory, flipY, verbosity, FALSE, PACKAGE="divest")
+                unlink(tempDirectory, recursive=TRUE)
+                return (result)
+            }
+        }
+        else
+            .Call("readDirectory", path.expand(p), flipY, verbosity, FALSE, PACKAGE="divest")
+    })
+    
     return (do.call(c, results))
 }
