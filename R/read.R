@@ -24,6 +24,33 @@
 #' @export
 readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::interactive())
 {
+    readFromTempDirectory <- function (tempDirectory, files)
+    {
+        # Don't overwrite an existing path
+        originalTempDirectory <- tempDirectory
+        i <- 1
+        while (file.exists(tempDirectory))
+        {
+            tempDirectory <- paste0(originalTempDirectory, as.character(i))
+            i <- i + 1
+        }
+        
+        dir.create(tempDirectory)
+        on.exit(unlink(tempDirectory, recursive=TRUE))
+        
+        success <- file.symlink(files, tempDirectory)
+        if (!all(success))
+        {
+            unlink(tempDirectory, recursive=TRUE)
+            dir.create(tempDirectory)
+            success <- file.copy(files, tempDirectory)
+        }
+        if (!all(success))
+            stop("Cannot symlink or copy files into temporary directory")
+        
+        .Call("readDirectory", tempDirectory, flipY, verbosity, FALSE, PACKAGE="divest")
+    }
+    
     results <- lapply(path, function(p) {
         if (interactive)
         {
@@ -48,12 +75,7 @@ readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::i
                 selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
                 files <- do.call(c, lapply(series[selection], attr, "paths"))
                 files <- paste("..", substring(files,nchar(p)+1), sep=.Platform$file.sep)
-                tempDirectory <- file.path(p, ".divest")
-                dir.create(tempDirectory)
-                success <- file.symlink(files, tempDirectory)
-                result <- .Call("readDirectory", tempDirectory, flipY, verbosity, FALSE, PACKAGE="divest")
-                unlink(tempDirectory, recursive=TRUE)
-                return (result)
+                readFromTempDirectory(file.path(p,".divest"), files)
             }
         }
         else
