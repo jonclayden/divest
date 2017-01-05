@@ -55,15 +55,15 @@ readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::i
         if (interactive)
         {
             p <- path.expand(p)
-            series <- .Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest")
+            info <- .Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest")
             
-            nSeries <- length(series)
+            nSeries <- nrow(info)
             if (nSeries < 1)
                 return (NULL)
             
             digits <- floor(log10(nSeries))
             seriesNumbers <- sprintf(paste0("%",digits,"d: "), seq_len(nSeries))
-            cat(paste0("\n", seriesNumbers, unlist(series)))
+            cat(paste0("\n", seriesNumbers, attr(info,"descriptions")))
             cat("\n\nType <Enter> for all series, 0 for none, or indices separated by spaces or commas")
             selection <- readline("\nSelected series: ")
             if (selection == "")
@@ -73,7 +73,7 @@ readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::i
             else
             {
                 selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
-                files <- do.call(c, lapply(series[selection], attr, "paths"))
+                files <- unlist(attr(info,"paths")[selection])
                 files <- paste("..", substring(files,nchar(p)+1), sep=.Platform$file.sep)
                 readFromTempDirectory(file.path(p,".divest"), files)
             }

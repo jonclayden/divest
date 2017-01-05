@@ -42,36 +42,67 @@ BEGIN_RCPP
     ImageList images;
     options.imageList = (void *) &images;
     
+    // Scan the directory of interest, and create NiftiImage objects if required
     int returnValue = nii_loadDir(&options);
     if (returnValue == EXIT_SUCCESS)
     {
         if (options.isScanOnly)
         {
-            List series(options.series.size());
-            for (int i = 0; i < options.series.size(); i++)
+            // Construct a data frame containing information about each series
+            // A vector of descriptive strings is also built, and attached as an attribute
+            const int n = options.series.size();
+            CharacterVector seriesDescription(n,NA_STRING), patientName(n,NA_STRING), studyDate(n,NA_STRING), descriptions(n);
+            NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
+            IntegerVector seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
+            LogicalVector phase(n,NA_LOGICAL);
+            List paths(n);
+            for (int i = 0; i < n; i++)
             {
                 const TDICOMdata &data = options.series[i].representativeData;
                 std::ostringstream description;
                 description << "Series " << data.seriesNum;
+                seriesNumber[i] = data.seriesNum;
                 if (strlen(data.seriesDescription) > 0)
+                {
                     description << " \"" << data.seriesDescription << "\"";
+                    seriesDescription[i] = data.seriesDescription;
+                }
                 if (strlen(data.patientName) > 0)
+                {
                     description << ", patient \"" << data.patientName << "\"";
+                    patientName[i] = data.patientName;
+                }
                 if (strlen(data.studyDate) > 0 && strcmp(data.studyDate,"00000000") != 0)
+                {
                     description << ", acquired on " << data.studyDate;
+                    studyDate[i] = data.studyDate;
+                }
                 if (data.TE > 0.0)
+                {
                     description << ", TE " << data.TE << " ms";
+                    echoTime[i] = data.TE;
+                }
                 if (data.TR > 0.0)
+                {
                     description << ", TR " << data.TR << " ms";
+                    repetitionTime[i] = data.TR;
+                }
+                if (data.echoNum > 0)
+                    echoNumber[i] = data.echoNum;
                 if (data.echoNum > 1)
                     description << ", echo " << data.echoNum;
                 if (data.isHasPhase)
                     description << ", phase";
-                RObject element = wrap(description.str());
-                element.attr("paths") = wrap(options.series[i].files);
-                series[i] = element;
+                phase[i] = data.isHasPhase;
+                descriptions[i] = description.str();
+                paths[i] = wrap(options.series[i].files);
             }
-            return series;
+            
+            DataFrame info = DataFrame::create(Named("rootPath")=path, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("stringsAsFactors")=false);
+            info.attr("descriptions") = descriptions;
+            info.attr("paths") = paths;
+            info.attr("class") = CharacterVector::create("divest","data.frame");
+            return info;
         }
         else
             return images;
