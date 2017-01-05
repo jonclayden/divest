@@ -51,7 +51,8 @@ BEGIN_RCPP
             // Construct a data frame containing information about each series
             // A vector of descriptive strings is also built, and attached as an attribute
             const int n = options.series.size();
-            CharacterVector seriesDescription(n,NA_STRING), patientName(n,NA_STRING), studyDate(n,NA_STRING), descriptions(n);
+            CharacterVector seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
+            DateVector studyDate(n);
             NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
             IntegerVector seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
             LogicalVector phase(n,NA_LOGICAL);
@@ -75,8 +76,10 @@ BEGIN_RCPP
                 if (strlen(data.studyDate) > 0 && strcmp(data.studyDate,"00000000") != 0)
                 {
                     description << ", acquired on " << data.studyDate;
-                    studyDate[i] = data.studyDate;
+                    studyDate[i] = Date(data.studyDate, "%Y%m%d");
                 }
+                else
+                    studyDate[i] = Date(NA_REAL);
                 if (data.TE > 0.0)
                 {
                     description << ", TE " << data.TE << " ms";
