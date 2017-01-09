@@ -12,7 +12,7 @@ sortInfoTable <- function (table)
 #' them into a list of \code{niftiImage} objects.
 #' 
 #' @param path A character vector of paths to scan for DICOM files. Each will
-#'   examined in turn.
+#'   examined in turn. The default is the current working directory.
 #' @param flipY If \code{TRUE}, the default, then images will be flipped in the
 #'   Y-axis. This is usually desirable, given the difference between
 #'   orientation conventions in the DICOM and NIfTI-1 formats.
@@ -33,7 +33,7 @@ sortInfoTable <- function (table)
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
-readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::interactive())
+readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = base::interactive())
 {
     readFromTempDirectory <- function (tempDirectory, files)
     {
@@ -98,7 +98,7 @@ readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::i
 
 #' @rdname readDicom
 #' @export
-scanDicom <- function (path, verbosity = 0L)
+scanDicom <- function (path = ".", verbosity = 0L)
 {
     results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, PACKAGE="divest"))
     sortInfoTable(do.call(rbind, results))
