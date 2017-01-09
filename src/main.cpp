@@ -68,14 +68,18 @@ BEGIN_RCPP
                     description << " \"" << data.seriesDescription << "\"";
                     seriesDescription[i] = data.seriesDescription;
                 }
+                else if (strlen(data.sequenceName) > 0)
+                    description << " \"" << data.sequenceName << "\"";
+                else if (strlen(data.protocolName) > 0)
+                    description << " \"" << data.protocolName << "\"";
                 if (strlen(data.patientName) > 0)
                 {
                     description << ", patient \"" << data.patientName << "\"";
                     patientName[i] = data.patientName;
                 }
-                if (strlen(data.studyDate) > 0 && strcmp(data.studyDate,"00000000") != 0)
+                if (strlen(data.studyDate) >= 8 && strcmp(data.studyDate,"00000000") != 0)
                 {
-                    description << ", acquired on " << data.studyDate;
+                    description << ", acquired on " << std::string(data.studyDate,4) << "-" << std::string(data.studyDate+4,2) << "-" << std::string(data.studyDate+6,2);
                     studyDate[i] = Date(data.studyDate, "%Y%m%d");
                 }
                 else
@@ -96,6 +100,7 @@ BEGIN_RCPP
                     description << ", echo " << data.echoNum;
                 if (data.isHasPhase)
                     description << ", phase";
+                
                 phase[i] = data.isHasPhase;
                 descriptions[i] = description.str();
                 paths[i] = wrap(options.series[i].files);
