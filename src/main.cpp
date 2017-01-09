@@ -116,6 +116,6 @@ BEGIN_RCPP
             return images;
     }
     else
-        return R_NilValue;
+        Rf_error("DICOM scan failed");
 END_RCPP
 }
