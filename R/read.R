@@ -1,3 +1,9 @@
+sortInfoTable <- function (table)
+{
+    order <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
+    return (structure(table[order,], descriptions=attr(table,"descriptions")[order], paths=attr(table,"paths")[order], class=c("divest","data.frame")))
+}
+
 #' Read one or more DICOM directories
 #' 
 #' These functions are R wrappers around the DICOM-to-NIfTI conversion routines
@@ -60,13 +66,13 @@ readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::i
         if (interactive)
         {
             p <- path.expand(p)
-            info <- .Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest")
+            info <- sortInfoTable(.Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest"))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
                 return (NULL)
             
-            digits <- floor(log10(nSeries))
+            digits <- floor(log10(nSeries)) + 1
             seriesNumbers <- sprintf(paste0("%",digits,"d: "), seq_len(nSeries))
             cat(paste0("\n", seriesNumbers, attr(info,"descriptions")))
             cat("\n\nType <Enter> for all series, 0 for none, or indices separated by spaces or commas")
@@ -95,5 +101,5 @@ readDicom <- function (path, flipY = TRUE, verbosity = 0L, interactive = base::i
 scanDicom <- function (path, verbosity = 0L)
 {
     results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, PACKAGE="divest"))
-    do.call(rbind, results)
+    sortInfoTable(do.call(rbind, results))
 }
