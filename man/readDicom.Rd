@@ -5,14 +5,14 @@
 \alias{scanDicom}
 \title{Read one or more DICOM directories}
 \usage{
-readDicom(path, flipY = TRUE, verbosity = 0L,
+readDicom(path = ".", flipY = TRUE, verbosity = 0L, tiltCorrect = FALSE,
   interactive = base::interactive())
 
-scanDicom(path, verbosity = 0L)
+scanDicom(path = ".", verbosity = 0L)
 }
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will
-examined in turn.}
+examined in turn. The default is the current working directory.}
 
 \item{flipY}{If \code{TRUE}, the default, then images will be flipped in the
 Y-axis. This is usually desirable, given the difference between
@@ -20,6 +20,8 @@ orientation conventions in the DICOM and NIfTI-1 formats.}
 
 \item{verbosity}{Integer value between 0 and 3, controlling the amount of
 output generated during the conversion.}
+
+\item{tiltCorrect}{Gantry tilt correction for CT scans.}
 
 \item{interactive}{If \code{TRUE}, the default in interactive sessions, the
 requested paths will first be scanned and a list of DICOM series will be
@@ -46,4 +48,3 @@ readDicom(path, interactive=FALSE)
 \author{
 Jon Clayden <code@clayden.org>
 }
-

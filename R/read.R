@@ -18,6 +18,7 @@ sortInfoTable <- function (table)
 #'   orientation conventions in the DICOM and NIfTI-1 formats.
 #' @param verbosity Integer value between 0 and 3, controlling the amount of
 #'   output generated during the conversion.
+#' @param tiltCorrect Gantry tilt correction for CT scans.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
 #'   requested paths will first be scanned and a list of DICOM series will be
 #'   presented. You may then choose which series to convert.
@@ -33,7 +34,9 @@ sortInfoTable <- function (table)
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
-readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = base::interactive())
+readDicom <- function (path = ".", flipY = TRUE, 
+                       verbosity = 0L, tiltCorrect = FALSE,
+                       interactive = base::interactive())
 {
     readFromTempDirectory <- function (tempDirectory, files)
     {
@@ -59,14 +62,14 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .Call("readDirectory", tempDirectory, flipY, verbosity, FALSE, PACKAGE="divest")
+        .Call("readDirectory", tempDirectory, flipY, verbosity, FALSE, tiltCorrect, PACKAGE="divest")
     }
     
     results <- lapply(path, function(p) {
         if (interactive)
         {
             p <- path.expand(p)
-            info <- sortInfoTable(.Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest"))
+            info <- sortInfoTable(.Call("readDirectory", p, flipY, 0L, TRUE, tiltCorrect, PACKAGE="divest"))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -93,7 +96,7 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
             }
         }
         else
-            .Call("readDirectory", path.expand(p), flipY, verbosity, FALSE, PACKAGE="divest")
+            .Call("readDirectory", path.expand(p), flipY, verbosity, FALSE, tiltCorrect, PACKAGE="divest")
     })
     
     return (do.call(c, results))
@@ -103,6 +106,6 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
 #' @export
 scanDicom <- function (path = ".", verbosity = 0L)
 {
-    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, PACKAGE="divest"))
+    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, FALSE, PACKAGE="divest"))
     sortInfoTable(do.call(rbind, results))
 }
