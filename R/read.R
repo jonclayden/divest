@@ -42,7 +42,7 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
         i <- 1
         while (file.exists(tempDirectory))
         {
-            tempDirectory <- paste0(originalTempDirectory, as.character(i))
+            tempDirectory <- paste(originalTempDirectory, as.character(i), sep="_")
             i <- i + 1
         }
         
@@ -84,9 +84,12 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
             else
             {
                 selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
-                files <- unlist(attr(info,"paths")[selection])
-                files <- paste("..", substring(files,nchar(p)+1), sep=.Platform$file.sep)
-                readFromTempDirectory(file.path(p,".divest"), files)
+                selectedResults <- lapply(selection, function(s) {
+                    files <- attr(info,"paths")[[s]]
+                    files <- paste("..", substring(files,nchar(p)+1), sep=.Platform$file.sep)
+                    readFromTempDirectory(file.path(p,paste0(".divest",as.character(s))), files)
+                })
+                return (do.call(c,selectedResults))
             }
         }
         else
