@@ -104,8 +104,8 @@ readDicom <- function (path = ".", flipY = TRUE,
 
 #' @rdname readDicom
 #' @export
-scanDicom <- function (path = ".", verbosity = 0L)
+scanDicom <- function (path = ".", verbosity = 0L, tiltCorrect = FALSE)
 {
-    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, FALSE, PACKAGE="divest"))
+    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, tiltCorrect, PACKAGE="divest"))
     sortInfoTable(do.call(rbind, results))
 }
