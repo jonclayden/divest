@@ -16,7 +16,7 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP verbosity_, SEXP scanOnly_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP verbosity_, SEXP scanOnly_, SEXP tiltCorrect_)
 {
 BEGIN_RCPP
     const std::string path = as<std::string>(path_);
@@ -26,7 +26,7 @@ BEGIN_RCPP
     options.isFlipY = as<bool>(flipY_);
     options.isCreateBIDS = false;
     options.isCreateText = false;
-    options.isTiltCorrect = false;
+    options.isTiltCorrect = as<bool>(tiltCorrect_);
     options.isRGBplanar = false;
     options.isOnlySingleFile = false;
     options.isForceStackSameSeries = false;
@@ -53,7 +53,7 @@ BEGIN_RCPP
             const int n = options.series.size();
             CharacterVector seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
             DateVector studyDate(n);
-            NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
+            NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL), gantryTilt(n, NA_REAL);
             IntegerVector seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
             LogicalVector phase(n,NA_LOGICAL);
             List paths(n);
@@ -94,6 +94,9 @@ BEGIN_RCPP
                     description << ", TR " << data.TR << " ms";
                     repetitionTime[i] = data.TR;
                 }
+                if (data.gantryTilt != 0)
+                    description << ", gantryTilt " << data.gantryTilt;
+                    // gantryTilt[i] = data.gantryTilt;
                 if (data.echoNum > 0)
                     echoNumber[i] = data.echoNum;
                 if (data.echoNum > 1)
@@ -106,7 +109,7 @@ BEGIN_RCPP
                 paths[i] = wrap(options.series[i].files);
             }
             
-            DataFrame info = DataFrame::create(Named("rootPath")=path, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("stringsAsFactors")=false);
+            DataFrame info = DataFrame::create(Named("rootPath")=path, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("gantryTilt")=gantryTilt, Named("stringsAsFactors")=false);
             info.attr("descriptions") = descriptions;
             info.attr("paths") = paths;
             info.attr("class") = CharacterVector::create("divest","data.frame");
