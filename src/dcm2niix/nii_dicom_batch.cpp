@@ -539,9 +539,10 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
             bVectors[i+j*numDti] = vx[i].V[j+1];
     }
     
+    // The image hasn't been created yet, so the attributes must be deferred
     ImageList *images = (ImageList *) opts.imageList;
-    images->addAttribute("bValues", bValues);
-    images->addAttribute("bVectors", bVectors, numDti, 3);
+    images->addDeferredAttribute("bValues", bValues);
+    images->addDeferredAttribute("bVectors", bVectors, numDti, 3);
 #else
     char txtname[2048] = {""};
     strcpy (txtname,pathoutname);
