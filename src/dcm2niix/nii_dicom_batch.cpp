@@ -529,7 +529,20 @@ int nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],struc
         } //for each direction
     }
     //printMessage("%f\t%f\t%f",dcmList[indx0].CSA.dtiV[1][1],dcmList[indx0].CSA.dtiV[1][2],dcmList[indx0].CSA.dtiV[1][3]);
-#ifndef HAVE_R
+#ifdef HAVE_R
+    std::vector<double> bValues(numDti);
+    std::vector<double> bVectors(numDti*3);
+    for (int i = 0; i < numDti; i++)
+    {
+        bValues[i] = vx[i].V[0];
+        for (int j = 0; j < 3; j++)
+            bVectors[i+j*numDti] = vx[i].V[j+1];
+    }
+    
+    ImageList *images = (ImageList *) opts.imageList;
+    images->addAttribute("bValues", bValues);
+    images->addAttribute("bVectors", bVectors, numDti, 3);
+#else
     char txtname[2048] = {""};
     strcpy (txtname,pathoutname);
     strcat (txtname,".bval");

@@ -14,7 +14,7 @@ private:
     Rcpp::List list;
     
 public:
-    operator SEXP()
+    operator SEXP ()
     {
         return list;
     }
@@ -31,6 +31,14 @@ public:
     {
         Rcpp::RObject element = list[list.length()-1];
         element.attr(name) = value;
+    }
+    
+    template <typename ValueType>
+    void addAttribute (const std::string &name, const ValueType &value, const int nRows, const int nCols)
+    {
+        Rcpp::RObject element = list[list.length()-1];
+        element.attr(name) = value;
+        Rcpp::RObject(element.attr(name)).attr("dim") = Rcpp::Dimension(nRows, nCols);
     }
 };
 
