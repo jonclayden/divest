@@ -1320,13 +1320,13 @@ void smooth1D(int num, double * im) {
 	free(src);
 }// smooth1D()
 
-void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts) {
+int nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts) {
     //remove excess neck slices - assumes output of nii_setOrtho()
     int nVox2D = hdr.dim[1]*hdr.dim[2];
-    if ((nVox2D < 1) || (fabs(hdr.pixdim[3]) < 0.001) || (hdr.dim[0] != 3) || (hdr.dim[3] < 128)) return;
+    if ((nVox2D < 1) || (fabs(hdr.pixdim[3]) < 0.001) || (hdr.dim[0] != 3) || (hdr.dim[3] < 128)) return EXIT_FAILURE;
     if ((hdr.datatype != DT_INT16) && (hdr.datatype != DT_UINT16)) {
         printMessage("Only able to crop 16-bit volumes.");
-        return;
+        return EXIT_FAILURE;
     }
 	short * im16 = ( short*) im;
 	unsigned short * imu16 = (unsigned short*) im;
@@ -1357,7 +1357,7 @@ void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
     }
     if (maxSliceVal <= 0) {
     	free(sliceSums);
-    	return;
+    	return EXIT_FAILURE;
     }
     smooth1D(slices, sliceSums);
     for (int i = 0; i  < slices; i++) sliceSums[i] = sliceSums[i] / maxSliceVal; //so brightest slice has value 1
@@ -1367,7 +1367,7 @@ void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
 		if (sliceSums[dorsalCrop-1] > kThresh) break;
 	if (dorsalCrop <= 1) {
 		free(sliceSums);
-		return;
+		return EXIT_FAILURE;
 	}
 	/*
 	//find brightest band within 90mm of top of head
@@ -1381,7 +1381,7 @@ void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
     ventralMaxSlice = maxSlice - round(45 /fabs(hdr.pixdim[3])); //gap at least 60mm
     if (ventralMaxSlice < 0) {
     	free(sliceSums);
-    	return;
+    	return EXIT_FAILURE;
     }
     int ventralMinSlice = maxSlice - round(90/fabs(hdr.pixdim[3])); //gap no more than 120mm
     if (ventralMinSlice < 0) ventralMinSlice = 0;
@@ -1398,7 +1398,7 @@ void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
 	if ((minSlice-gap) > 1)
         ventralCrop = minSlice-gap;
 	free(sliceSums);
-	if (ventralCrop > dorsalCrop) return;
+	if (ventralCrop > dorsalCrop) return EXIT_FAILURE;
 	//FindDVCrop2
 	const double kMaxDVmm = 180.0;
     double sliceMM = hdr.pixdim[3] * (dorsalCrop-ventralCrop);
@@ -1433,9 +1433,9 @@ void nii_saveCrop(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
     char niiFilenameCrop[2048] = {""};
     strcat(niiFilenameCrop,niiFilename);
     strcat(niiFilenameCrop,"_Crop");
-    nii_saveNII3D(niiFilenameCrop, hdrX, imX, opts);
+    const int returnCode = nii_saveNII3D(niiFilenameCrop, hdrX, imX, opts);
     free(imX);
-    return;
+    return returnCode;
 }// nii_saveCrop()
 
 int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D) {
