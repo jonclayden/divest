@@ -26,7 +26,7 @@ BEGIN_RCPP
     options.isFlipY = as<bool>(flipY_);
     options.isCreateBIDS = false;
     options.isCreateText = false;
-    options.isTiltCorrect = false;
+    options.isTiltCorrect = true;
     options.isRGBplanar = false;
     options.isOnlySingleFile = false;
     options.isForceStackSameSeries = false;
