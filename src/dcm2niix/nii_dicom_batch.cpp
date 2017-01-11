@@ -1590,25 +1590,25 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     else
     	printMessage("DICOM row order preserved: may appear upside down in tools that ignore spatial transforms\n");
 #ifndef myNoSave
+    // Indicates success or failure of the (last) save
+    int returnCode = EXIT_FAILURE;
     //printMessage(" x--> %d ----\n", nConvert);
     if (! opts.isRGBplanar) //save RGB as packed RGBRGBRGB... instead of planar RRR..RGGG..GBBB..B
         imgM = nii_planar2rgb(imgM, &hdr0, true);
     if ((hdr0.dim[4] > 1) && (saveAs3D))
-        nii_saveNII3D(pathoutname, hdr0, imgM,opts);
+        returnCode = nii_saveNII3D(pathoutname, hdr0, imgM,opts);
     else {
         if ((numFinalADC > 0) && (hdr0.dim[4] > (numFinalADC+1))) { //ADC maps can disrupt analysis: save a copy with the ADC map, and another without
+#ifndef HAVE_R
             char pathoutnameADC[2048] = {""};
             strcat(pathoutnameADC,pathoutname);
             strcat(pathoutnameADC,"_ADC");
             nii_saveNII(pathoutnameADC, hdr0, imgM, opts);
+#endif
             hdr0.dim[4] = hdr0.dim[4]-numFinalADC;
         };
-#ifdef HAVE_R
-        int returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts);
-        if (returnCode == EXIT_SUCCESS)
-            nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts);
-#else
-        nii_saveNII(pathoutname, hdr0, imgM, opts);
+#ifndef HAVE_R
+        returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts);
 #endif
     }
 #endif
@@ -1616,7 +1616,11 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
         if (dcmList[indx0].isResampled)
             printMessage("Tilt correction skipped: 0008,2111 reports RESAMPLED\n");
         else if (opts.isTiltCorrect)
+        {
             imgM = nii_saveNII3Dtilt(pathoutname, &hdr0, imgM,opts, sliceMMarray, dcmList[indx0].gantryTilt, dcmList[indx0].manufacturer);
+            // This is a slight kludge, since the call above may or may not have saved the image, but we can't get a definite answer without some refactoring
+            returnCode = EXIT_SUCCESS;
+        }
         else
             printMessage("Tilt correction skipped\n");
     }
@@ -1624,11 +1628,19 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
         if (dcmList[indx0].isResampled)
             printMessage("Slice thickness correction skipped: 0008,2111 reports RESAMPLED\n");
         else
-            nii_saveNII3Deq(pathoutname, hdr0, imgM,opts, sliceMMarray);
+            returnCode = nii_saveNII3Deq(pathoutname, hdr0, imgM,opts, sliceMMarray);
         free(sliceMMarray);
     }
     if ((opts.isCrop) && (dcmList[indx0].is3DAcq)   && (hdr0.dim[3] > 1) && (hdr0.dim[0] < 4))//for T1 scan: && (dcmList[indx0].TE < 25)
-    	nii_saveCrop(pathoutname, hdr0, imgM,opts); //n.b. must be run AFTER nii_setOrtho()!
+        returnCode = nii_saveCrop(pathoutname, hdr0, imgM,opts); //n.b. must be run AFTER nii_setOrtho()!
+    
+#ifdef HAVE_R
+    // Note that for R, only one image should be created per series
+    // Hence the logical OR here
+    if (returnCode == EXIT_SUCCESS || nii_saveNII(pathoutname,hdr0,imgM,opts) == EXIT_SUCCESS)
+        nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts);
+#endif
+    
     free(imgM);
     return EXIT_SUCCESS;
 }// saveDcm2Nii()
