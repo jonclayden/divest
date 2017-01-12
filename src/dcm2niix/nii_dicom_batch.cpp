@@ -1014,13 +1014,15 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
     if ((data.CSA.bandwidthPerPixelPhaseEncode > 0.0) && (header.dim[2] > 0) && (header.dim[1] > 0)) {
         if (data.phaseEncodingRC =='C')
             images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[2]);
-        else
+        else if (data.phaseEncodingRC == 'R')
             images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[1]);
     }
     if (data.phaseEncodingRC == 'C')
         images->addAttribute("phaseEncodingDirection", "j");
-    else
+    else if (data.phaseEncodingRC == 'R')
         images->addAttribute("phaseEncodingDirection", "i");
+    if (data.CSA.phaseEncodingDirectionPositive != -1)
+        images->addAttribute("phaseEncodingSign", data.CSA.phaseEncodingDirectionPositive == 0 ? -1 : 1);
 }
 
 #else
