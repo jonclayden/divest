@@ -1105,8 +1105,9 @@ void nii_check16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr){
         if (img16[i] > max16)
             max16 = img16[i];
     //printMessage("max16= %d vox=%d %fms\n",max16, nVox, ((double)(clock()-start))/1000);
-    if (max16 > 32767)
+    if (max16 > 32767) {
         printMessage("Note: rare 16-bit UNSIGNED integer image. Older tools may require 32-bit conversion\n");
+    }
     else
         hdr->datatype = DT_INT16;
 } //nii_check16bitUnsigned()
@@ -1613,10 +1614,9 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     }
 #endif
     if (dcmList[indx0].gantryTilt != 0.0) {
-        if (dcmList[indx0].isResampled)
+        if (dcmList[indx0].isResampled) {
             printMessage("Tilt correction skipped: 0008,2111 reports RESAMPLED\n");
-        else if (opts.isTiltCorrect)
-        {
+        } else if (opts.isTiltCorrect) {
             imgM = nii_saveNII3Dtilt(pathoutname, &hdr0, imgM,opts, sliceMMarray, dcmList[indx0].gantryTilt, dcmList[indx0].manufacturer);
             // This is a slight kludge, since the call above may or may not have saved the image, but we can't get a definite answer without some refactoring
             returnCode = EXIT_SUCCESS;
@@ -1625,8 +1625,9 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
             printMessage("Tilt correction skipped\n");
     }
     if (sliceMMarray != NULL) {
-        if (dcmList[indx0].isResampled)
+        if (dcmList[indx0].isResampled) {
             printMessage("Slice thickness correction skipped: 0008,2111 reports RESAMPLED\n");
+        }
         else
             returnCode = nii_saveNII3Deq(pathoutname, hdr0, imgM,opts, sliceMMarray);
         free(sliceMMarray);
