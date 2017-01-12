@@ -30,6 +30,12 @@
 #include <float.h>
 #include <stdint.h>
 #include "nifti1_io_core.h"
+
+#ifdef HAVE_R
+#undef isnan
+#define isnan ISNAN
+#endif
+
 #ifndef myDisableClassicJPEG
   #ifdef myTurboJPEG
    #include <turbojpeg.h>
@@ -45,11 +51,6 @@
 
 #ifdef myEnableJasper
 ERROR: YOU CAN NOT COMPILE WITH myEnableJasper AND NOT myDisableOpenJPEG OPTIONS SET SIMULTANEOUSLY
-#endif
-
-#ifdef HAVE_R
-#undef isnan
-#define isnan ISNAN
 #endif
 
 unsigned char * imagetoimg(opj_image_t * image)
