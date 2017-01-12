@@ -1,4 +1,4 @@
-sortInfoTable <- function (table)
+.sortInfoTable <- function (table)
 {
     order <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
     return (structure(table[order,], descriptions=attr(table,"descriptions")[order], paths=attr(table,"paths")[order], class=c("divest","data.frame")))
@@ -19,9 +19,9 @@ sortInfoTable <- function (table)
 #' @param crop If \code{TRUE}, then \code{dcm2niix} will attempt to crop excess
 #'   neck slices from brain images.
 #' @param forceStack If \code{TRUE}, images with the same series number will
-#'   always be stacked together. If \code{FALSE}, the default, images will be
-#'   separated if they differ in echo, coil or exposure number, echo time,
-#'   protocol name or orientation.
+#'   always be stacked together as long as their dimensions are compatible. If
+#'   \code{FALSE}, the default, images will be separated if they differ in
+#'   echo, coil or exposure number, echo time, protocol name or orientation.
 #' @param verbosity Integer value between 0 and 3, controlling the amount of
 #'   output generated during the conversion.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
@@ -72,7 +72,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         if (interactive)
         {
             p <- path.expand(p)
-            info <- sortInfoTable(.Call("readDirectory", p, flipY, crop, forceStack, 0L, TRUE, PACKAGE="divest"))
+            info <- .sortInfoTable(.Call("readDirectory", p, flipY, crop, forceStack, 0L, TRUE, PACKAGE="divest"))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -110,5 +110,5 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
 {
     results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, FALSE, forceStack, verbosity, TRUE, PACKAGE="divest"))
-    sortInfoTable(do.call(rbind, results))
+    .sortInfoTable(do.call(rbind, results))
 }

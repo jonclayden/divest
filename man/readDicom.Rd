@@ -22,9 +22,9 @@ orientation conventions in the DICOM and NIfTI-1 formats.}
 neck slices from brain images.}
 
 \item{forceStack}{If \code{TRUE}, images with the same series number will
-always be stacked together. If \code{FALSE}, the default, images will be
-separated if they differ in echo, coil or exposure number, echo time,
-protocol name or orientation.}
+always be stacked together as long as their dimensions are compatible. If
+\code{FALSE}, the default, images will be separated if they differ in
+echo, coil or exposure number, echo time, protocol name or orientation.}
 
 \item{verbosity}{Integer value between 0 and 3, controlling the amount of
 output generated during the conversion.}
