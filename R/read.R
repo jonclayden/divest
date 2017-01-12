@@ -1,7 +1,7 @@
 .sortInfoTable <- function (table)
 {
-    order <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
-    return (structure(table[order,], descriptions=attr(table,"descriptions")[order], paths=attr(table,"paths")[order], class=c("divest","data.frame")))
+    ordering <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
+    return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
 #' Read one or more DICOM directories
@@ -84,9 +84,12 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             cat("\n\nType <Enter> for all series, 0 for none, or indices separated by spaces or commas")
             selection <- readline("\nSelected series: ")
             if (selection == "")
-                .Call("readDirectory", p, flipY, crop, forceStack, verbosity, FALSE, PACKAGE="divest")
+            {
+                allResults <- .Call("readDirectory", p, flipY, crop, forceStack, verbosity, FALSE, PACKAGE="divest")
+                return (allResults[attr(info,"ordering")])
+            }
             else if (selection == "0")
-                return (NULL)
+                return (list())
             else
             {
                 selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
