@@ -16,6 +16,12 @@ sortInfoTable <- function (table)
 #' @param flipY If \code{TRUE}, the default, then images will be flipped in the
 #'   Y-axis. This is usually desirable, given the difference between
 #'   orientation conventions in the DICOM and NIfTI-1 formats.
+#' @param crop If \code{TRUE}, then \code{dcm2niix} will attempt to crop excess
+#'   neck slices from brain images.
+#' @param forceStack If \code{TRUE}, images with the same series number will
+#'   always be stacked together. If \code{FALSE}, the default, images will be
+#'   separated if they differ in echo, coil or exposure number, echo time,
+#'   protocol name or orientation.
 #' @param verbosity Integer value between 0 and 3, controlling the amount of
 #'   output generated during the conversion.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
@@ -25,7 +31,7 @@ sortInfoTable <- function (table)
 #'   objects, which can be easily converted to standard R arrays or written to
 #'   NIfTI-1 format using functions from the \code{RNifti} package. The
 #'   \code{scanDicom} function returns a data frame containing information
-#'   about each DICOM series found. On failure, the result will be \code{NULL}.
+#'   about each DICOM series found.
 #' 
 #' @examples
 #' path <- system.file("extdata", "testdata", package="divest")
@@ -33,7 +39,7 @@ sortInfoTable <- function (table)
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
-readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = base::interactive())
+readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, interactive = base::interactive())
 {
     readFromTempDirectory <- function (tempDirectory, files)
     {
@@ -59,14 +65,14 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .Call("readDirectory", tempDirectory, flipY, verbosity, FALSE, PACKAGE="divest")
+        .Call("readDirectory", tempDirectory, flipY, crop, forceStack, verbosity, FALSE, PACKAGE="divest")
     }
     
     results <- lapply(path, function(p) {
         if (interactive)
         {
             p <- path.expand(p)
-            info <- sortInfoTable(.Call("readDirectory", p, flipY, 0L, TRUE, PACKAGE="divest"))
+            info <- sortInfoTable(.Call("readDirectory", p, flipY, crop, forceStack, 0L, TRUE, PACKAGE="divest"))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -78,7 +84,7 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
             cat("\n\nType <Enter> for all series, 0 for none, or indices separated by spaces or commas")
             selection <- readline("\nSelected series: ")
             if (selection == "")
-                .Call("readDirectory", p, flipY, verbosity, FALSE, PACKAGE="divest")
+                .Call("readDirectory", p, flipY, crop, forceStack, verbosity, FALSE, PACKAGE="divest")
             else if (selection == "0")
                 return (NULL)
             else
@@ -93,7 +99,7 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
             }
         }
         else
-            .Call("readDirectory", path.expand(p), flipY, verbosity, FALSE, PACKAGE="divest")
+            .Call("readDirectory", path.expand(p), flipY, crop, forceStack, verbosity, FALSE, PACKAGE="divest")
     })
     
     return (do.call(c, results))
@@ -101,8 +107,8 @@ readDicom <- function (path = ".", flipY = TRUE, verbosity = 0L, interactive = b
 
 #' @rdname readDicom
 #' @export
-scanDicom <- function (path = ".", verbosity = 0L)
+scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
 {
-    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, verbosity, TRUE, PACKAGE="divest"))
+    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, FALSE, forceStack, verbosity, TRUE, PACKAGE="divest"))
     sortInfoTable(do.call(rbind, results))
 }

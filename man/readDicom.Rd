@@ -5,18 +5,26 @@
 \alias{scanDicom}
 \title{Read one or more DICOM directories}
 \usage{
-readDicom(path, flipY = TRUE, verbosity = 0L,
-  interactive = base::interactive())
+readDicom(path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE,
+  verbosity = 0L, interactive = base::interactive())
 
-scanDicom(path, verbosity = 0L)
+scanDicom(path = ".", forceStack = FALSE, verbosity = 0L)
 }
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will
-examined in turn.}
+examined in turn. The default is the current working directory.}
 
 \item{flipY}{If \code{TRUE}, the default, then images will be flipped in the
 Y-axis. This is usually desirable, given the difference between
 orientation conventions in the DICOM and NIfTI-1 formats.}
+
+\item{crop}{If \code{TRUE}, then \code{dcm2niix} will attempt to crop excess
+neck slices from brain images.}
+
+\item{forceStack}{If \code{TRUE}, images with the same series number will
+always be stacked together. If \code{FALSE}, the default, images will be
+separated if they differ in echo, coil or exposure number, echo time,
+protocol name or orientation.}
 
 \item{verbosity}{Integer value between 0 and 3, controlling the amount of
 output generated during the conversion.}
@@ -30,7 +38,7 @@ The \code{readDicom} function returns a list of \code{niftiImage}
   objects, which can be easily converted to standard R arrays or written to
   NIfTI-1 format using functions from the \code{RNifti} package. The
   \code{scanDicom} function returns a data frame containing information
-  about each DICOM series found. On failure, the result will be \code{NULL}.
+  about each DICOM series found.
 }
 \description{
 These functions are R wrappers around the DICOM-to-NIfTI conversion routines
