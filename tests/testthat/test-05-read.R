@@ -11,4 +11,11 @@ test_that("DICOM-reading code works", {
     
     origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
     expect_equal(round(origin), c(-16,95,135))
+    
+    expect_output(d <- readDicom(path,interactive=FALSE,crop=TRUE), "Cropping")
+    i <- which(sapply(d,RNifti::ndim) == 3L)
+    expect_equal(dim(d[[i]]), c(2,224,170))
+    
+    expect_output(d <- scanDicom(path), "Found 4 DICOM")
+    expect_equal(d$repetitionTime, c(4100,11))
 })
