@@ -699,7 +699,11 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut) {
     //lLength = (int)strlen(test);
 
     if (lLength < 1) return;
+//#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lLength + 1));
+//#else
+//	char cString[lLength + 1];
+//#endif
     cString[lLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lLength);
     //memcpy(cString, test, lLength);
@@ -749,9 +753,9 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut) {
 	}
     memcpy(lOut,cString,len-1);
     lOut[len-1] = 0;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	free(cString);
-#endif
+//#endif
 } //dcmStr()
 
 inline bool littleEndianPlatform ()
@@ -812,19 +816,28 @@ int dcmInt (int lByteLength, unsigned char lBuffer[], bool littleEndian) { //rea
 } //dcmInt()
 
 int dcmStrInt (int lByteLength, unsigned char lBuffer[]) {//read float stored as a string
+//#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
-
+//#else
+//	char cString[lByteLength + 1];
+//#endif
     cString[lByteLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
     //printMessage(" --> *%s* %s%s\n",cString, &lBuffer[0],&lBuffer[1]);
     int ret = atoi(cString);
+//#ifdef _MSC_VER
 	free(cString);
+//#endif
 	return ret;
 } //dcmStrInt()
 
 int dcmStrManufacturer (int lByteLength, unsigned char lBuffer[]) {//read float stored as a string
     if (lByteLength < 2) return kMANUFACTURER_UNKNOWN;
+//#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
+//#else
+//	char cString[lByteLength + 1];
+//#endif
 	int ret = kMANUFACTURER_UNKNOWN;
     cString[lByteLength] =0;
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
@@ -837,7 +850,9 @@ int dcmStrManufacturer (int lByteLength, unsigned char lBuffer[]) {//read float 
         ret = kMANUFACTURER_PHILIPS;
     if ((toupper(cString[0])== 'T') && (toupper(cString[1])== 'O'))
         ret = kMANUFACTURER_TOSHIBA;
+//#ifdef _MSC_VER
 	free(cString);
+//#endif
 	return ret;
 } //dcmStrManufacturer
 
@@ -912,13 +927,19 @@ bool csaIsPhaseMap (unsigned char buff[], int nItems) {
             nifti_swap_4bytes(1, &itemCSA.xx2_Len);
         
         if (itemCSA.xx2_Len > 0) {
-            char * cString = (char *)malloc(sizeof(char) * (itemCSA.xx2_Len));
-            memcpy(cString, &buff[lPos], itemCSA.xx2_Len); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
+//#ifdef _MSC_VER
+            char * cString = (char *)malloc(sizeof(char) * (itemCSA.xx2_Len + 1));
+//#else
+ //           char cString[itemCSA.xx2_Len];
+//#endif
+            memcpy(cString, &buff[lPos], sizeof(itemCSA.xx2_Len)); //TPX memcpy(&cString, &buff[lPos], sizeof(cString));
             lPos += ((itemCSA.xx2_Len +3)/4)*4;
             //printMessage(" %d item length %d = %s\n",lI, itemCSA.xx2_Len, cString);
             if (strcmp(cString, "CC:ComplexAdd") == 0)
                 return true;
+//#ifdef _MSC_VER
             free(cString);
+//#endif
         }
     } //for each item
     return false;
@@ -977,7 +998,11 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
             else if (strcmp(tagCSA.name, "BandwidthPerPixelPhaseEncode") == 0)
                 CSA->bandwidthPerPixelPhaseEncode = csaMultiFloat (&buff[lPos], 3,lFloats, &itemsOK);
             else if ((strcmp(tagCSA.name, "MosaicRefAcqTimes") == 0) && (tagCSA.nitems > 3)  ){
+//#ifdef _MSC_VER
 				float * sliceTimes = (float *)malloc(sizeof(float) * (tagCSA.nitems + 1));
+//#else
+//				float sliceTimes[tagCSA.nitems + 1];
+//#endif
                 csaMultiFloat (&buff[lPos], tagCSA.nitems,sliceTimes, &itemsOK);
                 float maxTimeValue, minTimeValue, timeValue1;
                 for (int z = 0; z < kMaxDTI4D; z++)
@@ -1042,7 +1067,9 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
                 	CSA->sliceOrder = NIFTI_SLICE_UNKNOWN;
 
                 }
+//#ifdef _MSC_VER
 				free(sliceTimes);
+//#endif
             } else if (strcmp(tagCSA.name, "ProtocolSliceNumber") == 0)
                 CSA->protocolSliceNumber1 = (int) round (csaMultiFloat (&buff[lPos], 1,lFloats, &itemsOK));
             else if (strcmp(tagCSA.name, "PhaseEncodingDirectionPositive") == 0)
@@ -1063,7 +1090,11 @@ int readCSAImageHeader(unsigned char *buff, int lLength, struct TCSAdata *CSA, i
 void dcmMultiFloat (int lByteLength, char lBuffer[], int lnFloats, float *lFloats) {
     //warning: lFloats indexed from 1! will fill lFloats[1]..[nFloats]
     if ((lnFloats < 1) || (lByteLength < 1)) return;
+//#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
+//#else
+//	char cString[lByteLength + 1];
+//#endif
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
     cString[lByteLength] = 0; //null terminate
     char *temp=( char *)malloc(lByteLength+1);
@@ -1085,15 +1116,23 @@ void dcmMultiFloat (int lByteLength, char lBuffer[], int lnFloats, float *lFloat
         } //if isOK
     }  //for i to length
     free(temp);
+//#ifdef _MSC_VER
 	free(cString);
+//#endif
 } //dcmMultiFloat()
 
 float dcmStrFloat (int lByteLength, unsigned char lBuffer[]) { //read float stored as a string
+//#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lByteLength + 1));
+//#else
+//	char cString[lByteLength + 1];
+//#endif
     memcpy(cString, (char*)&lBuffer[0], lByteLength);
     cString[lByteLength] = 0; //null terminate
     float ret = (float) atof(cString);
+//#ifdef _MSC_VER
 	free(cString);
+//#endif
 	return ret;
 } //dcmStrFloat()
 
@@ -1638,7 +1677,11 @@ unsigned char * nii_flipImgY(unsigned char* bImg, struct nifti_1_header *hdr){
         lineBytes = hdr->dim[1];
         dim3to7 = dim3to7 * 3;
     } //rgb data saved planar (RRR..RGGGG..GBBB..B
+//#ifdef _MSC_VER
 	unsigned char * line = (unsigned char *)malloc(sizeof(unsigned char) * (lineBytes));
+//#else
+//	unsigned char line[lineBytes];
+//#endif
     size_t sliceBytes = hdr->dim[2] * lineBytes;
     int halfY = hdr->dim[2] / 2; //note truncated toward zero, so halfY=2 regardless of 4 or 5 columns
     for (int sl = 0; sl < dim3to7; sl++) { //for each 2D slice
@@ -1653,7 +1696,9 @@ unsigned char * nii_flipImgY(unsigned char* bImg, struct nifti_1_header *hdr){
             slBottom += lineBytes;
         } //for y
     } //for each slice
+//#ifdef _MSC_VER
 	free(line);
+//#endif
     return bImg;
 } // nii_flipImgY()
 
@@ -1666,7 +1711,11 @@ unsigned char * nii_flipImgZ(unsigned char* bImg, struct nifti_1_header *hdr){
         if (hdr->dim[i] > 1) dim4to7 = dim4to7 * hdr->dim[i];
     int sliceBytes = hdr->dim[1] * hdr->dim[2] * hdr->bitpix/8;
     size_t volBytes = sliceBytes * hdr->dim[3];
+//#ifdef _MSC_VER
 	unsigned char * slice = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes));
+//#else
+//	unsigned char slice[sliceBytes];
+//#endif
     for (int vol = 0; vol < dim4to7; vol++) { //for each 2D slice
         size_t slBottom = vol*volBytes;
         size_t slTop = ((vol+1)*volBytes)-sliceBytes;
@@ -1679,7 +1728,9 @@ unsigned char * nii_flipImgZ(unsigned char* bImg, struct nifti_1_header *hdr){
             slBottom += sliceBytes;
         } //for Z
     } //for each volume
+//#ifdef _MSC_VER
 	free(slice);
+//#endif
     return bImg;
 } // nii_flipImgZ()
 
@@ -1845,9 +1896,12 @@ unsigned char * nii_planar2rgb(unsigned char* bImg, struct nifti_1_header *hdr, 
                         //int sliceBytes24 = hdr->dim[1]*hdr->dim[2] * hdr->bitpix/8;
                         int sliceBytes8 = hdr->dim[1]*hdr->dim[2];
                         int sliceBytes24 = sliceBytes8 * 3;
-                        //printMessage("planar->rgb %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
+//#ifdef _MSC_VER
                         unsigned char * slice24 = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes24));
-                        int sliceOffsetRGB = 0;
+//#else
+//                        unsigned char  slice24[ sliceBytes24 ];
+//#endif
+    int sliceOffsetRGB = 0;
                         int sliceOffsetR = 0;
                         int sliceOffsetG = sliceOffsetR + sliceBytes8;
                         int sliceOffsetB = sliceOffsetR + 2*sliceBytes8;
@@ -1863,7 +1917,9 @@ unsigned char * nii_planar2rgb(unsigned char* bImg, struct nifti_1_header *hdr, 
                             }
                             sliceOffsetRGB += sliceBytes24;
                         } //for each slice
+//#ifdef _MSC_VER
                         free(slice24);
+//#endif
                         return bImg;
 } //nii_rgb2Planar()
 
@@ -1878,7 +1934,11 @@ unsigned char * nii_rgb2planar(unsigned char* bImg, struct nifti_1_header *hdr, 
     //int sliceBytes24 = hdr->dim[1]*hdr->dim[2] * hdr->bitpix/8;
     int sliceBytes8 = hdr->dim[1]*hdr->dim[2];
     int sliceBytes24 = sliceBytes8 * 3;
+//#ifdef _MSC_VER
 	unsigned char * slice24 = (unsigned char *)malloc(sizeof(unsigned char) * (sliceBytes24));
+//#else
+//	unsigned char  slice24[ sliceBytes24 ];
+//#endif
     //printMessage("rgb->planar %dx%dx%d\n", hdr->dim[1],hdr->dim[2], dim3to7);
     int sliceOffsetR = 0;
     for (int sl = 0; sl < dim3to7; sl++) { //for each 2D slice
@@ -1895,7 +1955,9 @@ unsigned char * nii_rgb2planar(unsigned char* bImg, struct nifti_1_header *hdr, 
         }
         sliceOffsetR += sliceBytes24;
     } //for each slice
+//#ifdef _MSC_VER
 	free(slice24);
+//#endif
     return bImg;
 } //nii_rgb2Planar()
 
@@ -2174,6 +2236,18 @@ unsigned char * nii_loadImgJPEGC3(char* imgname, struct nifti_1_header hdr, stru
     //arcane and inefficient lossless compression method popularized by dcmcjpeg, examples at http://www.osirix-viewer.com/resources/dicom-image-library/
     int dimX, dimY, bits, frames;
     //clock_t start = clock();
+    // https://github.com/rii-mango/JPEGLosslessDecoderJS/blob/master/tests/data/jpeg_lossless_sel1-8bit.dcm
+    //N.B. this current code can not extract a 2D image that is saved as multiple fragments, for example see the JPLL files at
+    // ftp://medical.nema.org/MEDICAL/Dicom/DataSets/WG04/
+    //Live javascript code that can handle these is at
+    // https://github.com/chafey/cornerstoneWADOImageLoader
+    //I have never seen these segmented images in the wild, so we will simply warn the user if we encounter such a file
+    //int Sz = JPEG_SOF_0XC3_sz (imgname, (dcm.imageStart - 4), dcm.isLittleEndian);
+    //printf("Sz %d %d\n", Sz, dcm.imageBytes );
+    //This behavior is legal but appears extremely rare
+    //ftp://medical.nema.org/medical/dicom/final/cp900_ft.pdf
+    if (65536 == dcm.imageBytes)
+        printError("One frame may span multiple fragments. SOFxC3 lossless JPEG. Please extract with dcmdjpeg or gdcmconv.\n");
     unsigned char * ret = decode_JPEG_SOF_0XC3 (imgname, dcm.imageStart, isVerbose, &dimX, &dimY, &bits, &frames, 0);
     if (ret == NULL) {
     	printMessage("Unable to decode JPEG. Please use dcmdjpeg to uncompress data.\n");
@@ -2647,7 +2721,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
         if ((groupElement == kNest)  && (isEncapsulatedData)) {
             d.imageBytes = dcmInt(4,&buffer[lPos-4],d.isLittleEndian);
             //printMessage("compressed data %d-> %ld\n",d.imageBytes, lPos);
-            if (d.imageBytes > 12) {
+            if (d.imageBytes > 128) {
                 d.imageStart = (int)lPos;
             }
         }
@@ -2759,8 +2833,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
             case kProtocolName : {
                 //if ((strlen(d.protocolName) < 1) || (d.manufacturer != kMANUFACTURER_GE)) //GE uses a generic session name here: do not overwrite kProtocolNameGE
                 dcmStr (lLength, &buffer[lPos], d.protocolName); //see also kSequenceName
-                break;
-            }
+                break; }
             case 	kPatientOrient :
                 dcmStr (lLength, &buffer[lPos], d.patientOrient);
                 break;
@@ -3081,7 +3154,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                 }
                 break;
             case kProcedureStepDescription:
-            	dcmStr (lLength, &buffer[lPos], d.procedureStepDescription);
+                dcmStr (lLength, &buffer[lPos], d.procedureStepDescription);
                 break;
             case 	kOrientationACR : //use in emergency if kOrientation is not present!
                 if (!isOrient) dcmMultiFloat(lLength, (char*)&buffer[lPos], 6, d.orient);
@@ -3238,5 +3311,6 @@ struct TDICOMdata readDICOM(char * fname) {
     TDTI4D unused;
     return readDICOMv(fname, false, 0, &unused);
 } // readDICOM()
+
 
 
