@@ -28,6 +28,9 @@
 #include "tinydir.h"
 #include "print.h"
 #include "nifti1_io_core.h"
+#ifndef HAVE_R
+#include "nifti1.h"
+#endif
 #include "nii_dicom_batch.h"
 #include "nii_dicom.h"
 #include <ctype.h> //toupper

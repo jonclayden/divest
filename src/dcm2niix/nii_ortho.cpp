@@ -1,3 +1,6 @@
+#ifndef HAVE_R
+#include "nifti1.h"
+#endif
 #include "nifti1_io_core.h"
 #include "nii_ortho.h"
 #include <math.h>

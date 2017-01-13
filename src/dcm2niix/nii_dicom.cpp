@@ -16,6 +16,9 @@
 	#include <unistd.h>
 #endif
 //#include <time.h> //clock()
+#ifndef HAVE_R
+#include "nifti1.h"
+#endif
 #include "print.h"
 #include "nii_dicom.h"
 #include <sys/types.h>

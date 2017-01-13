@@ -10,6 +10,9 @@ extern "C" {
 
 #include <stdbool.h>
 #include <string.h>
+#ifndef HAVE_R
+#include "nifti1.h"
+#endif
 #include "nii_dicom.h"
 
 #ifdef HAVE_R
