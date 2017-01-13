@@ -1,0 +1,39 @@
+Significant changes to the divest package are laid out below for each release.
+
+===============================================================================
+
+VERSION 0.2.0
+
+- The readDicom() function is now interactive in suitable sessions, allowing
+  the user to choose which DICOM series to convert.
+- The new scanDicom() function allows the DICOM files in a directory to be
+  scanned without performing any conversion. It returns a data frame
+  containing information about the available scan series.
+- Both functions now search the current working directory by default.
+- Diffusion b-values and gradient vectors, and patient information, are now
+  additionally stored as attributes in returned image objects.
+- Image cropping and forced stacking options from dcm2niix are now exposed to
+  the R interface.
+- Gantry tilt correction is now applied to CT images where needed. (Reported
+  by John Muschelli.)
+- Phase encoding attributes are now handled more robustly.
+
+===============================================================================
+
+VERSION 0.1.2
+
+- The package now behaves correctly on big-endian systems.
+
+===============================================================================
+
+VERSION 0.1.1
+
+- A test has been made more robust.
+
+===============================================================================
+
+VERSION 0.1.0
+
+- First public release.
+
+===============================================================================
