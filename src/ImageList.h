@@ -44,6 +44,12 @@ public:
         element.attr(name) = value;
     }
     
+    void addDateAttribute (const std::string &name, const char *value)
+    {
+        Rcpp::RObject element = list[list.length()-1];
+        element.attr(name) = Rcpp::Date(value, "%Y%m%d");
+    }
+    
     template <typename ValueType>
     void addDeferredAttribute (const std::string &name, const ValueType &value)
     {

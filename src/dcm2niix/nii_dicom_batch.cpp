@@ -1002,10 +1002,10 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
         images->addAttribute("scannerModelName", data.manufacturersModelName);
     if (strlen(data.imageType) > 0)
         images->addAttribute("imageType", data.imageType);
-    if (data.acquisitionTime > 0.0)
-        images->addAttribute("acquisitionTime", data.acquisitionTime);
-    if (data.acquisitionDate > 0.0)
-        images->addAttribute("acquisitionDate", data.acquisitionDate);
+    if (strlen(data.studyDate) >= 8 && strcmp(data.studyDate,"00000000") != 0)
+        images->addDateAttribute("studyDate", data.studyDate);
+    if (strlen(data.studyTime) > 0 && strncmp(data.studyTime,"000000",6) != 0)
+        images->addAttribute("studyTime", data.studyTime);
     if (data.fieldStrength > 0.0)
         images->addAttribute("fieldStrength", data.fieldStrength);
     if (data.flipAngle > 0.0)
