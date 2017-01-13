@@ -2536,6 +2536,9 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #define  kComplexImageComponent (uint32_t) 0x0008+(0x9208 << 16 )//'0008' '9208' 'CS' 'ComplexImageComponent'
 #define  kPatientName 0x0010+(0x0010 << 16 )
 #define  kPatientID 0x0010+(0x0020 << 16 )
+#define  kPatientBirthDate 0x0010+(0x0030 << 16 )
+#define  kPatientSex 0x0010+(0x0040 << 16 )
+#define  kPatientAge 0x0010+(0x1010 << 16 )
 #define  kScanningSequence 0x0018+(0x0020 << 16)
 #define  kMRAcquisitionType 0x0018+(0x0023 << 16)
 #define  kSequenceName 0x0018+(0x0024 << 16)
@@ -2819,6 +2822,15 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                 break;
             case kPatientID :
                 dcmStr (lLength, &buffer[lPos], d.patientID);
+                break;
+            case kPatientBirthDate :
+                dcmStr (lLength, &buffer[lPos], d.birthDate);
+                break;
+            case kPatientSex :
+                dcmStr (lLength, &buffer[lPos], d.gender);
+                break;
+            case kPatientAge :
+                dcmStr (lLength, &buffer[lPos], d.age);
                 break;
             case kSeriesDescription: {
                 dcmStr (lLength, &buffer[lPos], d.seriesDescription);

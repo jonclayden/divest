@@ -1014,6 +1014,7 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
         images->addAttribute("echoTime", data.TE);
     if (data.TR > 0.0)
         images->addAttribute("repetitionTime", data.TR);
+    
     if ((data.CSA.bandwidthPerPixelPhaseEncode > 0.0) && (header.dim[2] > 0) && (header.dim[1] > 0)) {
         if (data.phaseEncodingRC =='C')
             images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[2]);
@@ -1026,6 +1027,17 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
         images->addAttribute("phaseEncodingDirection", "i");
     if (data.CSA.phaseEncodingDirectionPositive != -1)
         images->addAttribute("phaseEncodingSign", data.CSA.phaseEncodingDirectionPositive == 0 ? -1 : 1);
+    
+    if (strlen(data.patientID) > 0)
+        images->addAttribute("patientIdentifier", data.patientID);
+    if (strlen(data.patientName) > 0)
+        images->addAttribute("patientName", data.patientName);
+    if (strlen(data.birthDate) >= 8 && strcmp(data.birthDate,"00000000") != 0)
+        images->addDateAttribute("patientBirthDate", data.birthDate);
+    if (strlen(data.age) > 0 && strcmp(data.age,"000Y") != 0)
+        images->addAttribute("patientAge", data.age);
+    if (strlen(data.gender) > 0)
+        images->addAttribute("patientSex", data.gender);
 }
 
 #else
