@@ -626,8 +626,13 @@ struct TDICOMdata clear_dicom_data() {
     strcpy(d.patientID, "ID123");
     strcpy(d.imageType,"ORIGINAL");
     strcpy(d.imageComments, "imgComments");
+#ifdef HAVE_R
+    strcpy(d.studyDate, "00000000");
+    strcpy(d.studyTime, "000000");
+#else
     strcpy(d.studyDate, "1/1/1977");
     strcpy(d.studyTime, "11:11:11");
+#endif
     strcpy(d.manufacturersModelName, "N/A");
     strcpy(d.procedureStepDescription, "");
     d.dateTime = (double)19770703150928.0;
