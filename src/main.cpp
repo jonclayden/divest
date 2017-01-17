@@ -33,7 +33,7 @@ BEGIN_RCPP
     options.isCrop = as<bool>(crop_);
     options.isScanOnly = as<bool>(scanOnly_);
     options.isVerbose = as<int>(verbosity_);
-    options.compressFlag = kCompressNone;
+    options.compressFlag = kCompressYes;
     strcpy(options.indir, path.c_str());
     strcpy(options.outdir, "");
     strcpy(options.filename, "");
