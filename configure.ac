@@ -28,7 +28,7 @@ AC_SEARCH_LIBS([opj_version], [openjp2], [
         JPEG2K_LIBS="-lopenjp2"
         AC_MSG_NOTICE(Using OpenJPEG for JPEG2000 support)
     ])
-], [JPEG2K_FLAGS="-ImyDisableOpenJPEG"])
+])
 
 # Checks for JasPer (if OpenJPEG was not found).
 if test -z $JPEG2K_LIBS; then

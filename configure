@@ -3590,8 +3590,6 @@ fi
 
 
 
-else
-  JPEG2K_FLAGS="-ImyDisableOpenJPEG"
 fi
 
 
