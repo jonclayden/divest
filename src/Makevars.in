@@ -1,0 +1,8 @@
+PKG_CPPFLAGS = -DHAVE_R -DmyDisableMiniZ -DmyDisableZLib @JPEG2K_FLAGS@ -I. -Idcm2niix -Iujpeg
+PKG_LIBS = @JPEG2K_LIBS@
+
+OBJECTS_LIBS = ujpeg/ujpeg.o
+
+OBJECTS_DCM2NIIX = dcm2niix/jpg_0XC3.o dcm2niix/nifti1_io_core.o dcm2niix/nii_dicom.o dcm2niix/nii_dicom_batch.o dcm2niix/nii_ortho.o
+
+OBJECTS = main.o $(OBJECTS_DCM2NIIX) $(OBJECTS_LIBS)
