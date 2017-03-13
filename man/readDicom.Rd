@@ -6,7 +6,8 @@
 \title{Read one or more DICOM directories}
 \usage{
 readDicom(path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE,
-  verbosity = 0L, interactive = base::interactive())
+  verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
+  interactive = base::interactive())
 
 scanDicom(path = ".", forceStack = FALSE, verbosity = 0L)
 }
@@ -29,6 +30,9 @@ echo, coil or exposure number, echo time, protocol name or orientation.}
 \item{verbosity}{Integer value between 0 and 3, controlling the amount of
 output generated during the conversion.}
 
+\item{labelFormat}{A \code{\link{sprintf}}-style string specifying the
+format to use for the final image labels. See Details.}
+
 \item{interactive}{If \code{TRUE}, the default in interactive sessions, the
 requested paths will first be scanned and a list of DICOM series will be
 presented. You may then choose which series to convert.}
@@ -46,6 +50,17 @@ provided by \code{dcm2niix}. They scan directories containing DICOM files,
 potentially pertaining to more than one image series, read them and/or merge
 them into a list of \code{niftiImage} objects.
 }
+\details{
+The \code{labelFormat} argument describes the string format used for image
+labels. Valid codes, each escaped with a percentage sign, include \code{a}
+for coil number, \code{c} for image comments, \code{d} for series
+description, \code{e} for echo number, \code{f} for the source directory,
+\code{i} for patient ID, \code{l} for the procedure step description,
+\code{m} for manufacturer, \code{n} for patient name, \code{p} for protocol
+name, \code{q} for scanning sequence, \code{s} for series number, \code{t}
+for the date and time, \code{u} for acquisition number and \code{z} for
+sequence name.
+}
 \examples{
 path <- system.file("extdata", "testdata", package="divest")
 scanDicom(path)
@@ -54,4 +69,3 @@ readDicom(path, interactive=FALSE)
 \author{
 Jon Clayden <code@clayden.org>
 }
-
