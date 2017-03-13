@@ -16,10 +16,11 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP scanOnly_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP scanOnly_)
 {
 BEGIN_RCPP
     const std::string path = as<std::string>(path_);
+    const std::string labelFormat = as<std::string>(labelFormat_);
     
     TDCMopts options;
     options.isGz = false;
@@ -36,7 +37,7 @@ BEGIN_RCPP
     options.compressFlag = kCompressYes;
     strcpy(options.indir, path.c_str());
     strcpy(options.outdir, "");
-    strcpy(options.filename, "");
+    strcpy(options.filename, labelFormat.c_str());
     strcpy(options.pigzname, "");
     
     ImageList images;
