@@ -77,14 +77,14 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .Call("readDirectory", tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, PACKAGE="divest")
+        .Call(C_readDirectory, tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
     }
     
     results <- lapply(path, function(p) {
         if (interactive)
         {
             p <- path.expand(p)
-            info <- .sortInfoTable(.Call("readDirectory", p, flipY, crop, forceStack, 0L, labelFormat, TRUE, PACKAGE="divest"))
+            info <- .sortInfoTable(.Call(C_readDirectory, p, flipY, crop, forceStack, 0L, labelFormat, TRUE))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -97,7 +97,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             selection <- readline("\nSelected series: ")
             if (selection == "")
             {
-                allResults <- .Call("readDirectory", p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, PACKAGE="divest")
+                allResults <- .Call(C_readDirectory, p, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
                 return (allResults[attr(info,"ordering")])
             }
             else if (selection == "0")
@@ -114,7 +114,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             }
         }
         else
-            .Call("readDirectory", path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, PACKAGE="divest")
+            .Call(C_readDirectory, path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE)
     })
     
     return (do.call(c, results))
@@ -124,6 +124,6 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
 #' @export
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
 {
-    results <- lapply(path, function(p) .Call("readDirectory", path.expand(p), TRUE, FALSE, forceStack, verbosity, "", TRUE, PACKAGE="divest"))
+    results <- lapply(path, function(p) .Call(C_readDirectory, path.expand(p), TRUE, FALSE, forceStack, verbosity, "", TRUE))
     .sortInfoTable(do.call(rbind, results))
 }
