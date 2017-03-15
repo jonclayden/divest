@@ -4,6 +4,22 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
+.readDirectory <- function (path, flipY, crop, forceStack, verbosity, labelFormat, scanOnly)
+{
+    if (verbosity < 0L)
+    {
+        output <- NULL
+        connection <- textConnection("output", "w", local=TRUE)
+        sink(connection)
+        on.exit({
+            sink()
+            cat(paste(c(grep("WARNING|ERROR", output, ignore.case=TRUE, perl=TRUE, value=TRUE), ""), collapse="\n"))
+        })
+    }
+    
+    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, scanOnly)
+}
+
 #' Read one or more DICOM directories
 #' 
 #' These functions are R wrappers around the DICOM-to-NIfTI conversion routines
@@ -32,8 +48,9 @@
 #'   always be stacked together as long as their dimensions are compatible. If
 #'   \code{FALSE}, the default, images will be separated if they differ in
 #'   echo, coil or exposure number, echo time, protocol name or orientation.
-#' @param verbosity Integer value between 0 and 3, controlling the amount of
-#'   output generated during the conversion.
+#' @param verbosity Integer value between -1 and 3, controlling the amount of
+#'   output generated during the conversion. A negative value will suppress all
+#'   output from \code{dcm2niix} except warnings and errors.
 #' @param labelFormat A \code{\link{sprintf}}-style string specifying the
 #'   format to use for the final image labels. See Details.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
@@ -77,14 +94,14 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .Call(C_readDirectory, tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
+        .readDirectory(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
     }
     
     results <- lapply(path, function(p) {
         if (interactive)
         {
             p <- path.expand(p)
-            info <- .sortInfoTable(.Call(C_readDirectory, p, flipY, crop, forceStack, 0L, labelFormat, TRUE))
+            info <- .sortInfoTable(.readDirectory(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, TRUE))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -97,7 +114,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             selection <- readline("\nSelected series: ")
             if (selection == "")
             {
-                allResults <- .Call(C_readDirectory, p, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
+                allResults <- .readDirectory(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
                 return (allResults[attr(info,"ordering")])
             }
             else if (selection == "0")
@@ -114,7 +131,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             }
         }
         else
-            .Call(C_readDirectory, path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE)
+            .readDirectory(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE)
     })
     
     return (do.call(c, results))
@@ -124,6 +141,6 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
 #' @export
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
 {
-    results <- lapply(path, function(p) .Call(C_readDirectory, path.expand(p), TRUE, FALSE, forceStack, verbosity, "", TRUE))
+    results <- lapply(path, function(p) .readDirectory(path.expand(p), TRUE, FALSE, forceStack, verbosity, "", TRUE))
     .sortInfoTable(do.call(rbind, results))
 }
