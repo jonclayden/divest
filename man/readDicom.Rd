@@ -27,8 +27,9 @@ always be stacked together as long as their dimensions are compatible. If
 \code{FALSE}, the default, images will be separated if they differ in
 echo, coil or exposure number, echo time, protocol name or orientation.}
 
-\item{verbosity}{Integer value between 0 and 3, controlling the amount of
-output generated during the conversion.}
+\item{verbosity}{Integer value between -1 and 3, controlling the amount of
+output generated during the conversion. A negative value will suppress all
+output from \code{dcm2niix} except warnings and errors.}
 
 \item{labelFormat}{A \code{\link{sprintf}}-style string specifying the
 format to use for the final image labels. See Details.}
