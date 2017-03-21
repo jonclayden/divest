@@ -24,6 +24,8 @@ BEGIN_RCPP
     options.isRGBplanar = false;
     options.isOnlySingleFile = false;
     options.isForceStackSameSeries = as<bool>(forceStack_);
+    options.isIgnoreDerivedAnd2D = false;
+    options.isPhilipsFloatNotDisplayScaling = true;
     options.isCrop = as<bool>(crop_);
     options.isScanOnly = as<bool>(scanOnly_);
     options.isVerbose = as<int>(verbosity_);
