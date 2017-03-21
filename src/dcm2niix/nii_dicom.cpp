@@ -618,7 +618,7 @@ struct TDICOMdata clear_dicom_data() {
         d.xyzDim[i] = 1;
     for (int i = 0; i < 7; i++)
         d.orient[i] = 0.0f;
-    d.patientPositionSequentialRepeats = 0;//d.isHasMixed = false;
+    d.patientPositionSequentialRepeats = 0;
     d.isHasPhase = false;
     d.isHasMagnitude = false;
     d.sliceOrient = kSliceOrientUnknown;
@@ -655,6 +655,7 @@ struct TDICOMdata clear_dicom_data() {
     d.patientPositionNumPhilips = 0;
     d.imageBytes = 0;
     d.intenScale = 1;
+    d.intenScalePhilips = 0;
     d.intenIntercept = 0;
     d.gantryTilt = 0.0;
     d.seriesNum = 1;
@@ -1264,13 +1265,6 @@ void changeExt (char *file_name, const char* ext) {
     }
 } //changeExt()
 
-float PhilipsPreciseVal (float lPV, float lRS, float lRI, float lSS) {
-    if ((lRS*lSS) == 0) //avoid divide by zero
-        return 0.0;
-    else
-        return (lPV * lRS + lRI) / (lRS * lSS);
-}
-
 struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D *dti4D) {
     struct TDICOMdata d = clear_dicom_data();
     strcpy(d.protocolName, ""); //erase dummy with empty
@@ -1313,7 +1307,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 #define	kv3	46
 #define	kASL	48
     char buff[LINESZ];
-    float intenScalePhilips = 0.0f;
+    //float intenScalePhilips = 0.0f;
     float maxBValue = 0.0f;
     float maxDynTime = 0.0f;
     float minDynTime = 999999.0f;
@@ -1440,7 +1434,7 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
 			d.bitsStored = (int) cols[kBitsPerVoxel];
             d.intenIntercept = cols[kRI];
             d.intenScale = cols[kRS];
-            intenScalePhilips = cols[kSS];
+            d.intenScalePhilips = cols[kSS];
         } else {
             if ((d.xyzDim[1] != cols[kXdim]) || (d.xyzDim[2] != cols[kYdim]) || (d.bitsAllocated != cols[kBitsPerVoxel]) ) {
                 printError("Slice dimensions or bit depth varies %s\n", parname);
@@ -1458,6 +1452,21 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
         if (cols[kImageType] != 0) d.isHasPhase = true;
         if (cols[kDynTime] > maxDynTime) maxDynTime = cols[kDynTime];
         if (cols[kDynTime] < minDynTime) minDynTime = cols[kDynTime];
+        if ((cols[kEcho] == 1) && (cols[kDyn] == 1) && (cols[kCardiac] == 1) && (cols[kGradientNumber] == 1)) {
+			if (cols[kSlice] == 1) {
+				d.patientPosition[1] = cols[kPositionRL];
+            	d.patientPosition[2] = cols[kPositionAP];
+            	d.patientPosition[3] = cols[kPositionFH];
+			}
+			if (d.patientPositionNumPhilips < kMaxDTI4D) {
+				dti4D->S[d.patientPositionNumPhilips].sliceNumberMrPhilips = round(cols[kSlice]);
+				if ((d.patientPositionNumPhilips > 0) && (dti4D->S[d.patientPositionNumPhilips].sliceNumberMrPhilips < dti4D->S[d.patientPositionNumPhilips-1].sliceNumberMrPhilips)) {
+					d.isSlicesSpatiallySequentialPhilips = false;
+					//printMessage("slices are not contiguous\n");
+				}
+			}
+			d.patientPositionNumPhilips++;
+        }
         if (cols[kGradientNumber] > 0) {
 			/*int dir = (int) cols[kGradientNumber];
             if ((dir > 0) && (cols[kbval] > 0.0) && (cols[kv1] == 0.0) && (cols[kv1] == 0.0) && (cols[kv1] == 0.0) ) {
@@ -1590,21 +1599,6 @@ struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D 
     		printWarning("Reported TR=%gms, measured TR=%gms (prospect. motion corr.?)\n", d.TR, TRms);
     	d.TR = TRms;
     }
-    if (intenScalePhilips != 0.0) {
-        //printMessage("Philips Precise RS:RI:SS = %g:%g:%g (see PMC3998685)\n",d.intenScale,d.intenIntercept,intenScalePhilips);
-        //we will report calibrated "FP" values http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3998685/
-        //# === PIXEL VALUES =============================================================
-		//#  PV = pixel value in REC file, FP = floating point value, DV = displayed value on console
-		//#  RS = rescale slope,           RI = rescale intercept,    SS = scale slope
-		//#  DV = PV * RS + RI             FP = DV / (RS * SS)
-        float l0 = PhilipsPreciseVal (0, d.intenScale, d.intenIntercept, intenScalePhilips);
-        float l1 = PhilipsPreciseVal (1, d.intenScale, d.intenIntercept, intenScalePhilips);
-        if (l0 != l1) {
-            d.intenIntercept = l0;
-            d.intenScale = l1-l0;
-        }
-    }
-
     return d;
 } //nii_readParRec()
 
@@ -1744,7 +1738,8 @@ unsigned char * nii_flipImgZ(unsigned char* bImg, struct nifti_1_header *hdr){
 
 unsigned char * nii_reorderSlices(unsigned char* bImg, struct nifti_1_header *h, struct TDTI4D *dti4D){
     //flip slice order - Philips scanners can save data in non-contiguous order
-    if ((h->dim[3] < 2) || (h->dim[4] > 1)) return bImg;
+    //if ((h->dim[3] < 2) || (h->dim[4] > 1)) return bImg;
+    if (h->dim[3] < 2) return bImg;
     if (h->dim[3] >= kMaxDTI4D) {
     	printWarning("Unable to reorder slices (%d > %d)\n", h->dim[3], kMaxDTI4D);
     	return bImg;
@@ -1759,11 +1754,11 @@ unsigned char * nii_reorderSlices(unsigned char* bImg, struct nifti_1_header *h,
     unsigned char *srcImg = (unsigned char *)malloc(volBytes);
     for (int v = 0; v < dim4to7; v++) {
     	size_t volStart = v * volBytes;
-    	memcpy(&srcImg[volStart], &bImg[volStart], volBytes); //dest, src, size
+    	memcpy(&srcImg[0], &bImg[volStart], volBytes); //dest, src, size
     	for (int z = 0; z < h->dim[3]; z++) { //for each slice
 			int src = dti4D->S[z].sliceNumberMrPhilips - 1; //-1 as Philips indexes slices from 1 not 0
 			if ((src < 0) || (src >= h->dim[3])) continue;
-			memcpy(&bImg[volStart+(src*sliceBytes)], &srcImg[volStart+(z*sliceBytes)], sliceBytes); //dest, src, size
+			memcpy(&bImg[volStart+(src*sliceBytes)], &srcImg[z*sliceBytes], sliceBytes); //dest, src, size
     	}
     }
     free(srcImg);
@@ -1875,7 +1870,7 @@ unsigned char * nii_loadImgCore(char* imgname, struct nifti_1_header hdr, int bi
          return NULL;
     }
 	fseek(file, 0, SEEK_END);
-	size_t fileLen=ftell(file);
+	long fileLen=ftell(file);
     if (fileLen < (imgszRead+hdr.vox_offset)) {
         printMessage("File not large enough to store image data: %s\n", imgname);
         return NULL;
@@ -2447,7 +2442,7 @@ int isDICOMfile(const char * fname) { //0=NotDICOM, 1=DICOM, 2=Maybe(not Part 10
     FILE *fp = fopen(fname, "rb");
 	if (!fp)  return 0;
 	fseek(fp, 0, SEEK_END);
-	size_t fileLen=ftell(fp);
+	long fileLen=ftell(fp);
     if (fileLen < 256) {
         fclose(fp);
         return 0;
@@ -2494,7 +2489,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 		return d;
 	}
 	fseek(file, 0, SEEK_END);
-	size_t fileLen=ftell(file); //Get file length
+	long fileLen=ftell(file); //Get file length
     if (fileLen < 256) {
         printMessage( "File too small to be a DICOM image %s\n", fname);
 		return d;
@@ -2511,7 +2506,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 	size_t sz = fread(buffer, 1, fileLen, file);
 	fclose(file);
 	if (sz < fileLen) {
-         printError("Only loaded %zu of %lld bytes for %s\n", sz, fileLen, fname);
+         printError("Only loaded %zu of %ld bytes for %s\n", sz, fileLen, fname);
          return d;
     }
 	//bool isPart10prefix = true; //assume 132 byte header http://nipy.bic.berkeley.edu/nightly/nibabel/doc/dicom/dicom_intro.html
@@ -2636,7 +2631,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
         	printMessage("DICOM appears corrupt: first group:element should be 0x0002:0x0000\n");
     }
     char vr[2];
-    float intenScalePhilips = 0.0;
+    //float intenScalePhilips = 0.0;
     bool isEncapsulatedData = false;
     bool isOrient = false;
     bool isIconImageSequence = false;
@@ -2989,7 +2984,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
                 break;
             case kPhilipsSlope :
                 if ((lLength == 4) && (d.manufacturer == kMANUFACTURER_PHILIPS))
-                    intenScalePhilips = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);
+                    d.intenScalePhilips = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);
                 break;
 
             case 	kIntercept :
@@ -3095,8 +3090,8 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
             	int sliceNumber;
             	sliceNumber = dcmStrInt(lLength, &buffer[lPos]);
                 dti4D->S[d.patientPositionNumPhilips].sliceNumberMrPhilips = sliceNumber;
-				if ((d.patientPositionNumPhilips > 0) && (abs(dti4D->S[d.patientPositionNumPhilips].sliceNumberMrPhilips - dti4D->S[d.patientPositionNumPhilips -1].sliceNumberMrPhilips) != 1) )
-						d.isSlicesSpatiallySequentialPhilips = false; //slices not sequential (1,2,3,4 or 4,3,2,1) but 4,3,1,2
+				if ((d.patientPositionNumPhilips > 0) && (abs(dti4D->S[d.patientPositionNumPhilips].sliceNumberMrPhilips - dti4D->S[d.patientPositionNumPhilips -1].sliceNumberMrPhilips) > 1) )
+					d.isSlicesSpatiallySequentialPhilips = false; //slices not sequential (1,2,3,4 or 4,3,2,1) but 4,3,1,2
             	d.patientPositionNumPhilips++;
             	//Philips can save 3D acquisitions in a single file with slices stored in non-sequential order. We need to know the first and final spatial position
             	if (sliceNumber == 1) {
@@ -3296,13 +3291,13 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 	//     	else
 	//     		printWarning("Spatial orientation ambiguous (tag 0020,0037 not found): %s\n", fname);
 	//     }
-	if ((d.numberOfDynamicScans < 2) && (!d.isSlicesSpatiallySequentialPhilips) && (patientPositionStartPhilips[1] != NAN) && (patientPositionEndPhilips[1] != NAN)) {
+	if ((d.numberOfDynamicScans < 2) && (!d.isSlicesSpatiallySequentialPhilips) && (!isnan(patientPositionStartPhilips[1])) && (!isnan(patientPositionEndPhilips[1]))) {
 		//to do: check for d.numberOfDynamicScans > 1
 		for (int k = 0; k < 4; k++) {
 			d.patientPosition[k] = patientPositionStartPhilips[k];
 			d.patientPositionLast[k] = patientPositionEndPhilips[k];
 		}
-		printMessage("<<< Slices not spatially contiguous: please check output [new feature]\n");
+		printMessage("Slices not spatially contiguous: please check output [new feature]\n");
     }
     if (isVerbose) {
         printMessage("%s\n patient position\t%g\t%g\t%g\n",fname, d.patientPosition[1],d.patientPosition[2],d.patientPosition[3]);
@@ -3310,19 +3305,13 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
         if (d.CSA.dtiV[0] > 0)
         	printMessage(" DWI bxyz %g %g %g %g\n", d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3]);
     }
-    if (d.CSA.numDti >= kMaxDTI4D) {
-        printError("Unable to convert DTI [increase kMaxDTI4D]\n");
+    if (d.patientPositionNumPhilips >= kMaxDTI4D) {
+        printError("Unable to convert DTI [recompile with increased kMaxDTI4D] detected=%d, max = %d\n", d.patientPositionNumPhilips, kMaxDTI4D);
         d.CSA.numDti = 0;
     }
-    if (intenScalePhilips != 0.0) {
-        printMessage("Philips Precise RS:RI:SS = %g:%g:%g (see PMC3998685)\n",d.intenScale,d.intenIntercept,intenScalePhilips);
-        //we will report calibrated "FP" values http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3998685/
-        float l0 = PhilipsPreciseVal (0, d.intenScale, d.intenIntercept, intenScalePhilips);
-        float l1 = PhilipsPreciseVal (1, d.intenScale, d.intenIntercept, intenScalePhilips);
-        if (l0 != l1) {
-            d.intenIntercept = l0;
-            d.intenScale = l1-l0;
-        }
+    if (d.CSA.numDti >= kMaxDTI4D) {
+        printError("Unable to convert DTI [recompile with increased kMaxDTI4D] detected=%d, max = %d\n", d.CSA.numDti, kMaxDTI4D);
+        d.CSA.numDti = 0;
     }
     return d;
 } // readDICOM()
