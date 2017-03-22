@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([divest], [0.2.0], [code@clayden.org])
+AC_INIT([divest], [0.3.0], [code@clayden.org])
 # AC_CONFIG_SRCDIR([ImageList.h])
 
 # Get compiler flags from R
@@ -31,7 +31,7 @@ AC_SEARCH_LIBS([opj_version], [openjp2], [
 ])
 
 # Checks for JasPer (if OpenJPEG was not found).
-if test -z $JPEG2K_LIBS; then
+if test -z "${JPEG2K_LIBS}"; then
     AC_SEARCH_LIBS([jas_getversion], [jasper], [
         AC_CHECK_HEADER([jasper/jasper.h], [
             JPEG2K_FLAGS="-DmyEnableJasper -DmyDisableOpenJPEG"
