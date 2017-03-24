@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest)
+[![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest)
 
 # An R interface to dcm2niix
 
