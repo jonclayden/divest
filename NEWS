@@ -2,6 +2,19 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.3.0
+
+- A configure script has been added to detect OpenJPEG or JasPer libraries. If
+  either is available, the package will be able to read DICOM data encoded
+  using the JPEG2000 codec.
+- The readDicom() function gains a "labelFormat" option, which allows the
+  format of image labels to be customised.
+- A new "verbosity" level of -1 is now supported, which filters all but warning
+  and error messages from dcm2niix's output.
+- Spurious date and time information should no longer be returned.
+
+===============================================================================
+
 VERSION 0.2.0
 
 - The readDicom() function is now interactive in suitable sessions, allowing
