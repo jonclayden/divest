@@ -31,7 +31,9 @@
 #include "nifti1.h"
 #endif
 #include "nii_dicom_batch.h"
+#ifndef HAVE_R
 #include "nii_foreign.h"
+#endif
 #include "nii_dicom.h"
 #include <ctype.h> //toupper
 #include <float.h>
@@ -2049,12 +2051,14 @@ void searchDirForDICOM(char *path, struct TSearchList *nameList, int maxDepth, i
             }
             nameList->numItems++;
             //printMessage("dcm %lu %s \n",nameList->numItems, filename);
+#ifndef HAVE_R
         } else {
         	if (fileBytes(filename) > 2048)
             	convert_foreign (filename, *opts);
         	#ifdef MY_DEBUG
             	printMessage("Not a dicom:\t%s\n", filename);
         	#endif
+#endif
         }
         tinydir_next(&dir);
     }
@@ -2173,8 +2177,10 @@ int nii_loadDir(struct TDCMopts* opts) {
         #endif
     }*/
     getFileName(opts->indirParent, opts->indir);
+#ifndef HAVE_R
     if (isFile && ( (isExt(indir, ".v"))) )
 		return convert_foreign (indir, *opts);
+#endif
     if (isFile && ( (isExt(indir, ".par")) || (isExt(indir, ".rec"))) ) {
         char pname[512], rname[512];
         strcpy(pname,indir);
