@@ -50,8 +50,8 @@ BEGIN_RCPP
             CharacterVector seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
             DateVector studyDate(n);
             NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
-            IntegerVector seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
-            LogicalVector phase(n,NA_LOGICAL);
+            IntegerVector files(n,NA_INTEGER), seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
+            LogicalVector phase(n,NA_LOGICAL), diffusion(n,false);
             List paths(n);
             for (int i = 0; i < n; i++)
             {
@@ -96,13 +96,16 @@ BEGIN_RCPP
                     description << ", echo " << data.echoNum;
                 if (data.isHasPhase)
                     description << ", phase";
+                if (data.CSA.numDti > 0)
+                    diffusion[i] = true;
                 
                 phase[i] = data.isHasPhase;
                 descriptions[i] = description.str();
+                files[i] = options.series[i].files.size();
                 paths[i] = wrap(options.series[i].files);
             }
             
-            DataFrame info = DataFrame::create(Named("rootPath")=path, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("stringsAsFactors")=false);
+            DataFrame info = DataFrame::create(Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
             info.attr("descriptions") = descriptions;
             info.attr("paths") = paths;
             info.attr("class") = CharacterVector::create("divest","data.frame");
