@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <string.h>
+#include "nifti1_io_core.h"
 #ifndef HAVE_R
 #include "nifti1.h"
 #endif
@@ -12,19 +13,34 @@
 extern "C" {
 #endif
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
  #ifdef myEnableJasper
-  #define kDCMsuf " (jasper build)"
+  #define kDCMsuf " (JasPer build)"
  #else
   #ifdef myDisableOpenJPEG
     #define kDCMsuf ""
   #else
-    #define kDCMsuf " (openJPEG build)"
+    #define kDCMsuf " (OpenJPEG build)"
   #endif
  #endif
- #define kDCMvers "v1.0.20170314" kDCMsuf
+#if defined(__ICC) || defined(__INTEL_COMPILER)
+	#define kCCsuf  " IntelCC" STR(__INTEL_COMPILER)
+#elif defined(_MSC_VER)
+	#define kCCsuf  " MSC" STR(_MSC_VER)
+#elif defined(__clang__)
+	#define kCCsuf  " Clang" STR(__clang_major__) "." STR(__clang_minor__) "." STR(__clang_patchlevel__)
+#elif defined(__GNUC__) || defined(__GNUG__)
+    #define kCCsuf  " GCC" STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
+#else
+	#define kCCsuf " CompilerNA" //unknown compiler!
+#endif
 
-static const int kMaxDTI4D = 16000; //#define kMaxDTIv  4000
-#define kDICOMStr 40
+ #define kDCMvers "v1.0.20170429" kDCMsuf kCCsuf
+
+static const int kMaxDTI4D = 4096; //maximum number of DTI directions for 4D (Philips) images, also maximum number of 3D slices for Philips 3D and 4D images
+#define kDICOMStr 64
 #define kMANUFACTURER_UNKNOWN  0
 #define kMANUFACTURER_SIEMENS  1
 #define kMANUFACTURER_GE  2
@@ -55,14 +71,16 @@ static const int kCompress50 = 3; //obsolete JPEG lossy
     };
     struct TDICOMdata {
         long seriesNum;
-        int xyzDim[5];//, xyzOri[4];
-        int patientPositionNumPhilips, coilNum, echoNum, sliceOrient,numberOfDynamicScans, manufacturer, converted2NII, acquNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel,patientPositionSequentialRepeats,locationsInAcquisition, compressionScheme; //
-        float flipAngle, fieldStrength, TE, TR,intenScale,intenIntercept,intenScalePhilips, gantryTilt, lastScanLoc, angulation[4];
-        float orient[7], patientPosition[4], patientPositionLast[4], xyzMM[4], stackOffcentre[4]; //patientPosition2nd[4],
+        int xyzDim[5];
+        int patientPositionNumPhilips, coilNum, echoNum, sliceOrient,numberOfDynamicScans, manufacturer, converted2NII, acquNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel,patientPositionSequentialRepeats,locationsInAcquisition, compressionScheme;
+        float flipAngle, fieldStrength, TE, TI, TR, intenScale, intenIntercept, intenScalePhilips, gantryTilt, lastScanLoc, angulation[4];
+        float orient[7], patientPosition[4], patientPositionLast[4], xyzMM[4], stackOffcentre[4];
+        float radionuclidePositronFraction, radionuclideTotalDose, radionuclideHalfLife, doseCalibrationFactor; //PET ISOTOPE MODULE ATTRIBUTES (C.8-57)
+		float ecat_isotope_halflife, ecat_dosage;
         double dateTime, acquisitionTime, acquisitionDate;
-        bool isXRay, isSlicesSpatiallySequentialPhilips, isNonImage, isValid, is3DAcq, isExplicitVR, isLittleEndian, isPlanarRGB, isSigned, isHasPhase,isHasMagnitude,isHasMixed, isFloat, isResampled;
+        bool isXRay, isMultiEcho, isSlicesSpatiallySequentialPhilips, isNonImage, isValid, is3DAcq, isExplicitVR, isLittleEndian, isPlanarRGB, isSigned, isHasPhase,isHasMagnitude,isHasMixed, isFloat, isResampled;
         char phaseEncodingRC;
-        char  procedureStepDescription[kDICOMStr], imageType[kDICOMStr], manufacturersModelName[kDICOMStr], patientID[kDICOMStr], patientOrient[kDICOMStr], patientName[kDICOMStr],seriesDescription[kDICOMStr], sequenceName[kDICOMStr], protocolName[kDICOMStr],scanningSequence[kDICOMStr], birthDate[kDICOMStr], gender[kDICOMStr], age[kDICOMStr],  studyDate[kDICOMStr],studyTime[kDICOMStr], imageComments[kDICOMStr];
+        char softwareVersions[kDICOMStr], deviceSerialNumber[kDICOMStr], institutionAddress[kDICOMStr], institutionName[kDICOMStr], seriesInstanceUID[kDICOMStr], studyInstanceUID[kDICOMStr], bodyPartExamined[kDICOMStr], procedureStepDescription[kDICOMStr], imageType[kDICOMStr], manufacturersModelName[kDICOMStr], patientID[kDICOMStr], patientOrient[kDICOMStr], patientName[kDICOMStr],seriesDescription[kDICOMStr], sequenceName[kDICOMStr], protocolName[kDICOMStr],sequenceVariant[kDICOMStr],scanningSequence[kDICOMStr], birthDate[kDICOMStr], gender[kDICOMStr], age[kDICOMStr],  studyDate[kDICOMStr],studyTime[kDICOMStr], imageComments[kDICOMStr];
         struct TCSAdata CSA;
     };
 
@@ -77,7 +95,9 @@ static const int kCompress50 = 3; //obsolete JPEG lossy
     void changeExt (char *file_name, const char* ext);
     unsigned char * nii_planar2rgb(unsigned char* bImg, struct nifti_1_header *hdr, int isPlanar);
 	int isDICOMfile(const char * fname); //0=not DICOM, 1=DICOM, 2=NOTSURE(not part 10 compliant)
+    void setQSForm(struct nifti_1_header *h, mat44 Q44i, bool isVerbose);
     int headerDcm2Nii2(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_header *h);
+    int headerDcm2Nii(struct TDICOMdata d, struct nifti_1_header *h, bool isComputeSForm) ;
     //unsigned char * nii_loadImgX(char* imgname, struct nifti_1_header *hdr, struct TDICOMdata dcm, bool iVaries);
     unsigned char * nii_loadImgXL(char* imgname, struct nifti_1_header *hdr, struct TDICOMdata dcm, bool iVaries, int compressFlag, int isVerbose);
     //int foo (float vx);
