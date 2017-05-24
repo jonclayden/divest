@@ -39,6 +39,8 @@
 #' 
 #' @param path A character vector of paths to scan for DICOM files. Each will
 #'   examined in turn. The default is the current working directory.
+#'   Alternatively, a data frame like the one returned by \code{scanDicom},
+#'   from which file paths will be read.
 #' @param flipY If \code{TRUE}, the default, then images will be flipped in the
 #'   Y-axis. This is usually desirable, given the difference between
 #'   orientation conventions in the DICOM and NIfTI-1 formats.
@@ -53,6 +55,9 @@
 #'   output from \code{dcm2niix} except warnings and errors.
 #' @param labelFormat A \code{\link{sprintf}}-style string specifying the
 #'   format to use for the final image labels. See Details.
+#' @param subset If \code{path} is a data frame, an expression which will be
+#'   evaluated in the context of the data frame to determine which series to
+#'   convert.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
 #'   requested paths will first be scanned and a list of DICOM series will be
 #'   presented. You may then choose which series to convert.
@@ -68,7 +73,7 @@
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
-readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", interactive = base::interactive())
+readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", subset = NULL, interactive = base::interactive())
 {
     readFromTempDirectory <- function (tempDirectory, files)
     {
@@ -97,8 +102,25 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         .readDirectory(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
     }
     
+    pathsAreFiles <- FALSE
+    if (is.data.frame(path))
+    {
+        subset <- eval(substitute(subset), path)
+        if (!is.null(subset))
+            path <- attr(path,"paths")[subset]
+        else
+            path <- attr(path,"paths")
+        pathsAreFiles <- TRUE
+    }
+    
     results <- lapply(path, function(p) {
-        if (interactive)
+        if (pathsAreFiles)
+        {
+            absolute <- grepl(paste0("^([A-Za-z]:)?",.Platform$file.sep), p)
+            p[!absolute] <- file.path("..", p[!absolute])
+            readFromTempDirectory(".divest", p)
+        }
+        else if (interactive)
         {
             p <- path.expand(p)
             info <- .sortInfoTable(.readDirectory(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, TRUE))

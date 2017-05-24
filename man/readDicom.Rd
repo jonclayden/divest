@@ -6,14 +6,16 @@
 \title{Read one or more DICOM directories}
 \usage{
 readDicom(path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE,
-  verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
+  verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s", subset = NULL,
   interactive = base::interactive())
 
 scanDicom(path = ".", forceStack = FALSE, verbosity = 0L)
 }
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will
-examined in turn. The default is the current working directory.}
+examined in turn. The default is the current working directory.
+Alternatively, a data frame like the one returned by \code{scanDicom},
+from which file paths will be read.}
 
 \item{flipY}{If \code{TRUE}, the default, then images will be flipped in the
 Y-axis. This is usually desirable, given the difference between
@@ -33,6 +35,10 @@ output from \code{dcm2niix} except warnings and errors.}
 
 \item{labelFormat}{A \code{\link{sprintf}}-style string specifying the
 format to use for the final image labels. See Details.}
+
+\item{subset}{If \code{path} is a data frame, an expression which will be
+evaluated in the context of the data frame to determine which series to
+convert.}
 
 \item{interactive}{If \code{TRUE}, the default in interactive sessions, the
 requested paths will first be scanned and a list of DICOM series will be
