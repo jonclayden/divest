@@ -334,7 +334,150 @@ bool isDerived(struct TDICOMdata d) {
 		return true;
 }
 
-void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts, struct TDTI4D *dti4D, struct nifti_1_header *h) {
+#ifdef _MSC_VER
+//https://opensource.apple.com/source/Libc/Libc-1044.1.2/string/FreeBSD/memmem.c
+/*-
+ * Copyright (c) 2005 Pascal Gloor <pascal.gloor@spale.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. The name of the author may not be used to endorse or promote
+ *    products derived from this software without specific prior written
+ *    permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+const void * memmem(const char *l, size_t l_len, const char *s, size_t s_len) {
+	register char *cur, *last;
+	const char *cl = (const char *)l;
+	const char *cs = (const char *)s;
+	/* we need something to compare */
+	if (l_len == 0 || s_len == 0)
+		return NULL;
+	/* "s" must be smaller or equal to "l" */
+	if (l_len < s_len)
+		return NULL;
+	/* special case where s_len == 1 */
+	if (s_len == 1)
+		return memchr(l, (int)*cs, l_len);
+	/* the last position where its possible to find "s" in "l" */
+	last = (char *)cl + l_len - s_len;
+	for (cur = (char *)cl; cur <= last; cur++)
+		if (cur[0] == cs[0] && memcmp(cur, cs, s_len) == 0)
+			return cur;
+	return NULL;
+}
+//n.b. memchr returns "const void *" not "void *" for Windows C++ https://msdn.microsoft.com/en-us/library/d7zdhf37.aspx
+#endif //for systems without memmem
+
+int readKey(const char * key,  char * buffer, int remLength) { //look for text key in binary data stream, return subsequent integer value
+	int ret = 0;
+	char *keyPos = (char *)memmem(buffer, remLength, key, strlen(key));
+	if (!keyPos) return 0;
+	int i = (int)strlen(key);
+	while( ( i< remLength) && (keyPos[i] != 0x0A) ) {
+		if( keyPos[i] >= '0' && keyPos[i] <= '9' )
+			ret = (10 * ret) + keyPos[i] - '0';
+		i++;
+	}
+	return ret;
+} //readKey()
+
+int phoenixOffsetCSASeriesHeader(unsigned char *buff, int lLength) {
+    //returns offset to ASCII Phoenix data
+    if (lLength < 36) return 0;
+    if ((buff[0] != 'S') || (buff[1] != 'V') || (buff[2] != '1') || (buff[3] != '0') ) return EXIT_FAILURE;
+    int lPos = 8; //skip 8 bytes of data, 'SV10' plus  2 32-bit values unused1 and unused2
+    int lnTag = buff[lPos]+(buff[lPos+1]<<8)+(buff[lPos+2]<<16)+(buff[lPos+3]<<24);
+    if ((buff[lPos+4] != 77) || (lnTag < 1)) return 0;
+    lPos += 8; //skip 8 bytes of data, 32-bit lnTag plus 77 00 00 0
+    TCSAtag tagCSA;
+    TCSAitem itemCSA;
+    for (int lT = 1; lT <= lnTag; lT++) {
+        memcpy(&tagCSA, &buff[lPos], sizeof(tagCSA)); //read tag
+        //if (!littleEndianPlatform())
+        //    nifti_swap_4bytes(1, &tagCSA.nitems);
+        //printf("%d CSA of %s %d\n",lPos, tagCSA.name, tagCSA.nitems);
+        lPos +=sizeof(tagCSA);
+
+        if (strcmp(tagCSA.name, "MrPhoenixProtocol") == 0)
+        	return lPos;
+        for (int lI = 1; lI <= tagCSA.nitems; lI++) {
+                memcpy(&itemCSA, &buff[lPos], sizeof(itemCSA));
+                lPos +=sizeof(itemCSA);
+                //if (!littleEndianPlatform())
+                //    nifti_swap_4bytes(1, &itemCSA.xx2_Len);
+                lPos += ((itemCSA.xx2_Len +3)/4)*4;
+        }
+    }
+    return 0;
+} // phoenixOffsetCSASeriesHeader()
+
+int siemensEchoEPIFactor(const char * filename,  int csaOffset, int csaLength, int* echoSpacing, int* echoTrainDuration) {
+ //reads ASCII portion of CSASeriesHeaderInfo and returns lEchoTrainDuration or lEchoSpacing value
+ // returns 0 if no value found
+ 	*echoSpacing = 0;
+ 	*echoTrainDuration = 0;
+ 	if ((csaOffset < 0) || (csaLength < 8)) return 0;
+	FILE * pFile = fopen ( filename, "rb" );
+	if(pFile==NULL) return 0;
+	fseek (pFile , 0 , SEEK_END);
+	long lSize = ftell (pFile);
+	if (lSize < (csaOffset+csaLength)) {
+		fclose (pFile);
+		return 0;
+	}
+	fseek(pFile, csaOffset, SEEK_SET);
+	char * buffer = (char*) malloc (csaLength);
+	if(buffer == NULL) return 0;
+	size_t result = fread (buffer,1,csaLength,pFile);
+	if(result != csaLength) return 0;
+	//next bit complicated: restrict to ASCII portion to avoid buffer overflow errors in BINARY portion
+	int startAscii = phoenixOffsetCSASeriesHeader((unsigned char *)buffer, csaLength);
+	int csaLengthTrim = csaLength;
+	char * bufferTrim = buffer;
+	if ((startAscii > 0) && (startAscii < csaLengthTrim) ){ //ignore binary data at start
+		bufferTrim += startAscii;
+		csaLengthTrim -= startAscii;
+	}
+	int ret = 0;
+	char keyStr[] = "### ASCCONV BEGIN"; //skip to start of ASCII often "### ASCCONV BEGIN ###" but also "### ASCCONV BEGIN object=MrProtDataImpl@MrProtocolData"
+	char *keyPos = (char *)memmem(bufferTrim, csaLengthTrim, keyStr, strlen(keyStr));
+	if (keyPos) {
+		csaLengthTrim -= (keyPos-bufferTrim);
+		char keyStrEnd[] = "### ASCCONV END";
+		char *keyPosEnd = (char *)memmem(keyPos, csaLengthTrim, keyStrEnd, strlen(keyStrEnd));
+		if ((keyPosEnd) && ((keyPosEnd - keyPos) < csaLengthTrim)) //ignore binary data at end
+			csaLengthTrim = (int)(keyPosEnd - keyPos);
+		char keyStrES[] = "sFastImaging.lEchoSpacing";
+		*echoSpacing  = readKey(keyStrES, keyPos, csaLengthTrim);
+		char keyStrETD[] = "sFastImaging.lEchoTrainDuration";
+		*echoTrainDuration = readKey(keyStrETD, keyPos, csaLengthTrim);
+		char keyStrEF[] = "sFastImaging.lEPIFactor";
+		ret = readKey(keyStrEF, keyPos, csaLengthTrim);
+	}
+	fclose (pFile);
+	free (buffer);
+	return ret;
+}
+
+void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts, struct TDTI4D *dti4D, struct nifti_1_header *h, const char * filename) {
 //https://docs.google.com/document/d/1HFUkAEE-pB-angVcYe6pf_-fVf4sCpOHKesUvfb8Grc/edit#
 // Generate Brain Imaging Data Structure (BIDS) info
 // sidecar JSON file (with the same  filename as the .nii.gz file, but with .json extension).
@@ -368,6 +511,21 @@ void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts,
 		if (strlen(d.studyInstanceUID) > 0)
 			fprintf(fp, "\t\"StudyInstanceUID\": \"%s\",\n", d.studyInstanceUID );
 	}
+	//printMessage("-->%d %d %s\n", d.CSA.SeriesHeader_offset, d.CSA.SeriesHeader_length, filename);
+	if ((d.manufacturer == kMANUFACTURER_SIEMENS) && (d.CSA.SeriesHeader_offset > 0) && (d.CSA.SeriesHeader_length > 0) &&
+	    (strlen(d.scanningSequence) > 1) && (d.scanningSequence[0] == 'E') && (d.scanningSequence[1] == 'P')) { //for EPI scans only
+		int echoSpacing, echoTrainDuration, epiFactor;
+		epiFactor = siemensEchoEPIFactor(filename,  d.CSA.SeriesHeader_offset, d.CSA.SeriesHeader_length, &echoSpacing, &echoTrainDuration);
+		//printMessage("ES %d ETD %d EPI %d\n", echoSpacing, echoTrainDuration, epiFactor);
+		if (echoSpacing > 0)
+			 fprintf(fp, "\t\"EchoSpacing\": %d,\n", echoSpacing);
+		if (echoTrainDuration > 0)
+			 fprintf(fp, "\t\"EchoTrainDuration\": %d,\n", echoTrainDuration);
+		if (epiFactor > 0)
+			 fprintf(fp, "\t\"EPIFactor\": %d,\n", epiFactor);
+	}
+	if (d.echoTrainLength > 1) //>1 as for Siemens EPI this is 1, Siemens uses EPI factor http://mriquestions.com/echo-planar-imaging.html
+		fprintf(fp, "\t\"EchoTrainLength\": %d,\n", d.echoTrainLength);
 	if (d.isNonImage) //DICOM is derived image or non-spatial file (sounds, etc)
 		fprintf(fp, "\t\"RawImage\": false,\n");
 	if (d.acquNum > 0)
@@ -506,7 +664,7 @@ void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts,
 	//fprintf(fp, "\t\"DicomConversion\": [\"dcm2niix\", \"%s\"]\n", kDCMvers );
     fprintf(fp, "}\n");
     fclose(fp);
-}// nii_SaveBIDS() step
+}// nii_SaveBIDS()
 
 bool isADCnotDTI(TDTI bvec) { //returns true if bval!=0 but all bvecs == 0 (Philips code for derived ADC image)
 	return ((!isSameFloat(bvec.V[0],0.0f)) && //not a B-0 image
@@ -905,6 +1063,11 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
         } //found a % character
         pos++;
     } //for each character in input
+    if (pos > start) { //append any trailing characters
+        strncpy(&newstr[0], &inname[0] + start, pos - start);
+        newstr[pos - start] = '\0';
+        strcat (outname,newstr);
+    }
     if (!isCoilReported && (dcm.coilNum > 1)) {
         sprintf(newstr, "_c%d", dcm.coilNum);
         strcat (outname,newstr);
@@ -920,11 +1083,7 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
     }
     if (dcm.isHasPhase)
     	strcat (outname,"_ph"); //manufacturer name not available
-    if (pos > start) { //append any trailing characters
-        strncpy(&newstr[0], &inname[0] + start, pos - start);
-        newstr[pos - start] = '\0';
-        strcat (outname,newstr);
-    }
+
     if (strlen(outname) < 1) strcpy(outname, "dcm2nii_invalidName");
     if (outname[0] == '.') outname[0] = '_'; //make sure not a hidden file
     //eliminate illegal characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
@@ -1687,7 +1846,6 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
                 nConvert = siemensCtKludge(nConvert, dcmSort,dcmList);
             }
             if ((nAcq == 1 ) && (dcmList[indx0].locationsInAcquisition > 0)) nAcq = nConvert/dcmList[indx0].locationsInAcquisition;
-
             if (nAcq < 2 ) {
                 nAcq = 0;
                 for (int i = 0; i < nConvert; i++)
@@ -1801,7 +1959,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
         imgM = nii_flipZ(imgM, &hdr0);
         sliceDir = abs(sliceDir); //change this, we have flipped the image so GE DTI bvecs no longer need to be flipped!
     }
-    nii_SaveBIDS(pathoutname, dcmList[dcmSort[0].indx], opts, dti4D, &hdr0);
+    nii_SaveBIDS(pathoutname, dcmList[dcmSort[0].indx], opts, dti4D, &hdr0, nameList->str[dcmSort[0].indx]);
 	nii_SaveText(pathoutname, dcmList[dcmSort[0].indx], opts, &hdr0, nameList->str[indx]);
     bool * isADC = nii_SaveDTI(pathoutname,nConvert, dcmSort, dcmList, opts, sliceDir, dti4D);
     if ((hdr0.datatype == DT_UINT16) &&  (!dcmList[dcmSort[0].indx].isSigned)) nii_check16bitUnsigned(imgM, &hdr0);
@@ -2416,10 +2574,10 @@ void setDefaultOpts (struct TDCMopts *opts, const char * argv[]) { //either "set
     opts->isFlipY = true; //false: images in raw DICOM orientation, true: image rows flipped to cartesian coordinates
     opts->isRGBplanar = false;
     opts->isCreateBIDS =  true;
-    #ifdef isAnonymizeBIDS
-    opts->isAnonymizeBIDS = true;
-    #else
+    #ifdef myNoAnonymizeBIDS
     opts->isAnonymizeBIDS = false;
+    #else
+    opts->isAnonymizeBIDS = true;
     #endif
     opts->isCreateText = false;
 #ifdef myDebug

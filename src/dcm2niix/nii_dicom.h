@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
 #include "nifti1_io_core.h"
 #ifndef HAVE_R
 #include "nifti1.h"
@@ -37,7 +38,7 @@ extern "C" {
 	#define kCCsuf " CompilerNA" //unknown compiler!
 #endif
 
- #define kDCMvers "v1.0.20170429" kDCMsuf kCCsuf
+ #define kDCMvers "v1.0.20170528" kDCMsuf kCCsuf
 
 static const int kMaxDTI4D = 4096; //maximum number of DTI directions for 4D (Philips) images, also maximum number of 3D slices for Philips 3D and 4D images
 #define kDICOMStr 64
@@ -63,16 +64,42 @@ static const int kCompress50 = 3; //obsolete JPEG lossy
     struct TDTI4D {
         struct TDTI S[kMaxDTI4D];
     };
-
+#ifdef _MSC_VER //Microsoft nomenclature for packed structures is different...
+    #pragma pack(2)
+    typedef struct {
+        char name[64]; //null-terminated
+        int32_t vm;
+        char vr[4]; //  possibly nul-term string
+        int32_t syngodt;//  ??
+        int32_t nitems;// number of items in CSA
+        int32_t xx;// maybe == 77 or 205
+    } TCSAtag; //Siemens csa tag structure
+    typedef struct {
+        int32_t xx1, xx2_Len, xx3_77, xx4;
+    } TCSAitem; //Siemens csa item structure
+    #pragma pack()
+#else
+    typedef struct __attribute__((packed)) {
+        char name[64]; //null-terminated
+        int32_t vm;
+        char vr[4]; //  possibly nul-term string
+        int32_t syngodt;//  ??
+        int32_t nitems;// number of items in CSA
+        int32_t xx;// maybe == 77 or 205
+    } TCSAtag; //Siemens csa tag structure
+    typedef struct __attribute__((packed)) {
+        int32_t xx1, xx2_Len, xx3_77, xx4;
+    } TCSAitem; //Siemens csa item structure
+#endif
     struct TCSAdata {
     	bool isPhaseMap;
         float dtiV[4], sliceNormV[4], bandwidthPerPixelPhaseEncode, sliceMeasurementDuration;
-        int numDti, multiBandFactor, sliceOrder, slice_start, slice_end, mosaicSlices,protocolSliceNumber1,phaseEncodingDirectionPositive;
+        int numDti, SeriesHeader_offset, SeriesHeader_length, multiBandFactor, sliceOrder, slice_start, slice_end, mosaicSlices,protocolSliceNumber1,phaseEncodingDirectionPositive;
     };
     struct TDICOMdata {
         long seriesNum;
         int xyzDim[5];
-        int patientPositionNumPhilips, coilNum, echoNum, sliceOrient,numberOfDynamicScans, manufacturer, converted2NII, acquNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel,patientPositionSequentialRepeats,locationsInAcquisition, compressionScheme;
+        int echoTrainLength, patientPositionNumPhilips, coilNum, echoNum, sliceOrient,numberOfDynamicScans, manufacturer, converted2NII, acquNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel,patientPositionSequentialRepeats,locationsInAcquisition, compressionScheme;
         float flipAngle, fieldStrength, TE, TI, TR, intenScale, intenIntercept, intenScalePhilips, gantryTilt, lastScanLoc, angulation[4];
         float orient[7], patientPosition[4], patientPositionLast[4], xyzMM[4], stackOffcentre[4];
         float radionuclidePositronFraction, radionuclideTotalDose, radionuclideHalfLife, doseCalibrationFactor; //PET ISOTOPE MODULE ATTRIBUTES (C.8-57)
