@@ -135,9 +135,10 @@ It is also possible to obtain information about the available DICOM series witho
 ```r
 names(scanDicom(path))
 # [dcm2niix info] Found 4 DICOM image(s)
-# [1] "rootPath"          "seriesNumber"      "seriesDescription"
-# [4] "patientName"       "studyDate"         "echoTime"
-# [7] "repetitionTime"    "echoNumber"        "phase"
+#  [1] "rootPath"          "files"             "seriesNumber"
+#  [4] "seriesDescription" "patientName"       "studyDate"
+#  [7] "echoTime"          "repetitionTime"    "echoNumber"
+# [10] "phase"             "diffusion"
 ```
 
 Elements of this data frame which can't be determined from the DICOM metadata, for example due to anonymisation, will take the conventional `NA` value to indicate missing data.
