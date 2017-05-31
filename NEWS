@@ -2,6 +2,19 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.4.0
+
+- The data frame returned from scanDicom() can now be passed to readDicom(),
+  and the latter gains a "subset" argument, which can be used to select a
+  subset of the series to convert.
+- The results of scanDicom() now also include the number of files associated
+  with each series, and whether or not diffusion direction metadata is
+  available.
+- Additional attributes containing information about the acquisition are now
+  extracted from the ASCII CSA header in Siemens EPI files.
+
+===============================================================================
+
 VERSION 0.3.0
 
 - A configure script has been added to detect OpenJPEG or JasPer libraries. If
