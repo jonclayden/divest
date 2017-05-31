@@ -1274,7 +1274,7 @@ int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im
     return EXIT_SUCCESS;
 }
 
-void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header, struct TDCMopts &opts)
+void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header, struct TDCMopts &opts, const char *filename)
 {
     ImageList *images = (ImageList *) opts.imageList;
     switch (data.manufacturer) {
@@ -1312,6 +1312,16 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
             images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[2]);
         else if (data.phaseEncodingRC == 'R')
             images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[1]);
+    }
+    if ((data.manufacturer == kMANUFACTURER_SIEMENS) && (data.CSA.SeriesHeader_offset > 0) && (data.CSA.SeriesHeader_length > 0) && (strlen(data.scanningSequence) > 1) && (data.scanningSequence[0] == 'E') && (data.scanningSequence[1] == 'P')) { //for EPI scans only
+        int echoSpacing, echoTrainDuration, epiFactor;
+        epiFactor = siemensEchoEPIFactor(filename, data.CSA.SeriesHeader_offset, data.CSA.SeriesHeader_length, &echoSpacing, &echoTrainDuration);
+        if (echoSpacing > 0)
+            images->addAttribute("echoSpacing", echoSpacing);
+        if (echoTrainDuration > 0)
+            images->addAttribute("echoTrainDuration", echoTrainDuration);
+        if (epiFactor > 0)
+            images->addAttribute("epiFactor", epiFactor);
     }
     if (data.phaseEncodingRC == 'C')
         images->addAttribute("phaseEncodingDirection", "j");
@@ -2028,7 +2038,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
     // Note that for R, only one image should be created per series
     // Hence the logical OR here
     if (returnCode == EXIT_SUCCESS || nii_saveNII(pathoutname,hdr0,imgM,opts) == EXIT_SUCCESS)
-        nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts);
+        nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts, nameList->str[dcmSort[0].indx]);
 #endif
 
     free(imgM);
