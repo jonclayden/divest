@@ -19,6 +19,7 @@ BEGIN_RCPP
     options.isGz = false;
     options.isFlipY = as<bool>(flipY_);
     options.isCreateBIDS = false;
+    options.isAnonymizeBIDS = false;
     options.isCreateText = false;
     options.isTiltCorrect = true;
     options.isRGBplanar = false;
