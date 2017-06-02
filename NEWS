@@ -2,6 +2,12 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.4.1
+
+- Fixes for Solaris and OpenJPEG compatibility.
+
+===============================================================================
+
 VERSION 0.4.0
 
 - The data frame returned from scanDicom() can now be passed to readDicom(),
