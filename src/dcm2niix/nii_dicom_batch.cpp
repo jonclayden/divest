@@ -1617,7 +1617,13 @@ void  nii_createDummyFilename(char * niiFilename, struct TDCMopts opts) {
         strcat(niiFilename,".nii'");
 }// nii_createDummyFilename()
 
-#ifndef myDisableZLib
+#ifdef myDisableZLib
+
+#ifndef MZ_DEFAULT_LEVEL
+ #define MZ_DEFAULT_LEVEL 0
+#endif
+
+#else
 
 #ifndef MiniZ
 unsigned long mz_compressBound(unsigned long source_len) {
@@ -1786,13 +1792,13 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
     }
     if ((data.manufacturer == kMANUFACTURER_SIEMENS) && (data.CSA.SeriesHeader_offset > 0) && (data.CSA.SeriesHeader_length > 0) && (strlen(data.scanningSequence) > 1) && (data.scanningSequence[0] == 'E') && (data.scanningSequence[1] == 'P')) { //for EPI scans only
         int echoSpacing, echoTrainDuration, epiFactor;
-        epiFactor = siemensEchoEPIFactor(filename, data.CSA.SeriesHeader_offset, data.CSA.SeriesHeader_length, &echoSpacing, &echoTrainDuration);
+        // epiFactor = siemensEchoEPIFactor(filename, data.CSA.SeriesHeader_offset, data.CSA.SeriesHeader_length, &echoSpacing, &echoTrainDuration);
         if (echoSpacing > 0)
             images->addAttribute("echoSpacing", echoSpacing);
         if (echoTrainDuration > 0)
             images->addAttribute("echoTrainDuration", echoTrainDuration);
-        if (epiFactor > 0)
-            images->addAttribute("epiFactor", epiFactor);
+        // if (epiFactor > 0)
+        //     images->addAttribute("epiFactor", epiFactor);
     }
     if (data.phaseEncodingRC == 'C')
         images->addAttribute("phaseEncodingDirection", "j");
@@ -1804,12 +1810,14 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
         images->addAttribute("patientIdentifier", data.patientID);
     if (strlen(data.patientName) > 0)
         images->addAttribute("patientName", data.patientName);
-    if (strlen(data.birthDate) >= 8 && strcmp(data.birthDate,"00000000") != 0)
-        images->addDateAttribute("patientBirthDate", data.birthDate);
-    if (strlen(data.age) > 0 && strcmp(data.age,"000Y") != 0)
-        images->addAttribute("patientAge", data.age);
-    if (strlen(data.gender) > 0)
-        images->addAttribute("patientSex", data.gender);
+    if (strlen(data.patientBirthDate) >= 8 && strcmp(data.patientBirthDate,"00000000") != 0)
+        images->addDateAttribute("patientBirthDate", data.patientBirthDate);
+    if (strlen(data.patientAge) > 0 && strcmp(data.patientAge,"000Y") != 0)
+        images->addAttribute("patientAge", data.patientAge);
+    if (data.patientSex == 'F')
+        images->addAttribute("patientSex", "F");
+    else if (data.patientSex == 'M')
+        images->addAttribute("patientSex", "M");
 }
 
 #else

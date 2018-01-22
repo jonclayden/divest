@@ -339,10 +339,11 @@ int verify_slice_dir (struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_
     	flip = ((sliceV.v[0]+sliceV.v[1]+sliceV.v[2]) < 0);
     	//printMessage("verify slice dir %g %g %g\n",sliceV.v[0],sliceV.v[1],sliceV.v[2]);
     	if (isVerbose) { //1st pass only
-			if (!d.isDerived) //do not warn user if image is derived
+			if (!d.isDerived) {//do not warn user if image is derived
 				printWarning("Unable to determine slice direction: please check whether slices are flipped\n");
-			else
+			} else {
 				printWarning("Unable to determine slice direction: please check whether slices are flipped (derived image)\n");
+            }
     	}
     }
     if (flip) {
@@ -4049,10 +4050,11 @@ uint32_t kUnnest2 = 0xFFFE +(0xE0DD << 16 ); //#define  kUnnest2 0xFFFE +(0xE0DD
     } //while d.imageStart == 0
     free (buffer);
     if (encapsulatedDataFragmentStart > 0) {
-        if (encapsulatedDataFragments > 1)
+        if (encapsulatedDataFragments > 1) {
         	printError("Compressed image stored as %d fragments: decompress with gdcmconv, Osirix, dcmdjpeg or dcmjp2k\n", encapsulatedDataFragments);
-    	else
+    	} else {
     		d.imageStart = encapsulatedDataFragmentStart;
+        }
     } else if ((isEncapsulatedData) && (d.imageStart < 128)) {
     	//http://www.dclunie.com/medical-image-faq/html/part6.html
 		//Uncompressed data (unencapsulated) is sent in DICOM as a series of raw bytes or words (little or big endian) in the Value field of the Pixel Data element (7FE0,0010). Encapsulated data on the other hand is sent not as raw bytes or words but as Fragments contained in Items that are the Value field of Pixel Data
