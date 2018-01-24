@@ -2624,8 +2624,10 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
         returnCode = nii_saveCrop(pathoutname, hdr0, imgM,opts); //n.b. must be run AFTER nii_setOrtho()!
 #ifdef HAVE_R
     // Note that for R, only one image should be created per series
-    // Hence the logical OR here
-    if (returnCode == EXIT_SUCCESS || nii_saveNII(pathoutname,hdr0,imgM,opts) == EXIT_SUCCESS)
+    // Hence this extra test
+    if (returnCode != EXIT_SUCCESS)
+        returnCode = nii_saveNII(pathoutname,hdr0,imgM,opts);
+    if (returnCode == EXIT_SUCCESS)
         nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts, nameList->str[dcmSort[0].indx]);
 #endif
     free(imgM);
