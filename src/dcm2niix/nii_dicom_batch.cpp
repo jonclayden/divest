@@ -3273,7 +3273,9 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
 
 void setDefaultOpts (struct TDCMopts *opts, const char * argv[]) { //either "setDefaultOpts(opts,NULL)" or "setDefaultOpts(opts,argv)" where argv[0] is path to search
     strcpy(opts->pigzname,"");
+#ifndef HAVE_R
     readFindPigz(opts, argv);
+#endif
     #ifdef myEnableJasper
     opts->compressFlag = kCompressYes; //JASPER for JPEG2000
 	#else

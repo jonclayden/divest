@@ -16,25 +16,20 @@ BEGIN_RCPP
     const std::string labelFormat = as<std::string>(labelFormat_);
     
     TDCMopts options;
+    setDefaultOpts(&options, NULL);
     options.isGz = false;
+    options.gzLevel = 0;
     options.isFlipY = as<bool>(flipY_);
     options.isCreateBIDS = false;
-    options.isAnonymizeBIDS = false;
     options.isCreateText = false;
-    options.isTiltCorrect = true;
-    options.isRGBplanar = false;
-    options.isOnlySingleFile = false;
+    options.isSortDTIbyBVal = false;
     options.isForceStackSameSeries = as<bool>(forceStack_);
-    options.isIgnoreDerivedAnd2D = false;
-    options.isPhilipsFloatNotDisplayScaling = true;
     options.isCrop = as<bool>(crop_);
     options.isScanOnly = as<bool>(scanOnly_);
     options.isVerbose = as<int>(verbosity_);
     options.compressFlag = kCompressYes;
     strcpy(options.indir, path.c_str());
-    strcpy(options.outdir, "");
     strcpy(options.filename, labelFormat.c_str());
-    strcpy(options.pigzname, "");
     
     ImageList images;
     options.imageList = (void *) &images;
