@@ -9,7 +9,7 @@
 
 using namespace Rcpp;
 
-RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP scanOnly_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP scanOnly_)
 {
 BEGIN_RCPP
     const std::string path = as<std::string>(path_);
@@ -25,6 +25,7 @@ BEGIN_RCPP
     options.isSortDTIbyBVal = false;
     options.isForceStackSameSeries = as<bool>(forceStack_);
     options.isCrop = as<bool>(crop_);
+    options.isOnlySingleFile = as<bool>(singleFile_);
     options.isScanOnly = as<bool>(scanOnly_);
     options.isVerbose = as<int>(verbosity_);
     options.compressFlag = kCompressYes;
@@ -116,7 +117,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef callMethods[] = {
-  { "readDirectory", (DL_FUNC) &readDirectory, 7 },
+  { "readDirectory", (DL_FUNC) &readDirectory, 8 },
   { NULL, NULL, 0 }
 };
 

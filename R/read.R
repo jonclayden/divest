@@ -4,7 +4,7 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
-.readDirectory <- function (path, flipY, crop, forceStack, verbosity, labelFormat, scanOnly)
+.readDirectory <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, scanOnly)
 {
     if (verbosity < 0L)
     {
@@ -17,7 +17,7 @@
         })
     }
     
-    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, scanOnly)
+    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, scanOnly)
 }
 
 #' Read one or more DICOM directories
@@ -99,7 +99,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .readDirectory(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
+        .readDirectory(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
     }
     
     pathsAreFiles <- FALSE
@@ -120,10 +120,14 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             p[!absolute] <- file.path("..", p[!absolute])
             readFromTempDirectory(".divest", p)
         }
+        else if (!file.exists(p))
+            warning(paste0("Path \"", p, "\" does not exist"))
+        else if (!file.info(p)$isdir)
+            .readDirectory(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, FALSE)
         else if (interactive)
         {
             p <- path.expand(p)
-            info <- .sortInfoTable(.readDirectory(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, TRUE))
+            info <- .sortInfoTable(.readDirectory(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, TRUE))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -136,7 +140,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             selection <- readline("\nSelected series: ")
             if (selection == "")
             {
-                allResults <- .readDirectory(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE)
+                allResults <- .readDirectory(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
                 return (allResults[attr(info,"ordering")])
             }
             else if (selection == "0")
@@ -153,7 +157,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             }
         }
         else
-            .readDirectory(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE)
+            .readDirectory(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
     })
     
     return (do.call(c, results))
@@ -163,6 +167,6 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
 #' @export
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
 {
-    results <- lapply(path, function(p) .readDirectory(path.expand(p), TRUE, FALSE, forceStack, verbosity, "", TRUE))
+    results <- lapply(path, function(p) .readDirectory(path.expand(p), TRUE, FALSE, forceStack, verbosity, "", FALSE, TRUE))
     .sortInfoTable(do.call(rbind, results))
 }
