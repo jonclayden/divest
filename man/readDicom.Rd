@@ -69,7 +69,7 @@ for the date and time, \code{u} for acquisition number and \code{z} for
 sequence name.
 }
 \examples{
-path <- system.file("extdata", "testdata", package="divest")
+path <- system.file("extdata", "raw", package="divest")
 scanDicom(path)
 readDicom(path, interactive=FALSE)
 }

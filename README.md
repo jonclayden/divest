@@ -23,7 +23,7 @@ The package's key function is `readDicom`, which scans a directory containing DI
 
 ```r
 library(divest)
-path <- system.file("extdata", "testdata", package="divest")
+path <- system.file("extdata", "raw", package="divest")
 images <- readDicom(path)
 # [dcm2niix info] Found 4 DICOM image(s)
 # 

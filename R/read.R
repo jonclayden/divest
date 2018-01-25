@@ -68,7 +68,7 @@
 #'   about each DICOM series found.
 #' 
 #' @examples
-#' path <- system.file("extdata", "testdata", package="divest")
+#' path <- system.file("extdata", "raw", package="divest")
 #' scanDicom(path)
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
