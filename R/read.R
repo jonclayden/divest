@@ -4,7 +4,7 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
-.readDirectory <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, scanOnly)
+.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, scanOnly)
 {
     if (verbosity < 0L)
     {
@@ -99,10 +99,10 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .readDirectory(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
+        .readPath(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
     }
     
-    pathsAreFiles <- FALSE
+    usingTempDirectory <- FALSE
     if (is.data.frame(path))
     {
         subset <- eval(substitute(subset), path)
@@ -110,11 +110,11 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             path <- attr(path,"paths")[subset]
         else
             path <- attr(path,"paths")
-        pathsAreFiles <- TRUE
+        usingTempDirectory <- TRUE
     }
     
     results <- lapply(path, function(p) {
-        if (pathsAreFiles)
+        if (usingTempDirectory)
         {
             absolute <- grepl(paste0("^([A-Za-z]:)?",.Platform$file.sep), p)
             p[!absolute] <- file.path("..", p[!absolute])
@@ -123,11 +123,11 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
         else if (!file.exists(p))
             warning(paste0("Path \"", p, "\" does not exist"))
         else if (!file.info(p)$isdir)
-            .readDirectory(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, FALSE)
+            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, FALSE)
         else if (interactive)
         {
             p <- path.expand(p)
-            info <- .sortInfoTable(.readDirectory(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, TRUE))
+            info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, TRUE))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -140,7 +140,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             selection <- readline("\nSelected series: ")
             if (selection == "")
             {
-                allResults <- .readDirectory(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
+                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
                 return (allResults[attr(info,"ordering")])
             }
             else if (selection == "0")
@@ -157,7 +157,7 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
             }
         }
         else
-            .readDirectory(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
+            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
     })
     
     return (do.call(c, results))
@@ -167,6 +167,6 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
 #' @export
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
 {
-    results <- lapply(path, function(p) .readDirectory(path.expand(p), TRUE, FALSE, forceStack, verbosity, "", FALSE, TRUE))
+    results <- lapply(path, function(p) .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, "", FALSE, TRUE))
     .sortInfoTable(do.call(rbind, results))
 }
