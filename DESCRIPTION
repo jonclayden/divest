@@ -2,7 +2,11 @@ Package: divest
 Version: 0.4.1
 Date: 2017-06-02
 Title: Get Images Out of DICOM Format Quickly
-Author: Jon Clayden, based on dcm2niix by Chris Rorden
+Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cre")),
+             person("Chris", "Rorden", role="aut"),
+             person("Martin J", "Fiedler", role="cph"),
+             person("Cong", "Xu", role="cph"),
+             person("Pascal", "Gloor", role="cph"))
 Maintainer: Jon Clayden <code@clayden.org>
 Imports:
     Rcpp (>= 0.11.0),
