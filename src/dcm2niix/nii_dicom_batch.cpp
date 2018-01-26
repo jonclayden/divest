@@ -1754,6 +1754,23 @@ int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header, struct TDCMopts &opts, const char *filename)
 {
     ImageList *images = (ImageList *) opts.imageList;
+    switch (data.modality) {
+        case kMODALITY_CR:
+            images->addAttribute("modality", "CR");
+            break;
+        case kMODALITY_CT:
+            images->addAttribute("modality", "CT");
+            break;
+        case kMODALITY_MR:
+            images->addAttribute("modality", "MR");
+            break;
+        case kMODALITY_PT:
+            images->addAttribute("modality", "PT");
+            break;
+        case kMODALITY_US:
+            images->addAttribute("modality", "US");
+            break;
+    }
     switch (data.manufacturer) {
         case kMANUFACTURER_SIEMENS:
         	images->addAttribute("manufacturer", "Siemens");
@@ -1784,28 +1801,86 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
         images->addAttribute("echoTime", data.TE);
     if (data.TR > 0.0)
         images->addAttribute("repetitionTime", data.TR);
-    if ((data.CSA.bandwidthPerPixelPhaseEncode > 0.0) && (header.dim[2] > 0) && (header.dim[1] > 0)) {
-        if (data.phaseEncodingRC =='C')
-            images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[2]);
-        else if (data.phaseEncodingRC == 'R')
-            images->addAttribute("dwellTime", 1.0/data.CSA.bandwidthPerPixelPhaseEncode/header.dim[1]);
+    if (data.TI > 0.0)
+        images->addAttribute("inversionTime", data.TI);
+    if (data.CSA.multiBandFactor > 1)
+        images->addAttribute("multibandFactor", data.CSA.multiBandFactor);
+    if (data.phaseEncodingSteps > 0)
+        images->addAttribute("phaseEncodingSteps", data.phaseEncodingSteps);
+    if (data.phaseEncodingLines > 0)
+        images->addAttribute("phaseEncodingLines", data.phaseEncodingLines);
+    
+    // Calculations relating to the reconstruction in the phase encode direction,
+    // which are needed to derive effective echo spacing and readout time below.
+    // See the nii_SaveBIDS() function for details
+    int reconMatrixPE = data.phaseEncodingLines;
+    if ((header.dim[2] > 0) && (header.dim[1] > 0)) {
+        if (header.dim[2] == header.dim[2]) //phase encoding does not matter
+            reconMatrixPE = header.dim[2];
+        else if (data.phaseEncodingRC =='R')
+            reconMatrixPE = header.dim[2];
+        else if (data.phaseEncodingRC =='C')
+            reconMatrixPE = header.dim[1];
     }
-    if ((data.manufacturer == kMANUFACTURER_SIEMENS) && (data.CSA.SeriesHeader_offset > 0) && (data.CSA.SeriesHeader_length > 0) && (strlen(data.scanningSequence) > 1) && (data.scanningSequence[0] == 'E') && (data.scanningSequence[1] == 'P')) { //for EPI scans only
-        int echoSpacing, echoTrainDuration, epiFactor;
-        // epiFactor = siemensEchoEPIFactor(filename, data.CSA.SeriesHeader_offset, data.CSA.SeriesHeader_length, &echoSpacing, &echoTrainDuration);
-        if (echoSpacing > 0)
-            images->addAttribute("echoSpacing", echoSpacing);
-        if (echoTrainDuration > 0)
-            images->addAttribute("echoTrainDuration", echoTrainDuration);
-        // if (epiFactor > 0)
-        //     images->addAttribute("epiFactor", epiFactor);
+    
+    double bandwidthPerPixelPhaseEncode = data.bandwidthPerPixelPhaseEncode;
+    if (bandwidthPerPixelPhaseEncode == 0.0)
+        bandwidthPerPixelPhaseEncode = data.CSA.bandwidthPerPixelPhaseEncode;
+    double effectiveEchoSpacing = 0.0;
+    if ((reconMatrixPE > 0) && (bandwidthPerPixelPhaseEncode > 0.0))
+        effectiveEchoSpacing = 1.0 / (bandwidthPerPixelPhaseEncode * reconMatrixPE);
+    if (data.effectiveEchoSpacingGE > 0.0)
+        effectiveEchoSpacing = data.effectiveEchoSpacingGE / 1000000.0;
+    
+    if (effectiveEchoSpacing > 0.0)
+        images->addAttribute("effectiveEchoSpacing", effectiveEchoSpacing);
+    if ((reconMatrixPE > 0) && (effectiveEchoSpacing > 0.0))
+        images->addAttribute("effectiveReadoutTime", effectiveEchoSpacing * (reconMatrixPE - 1.0));
+    if (data.pixelBandwidth > 0.0)
+        images->addAttribute("pixelBandwidth", data.pixelBandwidth);
+    if ((data.manufacturer == kMANUFACTURER_SIEMENS) && (data.dwellTime > 0))
+        images->addAttribute("dwellTime", data.dwellTime * 1e-9);
+    
+    // Phase encoding polarity
+    // We only save these attributes if both direction and polarity are known
+    if (((data.phaseEncodingRC == 'R') || (data.phaseEncodingRC == 'C')) &&  (!data.is3DAcq) && ((data.CSA.phaseEncodingDirectionPositive == 1) || (data.CSA.phaseEncodingDirectionPositive == 0))) {
+        if (data.phaseEncodingRC == 'C') {
+            images->addAttribute("phaseEncodingDirection", "j");
+            // Notice the XOR (^): the sense of phaseEncodingDirectionPositive
+            // is reversed if we are flipping the y-axis
+            images->addAttribute("phaseEncodingSign", ((data.CSA.phaseEncodingDirectionPositive == 0) ^ opts.isFlipY) ? -1 : 1);
+        }
+        else if (data.phaseEncodingRC == 'R') {
+            images->addAttribute("phaseEncodingDirection", "i");
+            images->addAttribute("phaseEncodingSign", data.CSA.phaseEncodingDirectionPositive == 0 ? -1 : 1);
+        }
     }
-    if (data.phaseEncodingRC == 'C')
-        images->addAttribute("phaseEncodingDirection", "j");
-    else if (data.phaseEncodingRC == 'R')
-        images->addAttribute("phaseEncodingDirection", "i");
-    if (data.CSA.phaseEncodingDirectionPositive != -1)
-        images->addAttribute("phaseEncodingSign", data.CSA.phaseEncodingDirectionPositive == 0 ? -1 : 1);
+    
+    // Slice timing
+    if (data.CSA.sliceTiming[0] >= 0.0) {
+        std::vector<double> sliceTimes;
+        if (data.CSA.protocolSliceNumber1 > 1) {
+            //https://github.com/rordenlab/dcm2niix/issues/40
+            //equivalent to dicm2nii "s.SliceTiming = s.SliceTiming(end:-1:1);"
+            int mx = 0;
+            for (int i = 0; i < kMaxEPI3D; i++) {
+                if (data.CSA.sliceTiming[i] < 0.0) break;
+                mx++;
+            }
+            mx--;
+            for (int i = mx; i >= 0; i--) {
+                if (data.CSA.sliceTiming[i] < 0.0) break;
+                sliceTimes.push_back(data.CSA.sliceTiming[i] / 1000.0);
+            }
+        } else {
+            for (int i = 0; i < kMaxEPI3D; i++) {
+                if (data.CSA.sliceTiming[i] < 0.0) break;
+                sliceTimes.push_back(data.CSA.sliceTiming[i] / 1000.0);
+            }
+        }
+        images->addAttribute("sliceTiming", sliceTimes);
+    }
+    
     if (strlen(data.patientID) > 0)
         images->addAttribute("patientIdentifier", data.patientID);
     if (strlen(data.patientName) > 0)
@@ -1818,6 +1893,10 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
         images->addAttribute("patientSex", "F");
     else if (data.patientSex == 'M')
         images->addAttribute("patientSex", "M");
+    if (data.patientWeight > 0.0)
+        images->addAttribute("patientWeight", data.patientWeight);
+    if (strlen(data.imageComments) > 0)
+        images->addAttribute("comments", data.imageComments);
 }
 
 #else
