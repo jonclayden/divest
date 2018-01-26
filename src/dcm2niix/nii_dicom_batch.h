@@ -17,6 +17,7 @@ extern "C" {
 
 #ifdef HAVE_R
     struct TDicomSeries {
+        std::string name;
         TDICOMdata representativeData;
         std::vector<std::string> files;
     };

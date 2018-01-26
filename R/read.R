@@ -165,8 +165,8 @@ readDicom <- function (path = ".", flipY = TRUE, crop = FALSE, forceStack = FALS
 
 #' @rdname readDicom
 #' @export
-scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L)
+scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s")
 {
-    results <- lapply(path, function(p) .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, "", FALSE, TRUE))
+    results <- lapply(path, function(p) .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, TRUE))
     .sortInfoTable(do.call(rbind, results))
 }

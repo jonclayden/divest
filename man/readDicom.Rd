@@ -9,7 +9,8 @@ readDicom(path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE,
   verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s", subset = NULL,
   interactive = base::interactive())
 
-scanDicom(path = ".", forceStack = FALSE, verbosity = 0L)
+scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
+  labelFormat = "T\%t_N\%n_S\%s")
 }
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will

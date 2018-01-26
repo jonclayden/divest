@@ -44,7 +44,7 @@ BEGIN_RCPP
             // Construct a data frame containing information about each series
             // A vector of descriptive strings is also built, and attached as an attribute
             const int n = options.series.size();
-            CharacterVector seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
+            CharacterVector label(n,NA_STRING), seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
             DateVector studyDate(n);
             NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
             IntegerVector files(n,NA_INTEGER), seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
@@ -96,13 +96,23 @@ BEGIN_RCPP
                 if (data.CSA.numDti > 0)
                     diffusion[i] = true;
                 
+                // The name is stored with leading path components, which we remove here
+                if (options.series[i].name.length() > 0)
+                {
+                    size_t pathSeparator = options.series[i].name.find_last_of('/');
+                    if (pathSeparator == std::string::npos)
+                        label[i] = options.series[i].name;
+                    else
+                        label[i] = options.series[i].name.substr(pathSeparator+1);
+                }
+                
                 phase[i] = data.isHasPhase;
                 descriptions[i] = description.str();
                 files[i] = options.series[i].files.size();
                 paths[i] = wrap(options.series[i].files);
             }
             
-            DataFrame info = DataFrame::create(Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
+            DataFrame info = DataFrame::create(Named("label")=label, Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
             info.attr("descriptions") = descriptions;
             info.attr("paths") = paths;
             info.attr("class") = CharacterVector::create("divest","data.frame");

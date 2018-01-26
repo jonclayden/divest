@@ -1735,7 +1735,7 @@ int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im
     // Extract the basename from the full file path
     // R always uses '/' as the path separator, so this should work on all platforms
     char *start = niiFilename + strlen(niiFilename);
-    while (*start != '/')
+    while (start >= niiFilename && *start != '/')
         start--;
     std::string name(++start);
 
@@ -3125,6 +3125,9 @@ int nii_loadDir(struct TDCMopts* opts) {
         TWarnings warnings = setWarnings();
         // Create the first series from the first DICOM file
         TDicomSeries firstSeries;
+        char firstSeriesName[2048] = "";
+        nii_createFilename(dcmList[0], firstSeriesName, *opts);
+        firstSeries.name = firstSeriesName;
         firstSeries.representativeData = dcmList[0];
         firstSeries.files.push_back(nameList.str[0]);
         opts->series.push_back(firstSeries);
@@ -3143,6 +3146,9 @@ int nii_loadDir(struct TDCMopts* opts) {
             // If not, create a new series object
             if (!matched) {
                 TDicomSeries nextSeries;
+                char nextSeriesName[2048] = "";
+                nii_createFilename(dcmList[i], nextSeriesName, *opts);
+                nextSeries.name = nextSeriesName;
                 nextSeries.representativeData = dcmList[i];
                 nextSeries.files.push_back(nameList.str[i]);
                 opts->series.push_back(nextSeries);
