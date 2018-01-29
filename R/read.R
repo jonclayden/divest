@@ -221,5 +221,5 @@ scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
             warning(paste0("Path \"", p, "\" does not point to a directory"))
     })
     
-    .sortInfoTable(Reduce(function(x,y) structure(rbind(x,y), descriptions=c(attr(x,"descriptions"),attr(y,"descriptions")), paths=c(attr(x,"paths"),attr(y,"paths")))))
+    .sortInfoTable(Reduce(function(x,y) structure(rbind(x,y), descriptions=c(attr(x,"descriptions"),attr(y,"descriptions")), paths=c(attr(x,"paths"),attr(y,"paths"))), results))
 }
