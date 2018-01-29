@@ -167,6 +167,12 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
 #' @export
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s")
 {
-    results <- lapply(path, function(p) .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, TRUE))
-    .sortInfoTable(do.call(rbind, results))
+    results <- lapply(path, function(p) {
+        if (file.info(p)$isdir)
+            .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, TRUE)
+        else
+            warning(paste0("Path \"", p, "\" does not point to a directory"))
+    })
+    
+    .sortInfoTable(Reduce(function(x,y) structure(rbind(x,y), descriptions=c(attr(x,"descriptions"),attr(y,"descriptions")), paths=c(attr(x,"paths"),attr(y,"paths")))))
 }
