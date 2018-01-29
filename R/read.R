@@ -200,6 +200,9 @@ sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
         }
         
         inPlace <- (from == to)
+        if (verbosity > 0)
+            cat(paste0(paste(from[!inPlace], "->", to[!inPlace], collapse="\n"), "\n"))
+        
         success <- file.copy(from[!inPlace], to[!inPlace])
         if (!all(success))
             warning("Not all files copied successfully into path \"", directory, "\"")
