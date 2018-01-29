@@ -2,6 +2,7 @@
 
 export(readDicom)
 export(scanDicom)
+export(sortDicom)
 import(RNifti)
 importFrom(Rcpp,evalCpp)
 useDynLib(divest, .registration = TRUE, .fixes = "C_")

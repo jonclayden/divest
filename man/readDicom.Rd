@@ -2,12 +2,16 @@
 % Please edit documentation in R/read.R
 \name{readDicom}
 \alias{readDicom}
+\alias{sortDicom}
 \alias{scanDicom}
 \title{Read one or more DICOM directories}
 \usage{
-readDicom(path = ".", flipY = TRUE, crop = FALSE, forceStack = FALSE,
-  verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s", subset = NULL,
+readDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
+  forceStack = FALSE, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
   interactive = base::interactive())
+
+sortDicom(path = ".", forceStack = FALSE, verbosity = 0L,
+  labelFormat = "T\%t_N\%n_S\%s", keepUnsorted = FALSE)
 
 scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
   labelFormat = "T\%t_N\%n_S\%s")
@@ -15,8 +19,12 @@ scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will
 examined in turn. The default is the current working directory.
-Alternatively, a data frame like the one returned by \code{scanDicom},
-from which file paths will be read.}
+Alternatively, for \code{readDicom}, a data frame like the one returned by
+\code{scanDicom}, from which file paths will be read.}
+
+\item{subset}{If \code{path} is a data frame, an expression which will be
+evaluated in the context of the data frame to determine which series to
+convert. Should evaluate to a logical vector.}
 
 \item{flipY}{If \code{TRUE}, the default, then images will be flipped in the
 Y-axis. This is usually desirable, given the difference between
@@ -37,20 +45,22 @@ output from \code{dcm2niix} except warnings and errors.}
 \item{labelFormat}{A \code{\link{sprintf}}-style string specifying the
 format to use for the final image labels. See Details.}
 
-\item{subset}{If \code{path} is a data frame, an expression which will be
-evaluated in the context of the data frame to determine which series to
-convert.}
-
 \item{interactive}{If \code{TRUE}, the default in interactive sessions, the
 requested paths will first be scanned and a list of DICOM series will be
 presented. You may then choose which series to convert.}
+
+\item{keepUnsorted}{For \code{sortDicom}, should the unsorted files be left
+in place, or removed after they are copied into their new locations? The
+default, \code{FALSE}, corresponds to a move rather than a copy. If
+creating new files fails then the old ones will not be deleted.}
 }
 \value{
 The \code{readDicom} function returns a list of \code{niftiImage}
   objects, which can be easily converted to standard R arrays or written to
   NIfTI-1 format using functions from the \code{RNifti} package. The
   \code{scanDicom} function returns a data frame containing information
-  about each DICOM series found.
+  about each DICOM series found. \code{sortDicom} is called for its side-
+  effect, and so returns \code{NULL}.
 }
 \description{
 These functions are R wrappers around the DICOM-to-NIfTI conversion routines
@@ -59,15 +69,22 @@ potentially pertaining to more than one image series, read them and/or merge
 them into a list of \code{niftiImage} objects.
 }
 \details{
+The \code{scanDicom} function parses directories full of DICOM files and
+returns information about the acquisition series they contain.
+\code{readDicom} reads these files and converts them to (internal) NIfTI
+images (whose pixel data can be extracted using \code{as.array}).
+\code{sortDicom} sorts the files into subdirectories by series, but does not
+convert them.
+
 The \code{labelFormat} argument describes the string format used for image
-labels. Valid codes, each escaped with a percentage sign, include \code{a}
-for coil number, \code{c} for image comments, \code{d} for series
-description, \code{e} for echo number, \code{f} for the source directory,
-\code{i} for patient ID, \code{l} for the procedure step description,
-\code{m} for manufacturer, \code{n} for patient name, \code{p} for protocol
-name, \code{q} for scanning sequence, \code{s} for series number, \code{t}
-for the date and time, \code{u} for acquisition number and \code{z} for
-sequence name.
+labels and sorted subdirectories. Valid codes, each escaped with a
+percentage sign, include \code{a} for coil number, \code{c} for image
+comments, \code{d} for series description, \code{e} for echo number,
+\code{f} for the source directory, \code{i} for patient ID, \code{l} for the
+procedure step description, \code{m} for manufacturer, \code{n} for patient
+name, \code{p} for protocol name, \code{q} for scanning sequence, \code{s}
+for series number, \code{t} for the date and time, \code{u} for acquisition
+number and \code{z} for sequence name.
 }
 \examples{
 path <- system.file("extdata", "raw", package="divest")

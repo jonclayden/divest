@@ -27,20 +27,30 @@
 #' potentially pertaining to more than one image series, read them and/or merge
 #' them into a list of \code{niftiImage} objects.
 #' 
+#' The \code{scanDicom} function parses directories full of DICOM files and
+#' returns information about the acquisition series they contain.
+#' \code{readDicom} reads these files and converts them to (internal) NIfTI
+#' images (whose pixel data can be extracted using \code{as.array}).
+#' \code{sortDicom} sorts the files into subdirectories by series, but does not
+#' convert them.
+#' 
 #' The \code{labelFormat} argument describes the string format used for image
-#' labels. Valid codes, each escaped with a percentage sign, include \code{a}
-#' for coil number, \code{c} for image comments, \code{d} for series
-#' description, \code{e} for echo number, \code{f} for the source directory,
-#' \code{i} for patient ID, \code{l} for the procedure step description,
-#' \code{m} for manufacturer, \code{n} for patient name, \code{p} for protocol
-#' name, \code{q} for scanning sequence, \code{s} for series number, \code{t}
-#' for the date and time, \code{u} for acquisition number and \code{z} for
-#' sequence name.
+#' labels and sorted subdirectories. Valid codes, each escaped with a
+#' percentage sign, include \code{a} for coil number, \code{c} for image
+#' comments, \code{d} for series description, \code{e} for echo number,
+#' \code{f} for the source directory, \code{i} for patient ID, \code{l} for the
+#' procedure step description, \code{m} for manufacturer, \code{n} for patient
+#' name, \code{p} for protocol name, \code{q} for scanning sequence, \code{s}
+#' for series number, \code{t} for the date and time, \code{u} for acquisition
+#' number and \code{z} for sequence name.
 #' 
 #' @param path A character vector of paths to scan for DICOM files. Each will
 #'   examined in turn. The default is the current working directory.
-#'   Alternatively, a data frame like the one returned by \code{scanDicom},
-#'   from which file paths will be read.
+#'   Alternatively, for \code{readDicom}, a data frame like the one returned by
+#'   \code{scanDicom}, from which file paths will be read.
+#' @param subset If \code{path} is a data frame, an expression which will be
+#'   evaluated in the context of the data frame to determine which series to
+#'   convert. Should evaluate to a logical vector.
 #' @param flipY If \code{TRUE}, the default, then images will be flipped in the
 #'   Y-axis. This is usually desirable, given the difference between
 #'   orientation conventions in the DICOM and NIfTI-1 formats.
@@ -55,17 +65,19 @@
 #'   output from \code{dcm2niix} except warnings and errors.
 #' @param labelFormat A \code{\link{sprintf}}-style string specifying the
 #'   format to use for the final image labels. See Details.
-#' @param subset If \code{path} is a data frame, an expression which will be
-#'   evaluated in the context of the data frame to determine which series to
-#'   convert.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
 #'   requested paths will first be scanned and a list of DICOM series will be
 #'   presented. You may then choose which series to convert.
+#' @param keepUnsorted For \code{sortDicom}, should the unsorted files be left
+#'   in place, or removed after they are copied into their new locations? The
+#'   default, \code{FALSE}, corresponds to a move rather than a copy. If
+#'   creating new files fails then the old ones will not be deleted.
 #' @return The \code{readDicom} function returns a list of \code{niftiImage}
 #'   objects, which can be easily converted to standard R arrays or written to
 #'   NIfTI-1 format using functions from the \code{RNifti} package. The
 #'   \code{scanDicom} function returns a data frame containing information
-#'   about each DICOM series found.
+#'   about each DICOM series found. \code{sortDicom} is called for its side-
+#'   effect, and so returns \code{NULL}.
 #' 
 #' @examples
 #' path <- system.file("extdata", "raw", package="divest")
@@ -161,6 +173,41 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     })
     
     return (do.call(c, results))
+}
+
+#' @rdname readDicom
+#' @export
+sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", keepUnsorted = FALSE)
+{
+    info <- scanDicom(path, forceStack, verbosity, labelFormat)
+    for (i in seq_len(nrow(info)))
+    {
+        directory <- file.path(info$rootPath[i], info$label[i])
+        if (!file.exists(directory))
+            dir.create(directory)
+        
+        from <- attr(info, "paths")[[i]]
+        to <- file.path(directory, basename(from))
+        repeat
+        {
+            clashes <- (duplicated(to) | (from != to & file.exists(to)))
+            if (!any(clashes))
+                break
+            
+            # Add random six-hex-digit suffixes to resolve clashes
+            suffixes <- matrix(sample(c(0:9,letters[1:6]), 6*sum(clashes), replace=TRUE), ncol=6L)
+            to[clashes] <- paste0(to[clashes], "_", apply(suffixes,1,paste,collapse=""))
+        }
+        
+        inPlace <- (from == to)
+        success <- file.copy(from[!inPlace], to[!inPlace])
+        if (!all(success))
+            warning("Not all files copied successfully into path \"", directory, "\"")
+        else if (!keepUnsorted)
+            unlink(from[!inPlace])
+    }
+    
+    invisible(NULL)
 }
 
 #' @rdname readDicom
