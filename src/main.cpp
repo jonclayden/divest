@@ -99,7 +99,11 @@ BEGIN_RCPP
                 // The name is stored with leading path components, which we remove here
                 if (options.series[i].name.length() > 0)
                 {
+#if defined(_WIN32) || defined(_WIN64)
+                    size_t pathSeparator = options.series[i].name.find_last_of("\\/");
+#else
                     size_t pathSeparator = options.series[i].name.find_last_of('/');
+#endif
                     if (pathSeparator == std::string::npos)
                         label[i] = options.series[i].name;
                     else

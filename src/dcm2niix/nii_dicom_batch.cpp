@@ -1733,7 +1733,7 @@ int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im
     // Extract the basename from the full file path
     // R always uses '/' as the path separator, so this should work on all platforms
     char *start = niiFilename + strlen(niiFilename);
-    while (start >= niiFilename && *start != '/')
+    while (start >= niiFilename && *start != '/' && *start != kPathSeparator)
         start--;
     std::string name(++start);
 
