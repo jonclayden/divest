@@ -20,6 +20,10 @@ test_that("DICOM-reading code works", {
     expect_output(d <- scanDicom(path), "Found 4 DICOM")
     expect_equal(d$repetitionTime, c(4100,11))
     expect_output(readDicom(d,repetitionTime==4100), "Found 2 DICOM")
+    
+    expect_output(d <- readDicom(file.path(path,"01.dcm"),interactive=FALSE), "Convert 1 DICOM")
+    expect_equal(dim(d[[1]]), c(224,256,1))
+    expect_warning(readDicom(file.path(path,"nonsense"),interactive=FALSE), "does not exist")
 })
 
 test_that("we can read JPEG-encoded data sets", {
