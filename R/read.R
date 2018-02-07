@@ -68,6 +68,9 @@
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
 #'   requested paths will first be scanned and a list of DICOM series will be
 #'   presented. You may then choose which series to convert.
+#' @param nested For \code{sortDicom}, should the sorted files be created
+#'   within the source directory (\code{TRUE}, the default), or in the current
+#'   working directory (\code{FALSE})?
 #' @param keepUnsorted For \code{sortDicom}, should the unsorted files be left
 #'   in place, or removed after they are copied into their new locations? The
 #'   default, \code{FALSE}, corresponds to a move rather than a copy. If
@@ -177,12 +180,14 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
 
 #' @rdname readDicom
 #' @export
-sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", keepUnsorted = FALSE)
+sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", nested = TRUE, keepUnsorted = FALSE)
 {
     info <- scanDicom(path, forceStack, verbosity, labelFormat)
     for (i in seq_len(nrow(info)))
     {
-        directory <- file.path(info$rootPath[i], info$label[i])
+        directory <- info$label[i]
+        if (nested)
+            directory <- file.path(info$rootPath[i], directory)
         if (!file.exists(directory))
             dir.create(directory)
         
