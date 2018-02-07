@@ -19,8 +19,9 @@ scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will
 examined in turn. The default is the current working directory.
-Alternatively, for \code{readDicom}, a data frame like the one returned by
-\code{scanDicom}, from which file paths will be read.}
+Alternatively, for \code{readDicom} and \code{sortDicom}, a data frame
+like the one returned by \code{scanDicom}, from which file paths will be
+read.}
 
 \item{subset}{If \code{path} is a data frame, an expression which will be
 evaluated in the context of the data frame to determine which series to

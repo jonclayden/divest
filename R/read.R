@@ -46,8 +46,9 @@
 #' 
 #' @param path A character vector of paths to scan for DICOM files. Each will
 #'   examined in turn. The default is the current working directory.
-#'   Alternatively, for \code{readDicom}, a data frame like the one returned by
-#'   \code{scanDicom}, from which file paths will be read.
+#'   Alternatively, for \code{readDicom} and \code{sortDicom}, a data frame
+#'   like the one returned by \code{scanDicom}, from which file paths will be
+#'   read.
 #' @param subset If \code{path} is a data frame, an expression which will be
 #'   evaluated in the context of the data frame to determine which series to
 #'   convert. Should evaluate to a logical vector.
@@ -182,7 +183,11 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
 #' @export
 sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", nested = TRUE, keepUnsorted = FALSE)
 {
-    info <- scanDicom(path, forceStack, verbosity, labelFormat)
+    if (is.data.frame(path))
+        info <- path
+    else
+        info <- scanDicom(path, forceStack, verbosity, labelFormat)
+    
     for (i in seq_len(nrow(info)))
     {
         directory <- info$label[i]
