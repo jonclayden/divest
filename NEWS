@@ -2,6 +2,25 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.5.0
+
+- The new sortDicom() function can be used to sort a directory of DICOM files
+  into subdirectories corresponding to individual acquisitions.
+- It is now possible to read and convert individual files to NIfTI-1 format.
+  This will happen whenever an argument to readDicom() is a file rather than a
+  directory.
+- JPEG-encoded versions of the test files are now provided, to test the package
+  more thoroughly.
+- Additional attributes, such as inversion time, patient weight and slice
+  timing, are now captured, while the calculations for some others have
+  changed, to match the current version of dcm2niix. Echo train duration and
+  the "EPI factor" have been removed (see
+  https://github.com/rordenlab/dcm2niix/issues/127).
+- The scanDicom() function now properly concatenates attributes when called
+  with multiple paths.
+
+===============================================================================
+
 VERSION 0.4.1
 
 - Fixes for Solaris and OpenJPEG compatibility.
