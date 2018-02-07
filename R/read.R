@@ -137,7 +137,10 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             readFromTempDirectory(".divest", p)
         }
         else if (!file.exists(p))
+        {
             warning(paste0("Path \"", p, "\" does not exist"))
+            return (NULL)
+        }
         else if (!file.info(p)$isdir)
             .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, FALSE)
         else if (interactive)
