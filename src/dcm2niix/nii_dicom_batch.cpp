@@ -349,6 +349,10 @@ void nii_SaveText(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts,
     fclose(fp);
 }// nii_SaveText()
 
+#ifndef HAVE_R
+#define myReadAsciiCsa
+#endif
+
 #ifdef myReadAsciiCsa
 //read from the ASCII portion of the Siemens CSA series header
 //  this is not recommended: poorly documented
