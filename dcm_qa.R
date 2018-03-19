@@ -9,6 +9,7 @@ labels <- unlist(images)
 
 ignoreFields <- c("ImageType", "PhaseEncodingDirection")
 scaleFields <- c("EchoTime", "RepetitionTime")
+nameMapping <- c(MagneticFieldStrength="fieldStrength", ManufacturersModelName="scannerModelName", TotalReadoutTime="effectiveReadoutTime")
 missingFields <- NULL
 
 for (i in seq_along(images))
@@ -37,7 +38,11 @@ for (i in seq_along(images))
             if (bidsFieldName %in% ignoreFields)
                 next
             
-            divestFieldName <- paste0(tolower(substring(bidsFieldName,1,1)), substring(bidsFieldName,2))
+            if (bidsFieldName %in% names(nameMapping))
+                divestFieldName <- nameMapping[[bidsFieldName]]
+            else
+                divestFieldName <- paste0(tolower(substring(bidsFieldName,1,1)), substring(bidsFieldName,2))
+            
             if (divestFieldName %in% names(metadata))
             {
                 if (bidsFieldName %in% scaleFields)
