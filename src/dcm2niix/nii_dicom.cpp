@@ -3505,7 +3505,6 @@ double TE = 0.0; //most recent echo time recorded
                 	encapsulatedDataFragmentStart = (int)lPos + (int)lFileOffset;
             }
         }
-        if ((isIconImageSequence) && ((groupElement & 0x0028) == 0x0028 )) groupElement = kUnused; //ignore icon dimensions
         if ((sqEndPrivate > 0) && ((lFileOffset + lPos) > sqEndPrivate))
         	sqEndPrivate = -1; //end of private SQ with defined length
         if (groupElement == kSequenceDelimitationItemTag) { //end of private SQ with undefined length
@@ -3514,8 +3513,8 @@ double TE = 0.0; //most recent echo time recorded
         		sqDepthPrivate = 0; //no longer in a private SQ
         	}
         }
-
         if (sqDepth < 0) sqDepth = 0;*/
+        if ((isIconImageSequence) && ((groupElement & 0x0028) == 0x0028 )) groupElement = kUnused; //ignore icon dimensions
         if (groupElement == kSequenceDelimitationItemTag) is2005140FSQ = false;
         switch ( groupElement ) {
             case kTransferSyntax: {
