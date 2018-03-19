@@ -2,3 +2,4 @@
 ^appveyor\.yml$
 ^README.Rmd$
 ^dcm_qa$
+^dcm_qa.R$
