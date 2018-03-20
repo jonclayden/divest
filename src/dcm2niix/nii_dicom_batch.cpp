@@ -2611,10 +2611,11 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     for(int i = 0; i < nConvert; ++i)
       dcmList[dcmSort[i].indx].converted2NII = 1;
     if (opts.numSeries < 0) { //report series number but do not convert
-    	if (vol >= 0)
+    	if (vol >= 0) {
     		printMessage("\t%ld.%d\t%s\n", dcmList[dcmSort[0].indx].seriesNum, vol, pathoutname);
-    	else
+    	} else {
     		printMessage("\t%ld\t%s\n", dcmList[dcmSort[0].indx].seriesNum, pathoutname);
+        }
     	printMessage(" %s\n",nameList->str[dcmSort[0].indx]);
     	return EXIT_SUCCESS;
     }
