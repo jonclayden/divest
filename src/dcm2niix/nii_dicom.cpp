@@ -2361,9 +2361,9 @@ unsigned char * nii_reorderSlicesX(unsigned char* bImg, struct nifti_1_header *h
     for (int i = 0; i < dim3to7; i++) { //for each volume
 		int fromSlice = dti4D->sliceOrder[i];
 		//if (i < 10) printMessage(" ===> Moving slice from/to positions\t%d\t%d\n", i, toSlice);
-		if ((i < 0) || (fromSlice >= dim3to7))
+		if ((i < 0) || (fromSlice >= dim3to7)) {
 			printError("Re-ordered slice out-of-volume %d\n", fromSlice);
-		else if (i != fromSlice) {
+		} else if (i != fromSlice) {
 			uint64_t inPos = fromSlice * sliceBytes;
 			uint64_t outPos = i * sliceBytes;
 			memcpy( &bImg[outPos], &outImg[inPos], sliceBytes);
