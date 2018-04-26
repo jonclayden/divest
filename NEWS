@@ -2,6 +2,15 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.6.0
+
+- Upstream improvements, particularly for Philips data, have been integrated.
+- The package's continuous integration tests now check it against the dcm_qa
+  dataset (see https://github.com/neurolabusc/dcm_qa).
+- A workaround has been added for certain undefined behaviour.
+
+===============================================================================
+
 VERSION 0.5.0
 
 - The new sortDicom() function can be used to sort a directory of DICOM files
