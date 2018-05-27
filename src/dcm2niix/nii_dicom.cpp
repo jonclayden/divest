@@ -634,7 +634,11 @@ int headerDcm2Nii2(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_hea
         sprintf(dtxt, ";mb=%d", d.CSA.multiBandFactor);
         strcat(txt,dtxt);
     }
-    snprintf(h->descrip,80, "%s",txt);
+    // GCC 8 warns about truncation using snprintf; using strncpy instead seems to keep it happy
+    // snprintf(h->descrip,80, "%s",txt);
+    strncpy(h->descrip, txt, 79);
+    h->descrip[79] = '\0';
+    
     if (strlen(d.imageComments) > 0)
         snprintf(h->aux_file,24,"%.23s",d.imageComments);
     return headerDcm2NiiSForm(d,d2, h, isVerbose);

@@ -3573,14 +3573,14 @@ int findpathof(char *pth, const char *exe) {
 	if (end == NULL) {
 		len = strlen(beg);
 		if (len == 0) return 0;
-		strncpy(pth, beg, len);
+		strcpy(pth, beg);
 		stop = 1;
 	} else {
 	   strncpy(pth, beg, end - beg);
 	   pth[end - beg] = '\0';
 	   len = end - beg;
 	}
-	if (pth[len - 1] != '/') strncat(pth, "/", 1);
+	if (pth[len - 1] != '/') strcat(pth, "/");
 	strncat(pth, exe, PATH_MAX - len);
 	found = is_exe(pth);
 	if (!stop) beg = end + 1;
