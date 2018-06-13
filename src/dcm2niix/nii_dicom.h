@@ -82,10 +82,23 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
     };
     struct TDTI4D {
         struct TDTI S[kMaxDTI4D];
+#ifdef HAVE_R
+        int *sliceOrder;
+#else
         int sliceOrder[kMaxSlice2D]; // [7,3,2] means the first slice on disk should be moved to 7th position
+#endif
         int gradDynVol[kMaxDTI4D]; //used to parse dimensions of Philips data, e.g. file with multiple dynamics, echoes, phase+magnitude
         float TE[kMaxDTI4D], intenScale[kMaxDTI4D], intenIntercept[kMaxDTI4D], intenScalePhilips[kMaxDTI4D];
         bool isPhase[kMaxDTI4D];
+
+#ifdef HAVE_R
+        TDTI4D () {
+            sliceOrder = new int[kMaxSlice2D];
+        }
+        ~TDTI4D () {
+            delete[] sliceOrder;
+        }
+#endif
     };
 
 #ifdef _MSC_VER //Microsoft nomenclature for packed structures is different...
