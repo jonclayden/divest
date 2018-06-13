@@ -81,23 +81,41 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
         //int totalSlicesIn4DOrder;
     };
     struct TDTI4D {
-        struct TDTI S[kMaxDTI4D];
 #ifdef HAVE_R
+        // Use pointers and heap allocation to avoid problems with large stack allocations, which vex valgrind
+        // This is the least disruptive form for the rest of the code because the behaviour of the struct stays much the same
+        struct TDTI *S;
         int *sliceOrder;
+        int *gradDynVol;
+        float *TE, *intenScale, *intenIntercept, *intenScalePhilips;
+        bool *isPhase;
+        
+        TDTI4D () {
+            S = new struct TDTI[kMaxDTI4D];
+            sliceOrder = new int[kMaxSlice2D];
+            gradDynVol = new int[kMaxDTI4D];
+            TE = new float[kMaxDTI4D];
+            intenScale = new float[kMaxDTI4D];
+            intenIntercept = new float[kMaxDTI4D];
+            intenScalePhilips = new float[kMaxDTI4D];
+            isPhase = new bool[kMaxDTI4D];
+        }
+        ~TDTI4D () {
+            delete[] S;
+            delete[] sliceOrder;
+            delete[] gradDynVol;
+            delete[] TE;
+            delete[] intenScale;
+            delete[] intenIntercept;
+            delete[] intenScalePhilips;
+            delete[] isPhase;
+        }
 #else
+        struct TDTI S[kMaxDTI4D];
         int sliceOrder[kMaxSlice2D]; // [7,3,2] means the first slice on disk should be moved to 7th position
-#endif
         int gradDynVol[kMaxDTI4D]; //used to parse dimensions of Philips data, e.g. file with multiple dynamics, echoes, phase+magnitude
         float TE[kMaxDTI4D], intenScale[kMaxDTI4D], intenIntercept[kMaxDTI4D], intenScalePhilips[kMaxDTI4D];
         bool isPhase[kMaxDTI4D];
-
-#ifdef HAVE_R
-        TDTI4D () {
-            sliceOrder = new int[kMaxSlice2D];
-        }
-        ~TDTI4D () {
-            delete[] sliceOrder;
-        }
 #endif
     };
 
