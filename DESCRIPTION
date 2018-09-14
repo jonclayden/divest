@@ -8,11 +8,8 @@ Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cr
              person("Cong", "Xu", role="cph"),
              person("Pascal", "Gloor", role="cph"))
 Maintainer: Jon Clayden <code@clayden.org>
-Imports:
-    Rcpp (>= 0.11.0),
-    RNifti (>= 0.3.0)
-Suggests:
-    testthat
+Imports: Rcpp (>= 0.11.0), RNifti (>= 0.3.0)
+Suggests: testthat, covr
 LinkingTo: Rcpp, RNifti
 Description: Provides tools to convert DICOM-format files to NIfTI-1 format.
 License: BSD_3_clause + file LICENCE

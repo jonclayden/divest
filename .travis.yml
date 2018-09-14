@@ -3,10 +3,13 @@ sudo: false
 cache: packages
 
 install:
-- Rscript -e 'install.packages(c("Rcpp","RNifti","testthat","jsonlite"))'
+  - Rscript -e 'install.packages(c("Rcpp","RNifti","covr","testthat","jsonlite"))'
 
 script:
-- R CMD build .
-- R CMD check *tar.gz
-- R CMD INSTALL *tar.gz
-- Rscript dcm_qa.R
+  - R CMD build .
+  - R CMD check *tar.gz
+  - R CMD INSTALL *tar.gz
+  - Rscript dcm_qa.R
+
+after_success:
+  - Rscript -e 'covr::coveralls()'
