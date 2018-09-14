@@ -1,10 +1,10 @@
 
 
-[![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest)
+[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest)
 
 # An R interface to dcm2niix
 
-[DICOM](http://dicom.nema.org/), for Digital Imaging and Communications in Medicine, is the highly complex standard by which medical imaging devices such as magnetic resonance (MR) and computed tomography (CT) scanners communicate. Importantly for medical imaging research, DICOM defines the format in which images are first created when a subject is scanned. The complexity of DICOM, and the high degree of variation in how it is implemented by hardware vendors, makes it difficult and error-prone to work with. The [NIfTI-1 file format](https://nifti.nimh.nih.gov) has emerged as a simpler, more interoperable standard for medical images, and generally researchers want to convert their images to this format as soon as possible.
+[DICOM](http://dicom.nema.org/), for Digital Imaging and Communications in Medicine, is the highly complex standard by which medical imaging devices such as magnetic resonance (MR) and computed tomography (CT) scanners communicate. Importantly for medical imaging research, DICOM defines the format in which images are first created when a subject is scanned. The complexity of DICOM, and the high degree of variation in how it is implemented by hardware vendors, makes it difficult and error-prone to work with. The [NIfTI-1 file format](https://nifti.nimh.nih.gov) has emerged as a simpler, more interoperable standard for medical images, and generally researchers want to convert their images to this format [as soon as possible](http://doi.org/10.1016/j.jneumeth.2016.03.001).
 
 > *divest*, **v.**: rid oneself of something that one no longer wants or requires
 
