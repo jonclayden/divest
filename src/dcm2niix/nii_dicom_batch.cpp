@@ -3549,8 +3549,8 @@ int nii_loadDir(struct TDCMopts* opts) {
     strcpy(name,""); //not found!
 }*/
 
-#if defined(_WIN64) || defined(_WIN32)
-#else //UNIX
+#if defined(_WIN64) || defined(_WIN32) || defined(HAVE_R)
+#else //UNIX, not R
 
 int findpathof(char *pth, const char *exe) {
 //Find executable by searching the PATH environment variable.
@@ -3573,14 +3573,14 @@ int findpathof(char *pth, const char *exe) {
 	if (end == NULL) {
 		len = strlen(beg);
 		if (len == 0) return 0;
-		strcpy(pth, beg);
+		strncpy(pth, beg, len);
 		stop = 1;
 	} else {
 	   strncpy(pth, beg, end - beg);
 	   pth[end - beg] = '\0';
 	   len = end - beg;
 	}
-	if (pth[len - 1] != '/') strcat(pth, "/");
+	if (pth[len - 1] != '/') strncat(pth, "/", 1);
 	strncat(pth, exe, PATH_MAX - len);
 	found = is_exe(pth);
 	if (!stop) beg = end + 1;
@@ -3589,6 +3589,7 @@ int findpathof(char *pth, const char *exe) {
 }
 #endif
 
+#ifndef HAVE_R
 void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
     #if defined(_WIN64) || defined(_WIN32)
     strcpy(opts->pigzname,"pigz.exe");
@@ -3673,6 +3674,7 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
 	//printMessage("Found pigz: %s\n", str);
     #endif
 } //readFindPigz()
+#endif
 
 void setDefaultOpts (struct TDCMopts *opts, const char * argv[]) { //either "setDefaultOpts(opts,NULL)" or "setDefaultOpts(opts,argv)" where argv[0] is path to search
     strcpy(opts->pigzname,"");
