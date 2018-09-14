@@ -16,7 +16,7 @@
 	#include <unistd.h>
 #endif
 //#include <time.h> //clock()
-#ifndef HAVE_R
+#ifndef USING_R
 #include "nifti1.h"
 #endif
 #include "print.h"
@@ -34,7 +34,7 @@
 #include <stdint.h>
 #include "nifti1_io_core.h"
 
-#ifdef HAVE_R
+#ifdef USING_R
   #undef isnan
   #define isnan ISNAN
 #endif
@@ -50,7 +50,7 @@
     #include <jasper/jasper.h>
 #endif
 #ifndef myDisableOpenJPEG
-#ifdef HAVE_R
+#ifdef USING_R
     #include <openjpeg-2.1/openjpeg.h>
 #else
     #include "openjpeg.h"

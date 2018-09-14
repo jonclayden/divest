@@ -347,7 +347,7 @@ NJ_FORCE_INLINE unsigned char njClip(const int x) {
 #define W6 1108
 #define W7 565
 
-#ifdef HAVE_R
+#ifdef USING_R
 NJ_INLINE int shiftLeft(int i, int p) {
     unsigned u = *(unsigned *)(&i);
     u <<= p;

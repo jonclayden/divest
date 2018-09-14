@@ -27,11 +27,11 @@
 #include "tinydir.h"
 #include "print.h"
 #include "nifti1_io_core.h"
-#ifndef HAVE_R
+#ifndef USING_R
 #include "nifti1.h"
 #endif
 #include "nii_dicom_batch.h"
-#ifndef HAVE_R
+#ifndef USING_R
 #include "nii_foreign.h"
 #endif
 #include "nii_dicom.h"
@@ -64,7 +64,7 @@
 	const char kFileSep[2] = "/";
 #endif
 
-#ifdef HAVE_R
+#ifdef USING_R
 #include "ImageList.h"
 
 #undef isnan
@@ -350,7 +350,7 @@ void nii_SaveText(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts,
     fclose(fp);
 }// nii_SaveText()
 
-#ifndef HAVE_R
+#ifndef USING_R
 #define myReadAsciiCsa
 #endif
 
@@ -1386,7 +1386,7 @@ int * nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],str
         } //for each direction
     }
     //printMessage("%f\t%f\t%f",dcmList[indx0].CSA.dtiV[1][1],dcmList[indx0].CSA.dtiV[1][2],dcmList[indx0].CSA.dtiV[1][3]);
-#ifdef HAVE_R
+#ifdef USING_R
     std::vector<double> bValues(numDti);
     std::vector<double> bVectors(numDti*3);
     for (int i = 0; i < numDti; i++)
@@ -1898,7 +1898,7 @@ void writeNiiGz (char * baseName, struct nifti_1_header hdr,  unsigned char* src
 } //writeNiiGz()
 #endif
 
-#ifdef HAVE_R
+#ifdef USING_R
 
 // Version of nii_saveNII() for R/divest: create nifti_image pointer and push onto stack
 int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts)
@@ -2853,7 +2853,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     //~ 	nii_reorderSlices(imgM, &hdr0, dti4D);
     if (hdr0.dim[3] < 2)
     	printWarning("Check that 2D images are not mirrored.\n");
-#ifndef HAVE_R
+#ifndef USING_R
     else
         fflush(stdout); //GUI buffers printf, display all results
 #endif
@@ -2874,7 +2874,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     else {
         if (volOrderIndex) //reorder volumes
         	imgM = reorderVolumes(&hdr0, imgM, volOrderIndex);
-#ifndef HAVE_R
+#ifndef USING_R
 		if (numADC > 0) {//ADC maps can disrupt analysis: save a copy with the ADC map, and another without
 			char pathoutnameADC[2048] = {""};
 			strcat(pathoutnameADC,pathoutname);
@@ -2886,7 +2886,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
 		}
 #endif
 		imgM = removeADC(&hdr0, imgM, numADC);
-#ifndef HAVE_R
+#ifndef USING_R
 		if (opts.isSave3D)
 			returnCode = nii_saveNII3D(pathoutname, hdr0, imgM, opts);
 		else
@@ -2913,7 +2913,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     }
     if ((opts.isCrop) && (dcmList[indx0].is3DAcq)   && (hdr0.dim[3] > 1) && (hdr0.dim[0] < 4))//for T1 scan: && (dcmList[indx0].TE < 25)
         returnCode = nii_saveCrop(pathoutname, hdr0, imgM,opts); //n.b. must be run AFTER nii_setOrtho()!
-#ifdef HAVE_R
+#ifdef USING_R
     // Note that for R, only one image should be created per series
     // Hence this extra test
     if (returnCode != EXIT_SUCCESS)
@@ -3240,7 +3240,7 @@ void searchDirForDICOM(char *path, struct TSearchList *nameList, int maxDepth, i
             }
             nameList->numItems++;
             //printMessage("dcm %lu %s \n",nameList->numItems, filename);
-#ifndef HAVE_R
+#ifndef USING_R
         } else {
         	if (fileBytes(filename) > 2048)
             	convert_foreign (filename, *opts);
@@ -3363,7 +3363,7 @@ int nii_loadDir(struct TDCMopts* opts) {
         #endif
     }*/
     getFileName(opts->indirParent, opts->indir);
-#ifndef HAVE_R
+#ifndef USING_R
     if (isFile && ( (isExt(indir, ".v"))) )
 		return convert_foreign (indir, *opts);
 #endif
@@ -3438,7 +3438,7 @@ int nii_loadDir(struct TDCMopts* opts) {
         	printMessage("Image Decompression is new: please validate conversions\n");
     	}
     }
-#ifdef HAVE_R
+#ifdef USING_R
     if (opts->isScanOnly) {
         TWarnings warnings = setWarnings();
         // Create the first series from the first DICOM file
@@ -3511,7 +3511,7 @@ int nii_loadDir(struct TDCMopts* opts) {
 			free(dcmSort);
 		}//convert all images of this series
     }
-#ifdef HAVE_R
+#ifdef USING_R
     }
 #endif
     free(dcmList);
@@ -3549,7 +3549,7 @@ int nii_loadDir(struct TDCMopts* opts) {
     strcpy(name,""); //not found!
 }*/
 
-#if defined(_WIN64) || defined(_WIN32) || defined(HAVE_R)
+#if defined(_WIN64) || defined(_WIN32) || defined(USING_R)
 #else //UNIX, not R
 
 int findpathof(char *pth, const char *exe) {
@@ -3589,7 +3589,7 @@ int findpathof(char *pth, const char *exe) {
 }
 #endif
 
-#ifndef HAVE_R
+#ifndef USING_R
 void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
     #if defined(_WIN64) || defined(_WIN32)
     strcpy(opts->pigzname,"pigz.exe");
@@ -3678,7 +3678,7 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
 
 void setDefaultOpts (struct TDCMopts *opts, const char * argv[]) { //either "setDefaultOpts(opts,NULL)" or "setDefaultOpts(opts,argv)" where argv[0] is path to search
     strcpy(opts->pigzname,"");
-#ifndef HAVE_R
+#ifndef USING_R
     readFindPigz(opts, argv);
 #endif
     #ifdef myEnableJasper

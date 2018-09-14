@@ -1,7 +1,7 @@
 #ifndef _IMAGE_LIST_H_
 #define _IMAGE_LIST_H_
 
-#ifdef HAVE_R
+#ifdef USING_R
 
 #define STRICT_R_HEADERS
 #include <Rcpp.h>

@@ -10,12 +10,12 @@ extern "C" {
 
 #include <stdbool.h>
 #include <string.h>
-#ifndef HAVE_R
+#ifndef USING_R
 #include "nifti1.h"
 #endif
 #include "nii_dicom.h"
 
-#ifdef HAVE_R
+#ifdef USING_R
     struct TDicomSeries {
         std::string name;
         TDICOMdata representativeData;
@@ -31,7 +31,7 @@ extern "C" {
         char filename[512], outdir[512], indir[512], pigzname[512], optsname[512], indirParent[512], imageComments[24];
         float seriesNumber[MAX_NUM_SERIES];
         long numSeries;
-#ifdef HAVE_R
+#ifdef USING_R
         bool isScanOnly;
         void *imageList;
         std::vector<TDicomSeries> series;

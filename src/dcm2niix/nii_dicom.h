@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "nifti1_io_core.h"
-#ifndef HAVE_R
+#ifndef USING_R
 #include "nifti1.h"
 #endif
 
@@ -81,7 +81,7 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
         //int totalSlicesIn4DOrder;
     };
     struct TDTI4D {
-#ifdef HAVE_R
+#ifdef USING_R
         // Use pointers and heap allocation to avoid problems with large stack allocations, which vex valgrind
         // This is the least disruptive form for the rest of the code because the behaviour of the struct stays much the same
         struct TDTI *S;
