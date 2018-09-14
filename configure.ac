@@ -8,12 +8,13 @@ AC_INIT([divest], [0.3.0], [code@clayden.org])
 # Get compiler flags from R
 : ${R_HOME=`R RHOME`}
 if test -z "${R_HOME}"; then
-  echo "could not determine R_HOME"
-  exit 1
+    AC_MSG_ERROR([Could not determine R_HOME.])
 fi
-CC=`"${R_HOME}/bin/R" CMD config CC`
-CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CXX=`"${R_HOME}/bin/R" CMD config CXX`
+CXXFLAGS=`"${R_HOME}/bin/R" CMD config CXXFLAGS`
 CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
+
+AC_LANG(C++)
 
 # Checks for programs.
 AC_PROG_CXX
