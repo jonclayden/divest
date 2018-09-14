@@ -3201,6 +3201,21 @@ struct TDCMdim { //DimensionIndexValues
   bool isPhase;
 };
 
+#ifdef USING_R
+
+// True iff dcm1 sorts *before* dcm2
+bool compareTDCMdim (const TDCMdim &dcm1, const TDCMdim &dcm2) {
+	for (int i=MAX_NUMBER_OF_DIMENSIONS-1; i >=0; i--){
+		if(dcm1.dimIdx[i] < dcm2.dimIdx[i])
+		  return true;
+		else if(dcm1.dimIdx[i] > dcm2.dimIdx[i])
+		  return false;
+	}
+	return false;
+} //compareTDCMdim()
+
+#else
+
 int compareTDCMdim(void const *item1, void const *item2) {
 	struct TDCMdim const *dcm1 = (const struct TDCMdim *)item1;
 	struct TDCMdim const *dcm2 = (const struct TDCMdim *)item2;
@@ -3214,6 +3229,8 @@ int compareTDCMdim(void const *item1, void const *item2) {
 	}
 	return 0;
 } //compareTDCMdim()
+
+#endif // USING_R
 
 struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, struct TDTI4D *dti4D) {
 	struct TDICOMdata d = clear_dicom_data();
@@ -3498,7 +3515,12 @@ double TE = 0.0; //most recent echo time recorded
     	philDTI[i].V[0] = -1;
     //array for storing DimensionIndexValues
 	int numDimensionIndexValues = 0;
+#ifdef USING_R
+    // Allocating a large array on the stack, as below, vexes valgrind and may cause overflow
+    std::vector<TDCMdim> dcmDim(kMaxSlice2D);
+#else
     TDCMdim dcmDim[kMaxSlice2D];
+#endif
     for (int i = 0; i < kMaxSlice2D; i++) {
     	dcmDim[i].diskPos = i;
     	for (int j = 0; j < MAX_NUMBER_OF_DIMENSIONS; j++)
@@ -4774,7 +4796,11 @@ if (d.isHasPhase)
 				if (mn[i] != mx[i])
 					printMessage(" Dimension %d Range: %d..%d\n", i, mn[i], mx[i]);
     	} //verbose > 1
+#ifdef USING_R
+        std::sort(dcmDim.begin(), dcmDim.begin() + numberOfFrames, compareTDCMdim);
+#else
     	qsort(dcmDim, numberOfFrames, sizeof(struct TDCMdim), compareTDCMdim);
+#endif
 		//for (int i = 0; i < numberOfFrames; i++)
 		//	printf("%d -> %d  %d %d %d\n", i,  dcmDim[i].diskPos, dcmDim[i].dimIdx[1], dcmDim[i].dimIdx[2], dcmDim[i].dimIdx[3]);
 		for (int i = 0; i < numberOfFrames; i++)
