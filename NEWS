@@ -2,6 +2,14 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.6.1
+
+- The C++ compiler configuration is now properly detected by the configure
+  script.
+- Warnings from GCC8 and Valgrind have been addressed.
+
+===============================================================================
+
 VERSION 0.6.0
 
 - Upstream improvements, particularly for Philips data, have been integrated.
