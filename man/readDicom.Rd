@@ -26,7 +26,11 @@ from which file paths will be read.}
 
 \item{subset}{If \code{path} is a data frame, an expression which will be
 evaluated in the context of the data frame to determine which series to
-convert. Should evaluate to a logical vector.}
+convert. Should evaluate to a logical vector. If \code{path} is a
+character vector, \code{scanDicom} is called on the path(s) first to
+produce the data frame. If this is specified, and does not evaluate to
+\code{NULL}, the read will be noninteractive, irrespective of the value of
+the \code{interactive} argument.}
 
 \item{flipY}{If \code{TRUE}, the default, then images will be flipped in the
 Y-axis. This is usually desirable, given the difference between

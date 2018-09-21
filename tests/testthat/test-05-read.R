@@ -1,10 +1,12 @@
 context("Reading from DICOM files")
 
 test_that("DICOM-reading code works", {
+    # Read all
     path <- system.file("extdata", "raw", package="divest")
     expect_output(d <- readDicom(path,interactive=FALSE), "Found 4 DICOM")
     expect_output(readDicom(path,interactive=FALSE,verbosity=-1), "Warning")
     
+    # Check results
     expect_identical(length(d), 2L)
     i <- which(sapply(d,RNifti::ndim) == 3L)
     expect_equal(dim(d[[i]]), c(2,224,256))
@@ -13,17 +15,27 @@ test_that("DICOM-reading code works", {
     origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
     expect_equal(round(origin), c(-16,95,135))
     
+    # Cropping
     expect_output(d <- readDicom(path,interactive=FALSE,crop=TRUE), "Cropping")
     i <- which(sapply(d,RNifti::ndim) == 3L)
     expect_equal(dim(d[[i]]), c(2,224,170))
     
+    # Subsets
     expect_output(d <- scanDicom(path), "Found 4 DICOM")
     expect_equal(d$repetitionTime, c(4100,11))
     expect_output(readDicom(d,repetitionTime==4100), "Found 2 DICOM")
+    expect_output(readDicom(path,repetitionTime==4100,interactive=FALSE), "Found 2 DICOM")
     
+    # Single files
     expect_output(d <- readDicom(file.path(path,"01.dcm"),interactive=FALSE), "Convert 1 DICOM")
     expect_equal(dim(d[[1]]), c(224,256,1))
     expect_warning(readDicom(file.path(path,"nonsense"),interactive=FALSE), "does not exist")
+    
+    # (Pseudo-)interactivity
+    with_mock(`divest:::.readline`=function(...) "1",
+        expect_output(d <- readDicom(path,interactive=TRUE), "Found 2 DICOM"),
+        expect_equal(unlist(d), "T0_N_S8")
+    )
 })
 
 test_that("we can read JPEG-encoded data sets", {
