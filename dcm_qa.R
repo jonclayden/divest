@@ -26,7 +26,11 @@ options(warn=1)
 # dataset should be present in the working directory.
 # Rscript's return value can be used to check for success or failure.
 
-images <- readDicom(file.path("dcm_qa","In"), interactive=FALSE, labelFormat="%p_%s", verbosity=-1)
+root <- commandArgs(TRUE)
+if (length(root) != 1)
+    stop("A single argument should be specified, giving the root directory of the test battery")
+
+images <- readDicom(file.path(root,"In"), interactive=FALSE, labelFormat="%p_%s", verbosity=-1)
 labels <- unlist(images)
 
 ignoreFields <- c("ImageType", "PhaseEncodingDirection")
@@ -36,7 +40,7 @@ missingFields <- NULL
 
 for (i in seq_along(images))
 {
-    refStem <- file.path("dcm_qa", "Ref", labels[i])
+    refStem <- file.path(root, "Ref", labels[i])
     refImageFile <- paste(refStem, "nii", sep=".")
     refMetadataFile <- paste(refStem, "json", sep=".")
     

@@ -9,7 +9,8 @@ script:
   - R CMD build .
   - R CMD check *tar.gz
   - R CMD INSTALL *tar.gz
-  - Rscript dcm_qa.R
+  - Rscript dcm_qa.R dcm_qa
+  - Rscript dcm_qa.R dcm_qa_nih
 
 after_success:
   - Rscript -e 'covr::coveralls()'
