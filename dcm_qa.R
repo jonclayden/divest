@@ -35,7 +35,7 @@ labels <- unlist(images)
 
 ignoreFields <- c("ImageType", "PhaseEncodingDirection")
 scaleFields <- c("EchoTime", "RepetitionTime")
-nameMapping <- c(MagneticFieldStrength="fieldStrength", ManufacturersModelName="scannerModelName", TotalReadoutTime="effectiveReadoutTime")
+nameMapping <- c(MagneticFieldStrength="fieldStrength", ManufacturersModelName="scannerModelName", SpacingBetweenSlices="sliceSpacing", TotalReadoutTime="effectiveReadoutTime", MultibandAccelerationFactor="multibandFactor", ImageComments="comments")
 missingFields <- NULL
 
 for (i in seq_along(images))
@@ -92,6 +92,10 @@ for (i in seq_along(images))
 }
 
 if (length(missingFields) > 0)
-    cat(paste0("Fields not captured: ", paste(missingFields,collapse=", "), "\n\n"))
+{
+    cat("Fields not captured:\n")
+    print(missingFields, quote=FALSE)
+    cat("\n")
+}
 
 cat("All tests passed!  \\o/\n")
