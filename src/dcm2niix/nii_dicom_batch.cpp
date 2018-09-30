@@ -1963,7 +1963,7 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
     if (strlen(data.imageType) > 0)
         images->addAttribute("imageType", data.imageType);
     if (data.seriesNum > 0)
-        images->addAttribute("seriesNumber", data.seriesNum);
+        images->addAttribute("seriesNumber", int(data.seriesNum));
     if (strlen(data.seriesDescription) > 0)
         images->addAttribute("seriesDescription", data.seriesDescription);
     if (strlen(data.sequenceName) > 0)
@@ -1985,8 +1985,10 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
     if (data.TI > 0.0)
         images->addAttribute("inversionTime", data.TI);
     if (!data.isXRay) {
-        images->addAttribute("sliceThickness", data.zThick);
-        images->addAttribute("sliceSpacing", data.zSpacing);
+        if (data.zThick > 0.0)
+            images->addAttribute("sliceThickness", data.zThick);
+        if (data.zSpacing > 0.0)
+            images->addAttribute("sliceSpacing", data.zSpacing);
     }
     if (data.CSA.multiBandFactor > 1)
         images->addAttribute("multibandFactor", data.CSA.multiBandFactor);
