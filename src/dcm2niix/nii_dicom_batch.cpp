@@ -1984,10 +1984,10 @@ void writeNiiGz (char * baseName, struct nifti_1_header hdr,  unsigned char* src
 int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts)
 {
     hdr.vox_offset = 352;
+    
     // Extract the basename from the full file path
-    // R always uses '/' as the path separator, so this should work on all platforms
     char *start = niiFilename + strlen(niiFilename);
-    while (start >= niiFilename && *start != '/')
+    while (start >= niiFilename && *start != '/' && *start != kPathSeparator)
         start--;
     std::string name(++start);
 
