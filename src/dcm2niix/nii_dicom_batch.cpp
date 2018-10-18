@@ -3292,13 +3292,13 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
 				dcmList[dcmSort[0].indx].CSA.multiBandFactor = nZero;
 			//report timines
 			if (opts.isVerbose > 1) {
-				printf("GE slice timing\n");
-				printf("\tTime\tX\tY\tZ\tInstance\n");
+				printMessage("GE slice timing\n");
+				printMessage("\tTime\tX\tY\tZ\tInstance\n");
 				for (int v = 0; v < hdr0.dim[3]; v++) {
 					if (v == (hdr0.dim[3]-1))
-						printf("...\n");
+						printMessage("...\n");
 					if ((v < 4) || (v == (hdr0.dim[3]-1)))
-						printf("\t%g\t%g\t%g\t%g\t%d\n", dcmList[dcmSort[0].indx].CSA.sliceTiming[v], dcmList[dcmSort[v+j].indx].patientPosition[1], dcmList[dcmSort[v+j].indx].patientPosition[2], dcmList[dcmSort[v+j].indx].patientPosition[3], dcmList[dcmSort[v+j].indx].imageNum);
+						printMessage("\t%g\t%g\t%g\t%g\t%d\n", dcmList[dcmSort[0].indx].CSA.sliceTiming[v], dcmList[dcmSort[v+j].indx].patientPosition[1], dcmList[dcmSort[v+j].indx].patientPosition[2], dcmList[dcmSort[v+j].indx].patientPosition[3], dcmList[dcmSort[v+j].indx].imageNum);
 
 				} //for v
 			} //verbose > 1
@@ -3955,22 +3955,22 @@ int copyFile (char * src_path, char * dst_path) {
 	unsigned char buffer[BUFFSIZE];
     FILE *fin = fopen(src_path, "rb");
     if (fin == NULL) {
-    	printf("Unable to open input %s\n", src_path);
+    	printError("Unable to open input %s\n", src_path);
     	return EXIT_FAILURE;
     }
     if (is_fileexists(dst_path)) {
-    	printf("Skipping existing file %s\n", dst_path);
+    	printWarning("Skipping existing file %s\n", dst_path);
     	return EXIT_FAILURE;
     }
 	FILE *fou = fopen(dst_path, "wb");
     if (fou == NULL) {
-        printf("Unable to open output %s\n", dst_path);
+        printError("Unable to open output %s\n", dst_path);
     	return EXIT_FAILURE;
     }
     size_t bytes;
     while ((bytes = fread(buffer, 1, BUFFSIZE, fin)) != 0) {
         if(fwrite(buffer, 1, bytes, fou) != bytes) {
-        	 printf("Unable to write %zu bytes to output %s\n", bytes, dst_path);
+        	 printError("Unable to write %zu bytes to output %s\n", bytes, dst_path);
             return EXIT_FAILURE;
         }
     }
