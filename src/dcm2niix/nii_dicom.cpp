@@ -5438,6 +5438,7 @@ double TE = 0.0; //most recent echo time recorded
                 break;
         } //switch/case for groupElement
 
+#ifndef USING_R
         if (isVerbose > 1) {
         	//dcm2niix i fast because it does not use a dictionary.
         	// this is a very incomplete DICOM header report, and not a substitute for tools like dcmdump
@@ -5496,6 +5497,7 @@ double TE = 0.0; //most recent echo time recorded
             	printMessage("%s\n", str);
 	    	//if (d.isExplicitVR) printMessage(" VR=%c%c\n", vr[0], vr[1]);
         }   //printMessage(" tag=%04x,%04x length=%u pos=%ld %c%c nest=%d\n",   groupElement & 65535,groupElement>>16, lLength, lPos,vr[0], vr[1], nest);
+#endif
         lPos = lPos + (lLength);
         //printMessage("%d\n",d.imageStart);
     } //while d.imageStart == 0
