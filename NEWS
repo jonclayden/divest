@@ -2,6 +2,19 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.7.0
+
+- Additional attributes for series number and description, sequence name,
+  protocol name, slice thickness and slice spacing are now captured from DICOM
+  files during conversion.
+- readDicom() now accepts a "subset" argument, even when a path is given rather
+  than a data frame. In this case scanDicom() is called first, and then the
+  requested subset is converted.
+- The package is now compatible with an upcoming change in the RNifti package.
+- Further upstream improvements.
+
+===============================================================================
+
 VERSION 0.6.1
 
 - The C++ compiler configuration is now properly detected by the configure
