@@ -31,6 +31,8 @@ test_that("DICOM-reading code works", {
     expect_equal(dim(d[[1]]), c(224,256,1))
     expect_warning(readDicom(file.path(path,"nonsense"),interactive=FALSE), "does not exist")
     
+    skip_on_cran()
+    
     # (Pseudo-)interactivity
     with_mock(`divest:::.readline`=function(...) "1",
         expect_output(d <- readDicom(path,interactive=TRUE), "Found 2 DICOM"),
