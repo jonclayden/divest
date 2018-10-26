@@ -3992,6 +3992,7 @@ int nii_loadDir(struct TDCMopts* opts) {
     if (isFile) //if user passes ~/dicom/mr1.dcm we will look at all files in ~/dicom
         dropFilenameFromPath(opts->indir);//getParentFolder(opts.indir, opts.indir);
     dropTrailingFileSep(opts->indir);
+#ifndef USING_R
     if (strlen(opts->outdir) < 1) {
         strcpy(opts->outdir,opts->indir);
     } else
@@ -4005,6 +4006,7 @@ int nii_loadDir(struct TDCMopts* opts) {
 		return EXIT_FAILURE;
 		#endif
     }
+#endif
     /*if (isFile && ((isExt(indir, ".gz")) || (isExt(indir, ".tgz"))) ) {
         #ifndef myDisableTarGz
          #ifndef myDisableZLib
