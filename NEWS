@@ -2,6 +2,15 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.7.1
+
+- There is no longer a failure if the user does not have write access to the
+  DICOM directory being read from.
+- R's temporary directory, rather than a hidden directory within the source
+  folder, is now used for temporary copies of files when reading subsets.
+
+===============================================================================
+
 VERSION 0.7.0
 
 - Additional attributes for series number and description, sequence name,
