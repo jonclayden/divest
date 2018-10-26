@@ -110,14 +110,14 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             i <- i + 1
         }
         
-        dir.create(tempDirectory)
+        dir.create(tempDirectory, recursive=TRUE)
         on.exit(unlink(tempDirectory, recursive=TRUE))
         
         success <- file.symlink(files, tempDirectory)
         if (!all(success))
         {
             unlink(tempDirectory, recursive=TRUE)
-            dir.create(tempDirectory)
+            dir.create(tempDirectory, recursive=TRUE)
             success <- file.copy(files, tempDirectory)
         }
         if (!all(success))
@@ -151,8 +151,8 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
         if (usingTempDirectory)
         {
             absolute <- grepl(paste0("^([A-Za-z]:)?",.Platform$file.sep), p)
-            p[!absolute] <- file.path("..", p[!absolute])
-            readFromTempDirectory(".divest", p)
+            p[!absolute] <- file.path(getwd(), p[!absolute])
+            readFromTempDirectory(file.path(tempdir(),"divest"), p)
         }
         else if (!file.exists(p))
         {
@@ -187,8 +187,9 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
                 selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
                 selectedResults <- lapply(selection, function(s) {
                     files <- attr(info,"paths")[[s]]
-                    files <- paste("..", substring(files,nchar(p)+1), sep=.Platform$file.sep)
-                    readFromTempDirectory(file.path(p,paste0(".divest",as.character(s))), files)
+                    absolute <- grepl(paste0("^([A-Za-z]:)?",.Platform$file.sep), files)
+                    files[!absolute] <- file.path(getwd(), files[!absolute])
+                    readFromTempDirectory(file.path(tempdir(),paste0("divest",as.character(s))), files)
                 })
                 return (do.call(c,selectedResults))
             }
