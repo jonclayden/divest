@@ -649,9 +649,9 @@ int headerDcm2Nii2(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_hea
         sprintf(dtxt, ";mb=%d", d.CSA.multiBandFactor);
         strcat(txt,dtxt);
     }
-    // GCC 8 warns about truncation using snprintf; using strncpy instead seems to keep it happy
+    // GCC 8 warns about truncation using snprintf
     // snprintf(h->descrip,80, "%s",txt);
-    strncpy(h->descrip, txt, 79);
+    memcpy(h->descrip, txt, 79);
     h->descrip[79] = '\0';
 
     if (strlen(d.imageComments) > 0)
@@ -5524,7 +5524,7 @@ double TE = 0.0; //most recent echo time recorded
 		// 20161117131643.80000 -> date 20161117 time 131643.80000
 		//printMessage("acquisitionDateTime %s\n",acquisitionDateTimeTxt);
     	char acquisitionDateTxt[kDICOMStr];
-        strncpy(acquisitionDateTxt, acquisitionDateTimeTxt, kYYYYMMDDlen);
+        memcpy(acquisitionDateTxt, acquisitionDateTimeTxt, kYYYYMMDDlen);
 		acquisitionDateTxt[kYYYYMMDDlen] = '\0'; // IMPORTANT!
         d.acquisitionDate = atof(acquisitionDateTxt);
         char acquisitionTimeTxt[kDICOMStr];
