@@ -1794,7 +1794,7 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
     strcat (baseoutname,pth);
     char appendChar[2] = {"a"};
     appendChar[0] = kPathSeparator;
-    if ((pth[strlen(pth)-1] != kPathSeparator) && (outname[0] != kPathSeparator))
+    if ((strlen(pth) > 0) && (pth[strlen(pth)-1] != kPathSeparator) && (outname[0] != kPathSeparator))
         strcat (baseoutname,appendChar);
 	//Allow user to specify new folders, e.g. "-f dir/%p" or "-f %s/%p/%m"
 	// These folders are created if they do not exist
