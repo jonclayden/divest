@@ -2,6 +2,12 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.7.2
+
+- ASAN/UBSAN and Valgrind warnings have been resolved.
+
+===============================================================================
+
 VERSION 0.7.1
 
 - There is no longer a failure if the user does not have write access to the
