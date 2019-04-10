@@ -12,6 +12,11 @@ test_that("DICOM-reading code works", {
     expect_equal(dim(d[[i]]), c(2,224,256))
     expect_equal(attr(d[[i]],"flipAngle"), 15)
     
+    # Check all attributes
+    attributes <- attributes(d[[i]])
+    attrNames <- sort(setdiff(names(attributes), ".nifti_image_ptr"))
+    expect_known_value(attributes[attrNames], "attributes.rds", update=FALSE)
+    
     origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
     expect_equal(round(origin), c(-16,95,135))
     
