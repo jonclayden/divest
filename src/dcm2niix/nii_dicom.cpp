@@ -519,11 +519,17 @@ mat44 xform_mat(struct TDICOMdata d) {
 	} else if (true) {
 //SliceNormalVector TO DO
 		printMessage("Not completed");
+#ifndef USING_R
 		exit(2);
+#endif
 		return R44;
 	}
 	printMessage("Unable to determine spatial transform\n");
+#ifndef USING_R
 	exit(1);
+#else
+    return R44;
+#endif
 }
 
 mat44 set_nii_header(struct TDICOMdata d) {

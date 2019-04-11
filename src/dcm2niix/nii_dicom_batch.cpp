@@ -4566,7 +4566,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     } else if ((!opts.isMaximize16BitRange) && (hdr0.datatype == DT_UINT16) &&  (!dcmList[dcmSort[0].indx].isSigned))
     	nii_check16bitUnsigned(imgM, &hdr0, opts.isVerbose); //save UINT16 as INT16 if we can do this losslessly
     printMessage( "Convert %d DICOM as %s (%dx%dx%dx%d)\n",  nConvert, pathoutname, hdr0.dim[1],hdr0.dim[2],hdr0.dim[3],hdr0.dim[4]);
-    #ifdef USING_R
+    #ifndef USING_R
     fflush(stdout); //show immediately if run from MRIcroGL GUI
     #endif
     //~ if (!dcmList[dcmSort[0].indx].isSlicesSpatiallySequentialPhilips)
@@ -5038,7 +5038,11 @@ int textDICOM(struct TDCMopts* opts, char *fname) {
 	//check input file
     FILE *fp = fopen(fname, "r");
     if (fp == NULL)
+#ifdef USING_R
+        return EXIT_FAILURE;
+#else
     	exit(EXIT_FAILURE);
+#endif
     char *dcmname = NULL;
     int nConvert = 0;
     size_t len = 0;
@@ -5061,7 +5065,7 @@ int textDICOM(struct TDCMopts* opts, char *fname) {
     	return EXIT_FAILURE;
     }
     printMessage("Found %d DICOM file(s)\n", nConvert);
-    #ifdef USING_R
+    #ifndef USING_R
     fflush(stdout); //show immediately if run from MRIcroGL GUI
     #endif
     TDCMsort * dcmSort = (TDCMsort *)malloc(nConvert * sizeof(TDCMsort));
