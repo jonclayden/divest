@@ -849,6 +849,7 @@ void rescueProtocolName(struct TDICOMdata *d, const char * filename) {
 	//tools like gdcmanon strip protocol name (0018,1030) but for Siemens we can recover it from CSASeriesHeaderInfo (0029,1020)
 	if ((d->manufacturer != kMANUFACTURER_SIEMENS) || (d->CSA.SeriesHeader_offset < 1) || (d->CSA.SeriesHeader_length < 1)) return;
 	if (strlen(d->protocolName) > 0) return;
+#ifdef myReadAsciiCsa
 	int baseResolution, interpInt, partialFourier, echoSpacing, difBipolar, parallelReductionFactorInPlane, refLinesPE;
 	//float pf = 1.0f; //partial fourier
 	float phaseOversampling, delayTimeInTR, phaseResolution, txRefAmp, shimSetting[8];
@@ -856,6 +857,7 @@ void rescueProtocolName(struct TDICOMdata *d, const char * filename) {
 	TsWipMemBlock sWipMemBlock;
 	siemensCsaAscii(filename, &sWipMemBlock, d->CSA.SeriesHeader_offset, d->CSA.SeriesHeader_length, &delayTimeInTR, &phaseOversampling, &phaseResolution, &txRefAmp, shimSetting, &baseResolution, &interpInt, &partialFourier, &echoSpacing, &difBipolar, &parallelReductionFactorInPlane, &refLinesPE, coilID, consistencyInfo, coilElements, pulseSequenceDetails, fmriExternalInfo, protocolName, wipMemBlock);
 	strcpy(d->protocolName, protocolName);
+#endif
 }
 
 void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts, struct nifti_1_header *h, const char * filename) {
@@ -4670,7 +4672,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     // Note that for R, only one image should be created per series
     // Hence this extra test
     if (returnCode != EXIT_SUCCESS)
-        returnCode = nii_saveNII(pathoutname,hdr0,imgM,opts);
+        returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
     if (returnCode == EXIT_SUCCESS)
         nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts, nameList->str[dcmSort[0].indx]);
 #endif
@@ -5516,8 +5518,10 @@ int nii_loadDir(struct TDCMopts* opts) {
 		#endif
     }
     getFileNameX(opts->indirParent, opts->indir, 512);
+#ifndef USING_R
     if (isFile && ( (isExt(indir, ".v"))) )
 		return convert_foreign (indir, *opts);
+#endif
     if (isFile && ( (isExt(indir, ".par")) || (isExt(indir, ".rec"))) ) {
         char pname[512], rname[512];
         strcpy(pname,indir);
