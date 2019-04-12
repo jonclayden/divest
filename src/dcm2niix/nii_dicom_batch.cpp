@@ -59,9 +59,11 @@
 	#define M_PI 3.14159265358979323846
 #endif
 #if defined(_WIN64) || defined(_WIN32)
+	#define myTextFileInputLists //comment out to disable this feature: https://github.com/rordenlab/dcm2niix/issues/288
 	const char kPathSeparator ='\\';
 	const char kFileSep[2] = "\\";
 #else
+	#define myTextFileInputLists
 	const char kPathSeparator ='/';
 	const char kFileSep[2] = "/";
 #endif
@@ -1126,13 +1128,11 @@ tse3d: T2*/
 			json_FloatNotNan(fp, "\t\"InversionTime2\": %g,\n", sWipMemBlock.alTI[0] * (1.0/1000.0)); //usec -> sec
 			json_FloatNotNan(fp, "\t\"SaturationStopTime\": %g,\n", sWipMemBlock.alTI[2] * (1.0/1000.0));
 		}
-		//ASL specific tags - 3D PASL Siemens Product
+		//ASL specific tags - 3D PASL Siemens Product http://adni.loni.usc.edu/wp-content/uploads/2010/05/ADNI3_Basic_Siemens_Skyra_E11.pdf
 		if (strstr(pulseSequenceDetails,"tgse_pasl")) {
-			for (int k = 0; k < 4; k++) {
-				char newstr[256];
-				sprintf(newstr, "\t\"InversionTime%d\": %%g,\n", k);
-				json_FloatNotNan(fp, newstr,  sWipMemBlock.alTI[k] * (1.0/1000.0)); //ms->sec
-			}
+			json_FloatNotNan(fp, "\t\"BolusDuration\": %g,\n", sWipMemBlock.alTI[0] * (1.0/1000.0)); //ms->sec
+			json_FloatNotNan(fp, "\t\"InversionTime1\": %g,\n", sWipMemBlock.alTI[2] * (1.0/1000.0)); //usec -> sec
+			json_FloatNotNan(fp, "\t\"SaturationStopTime\": %g,\n", sWipMemBlock.alTI[2] * (1.0/1000.0));
 		}
 		//ASL specific tags - Oxford (Thomas OKell)
 		bool isOxfordASL = false;
@@ -2896,10 +2896,10 @@ int nii_saveNRRD(char * niiFilename, struct nifti_1_header hdr, unsigned char* i
 		//http://teem.sourceforge.net/nrrd/format.html
 		double dtMin = 0.0; //DT_UINT8, DT_RGB24, DT_UINT16
 		if (hdr.datatype == DT_INT16) dtMin = -32768.0;
-		if (hdr.datatype == DT_INT32) dtMin = -2147483648;
+		if (hdr.datatype == DT_INT32) dtMin = -2147483648.0;
 		fprintf(fp,"oldmin: %8.8f\n", (dtMin * hdr.scl_slope)  + hdr.scl_inter);
 		double dtMax = 255.00; //DT_UINT8, DT_RGB24
-		if (hdr.datatype == DT_INT16) dtMax = 32767;
+		if (hdr.datatype == DT_INT16) dtMax = 32767.0;
 		if (hdr.datatype == DT_UINT16) dtMax = 65535.0;
 		if (hdr.datatype == DT_INT32) dtMax = 2147483647.0;
 		fprintf(fp,"oldmax: %8.8f\n", (dtMax * hdr.scl_slope)  + hdr.scl_inter);
@@ -2961,7 +2961,7 @@ int nii_saveNRRD(char * niiFilename, struct nifti_1_header hdr, unsigned char* i
 			mf.m[0][2],mf.m[1][2],mf.m[2][2]);
 		//modality tag
 		fprintf(fp,"modality:=DWMRI\n");
-		float b_max = 0;
+		float b_max = 0.0;
 		for (int i = 0; i < numDTI; i++)
 			if (dti4D->S[i].V[0] > b_max)
 				b_max = dti4D->S[i].V[0];
@@ -2994,8 +2994,8 @@ int nii_saveNRRD(char * niiFilename, struct nifti_1_header hdr, unsigned char* i
 int nii_saveNII(char * niiFilename, struct nifti_1_header hdr, unsigned char* im, struct TDCMopts opts, struct TDICOMdata d) {
     if (opts.isOnlyBIDS) return EXIT_SUCCESS;
     if (opts.isSaveNRRD) {
-		struct TDTI4D *dti4D;
-    	return nii_saveNRRD(niiFilename, hdr, im, opts, d, dti4D, 0);
+		struct TDTI4D dti4D;
+    	return nii_saveNRRD(niiFilename, hdr, im, opts, d, &dti4D, 0);
     }
     hdr.vox_offset = 352;
     size_t imgsz = nii_ImgBytes(hdr);
@@ -5034,6 +5034,67 @@ int singleDICOM(struct TDCMopts* opts, char *fname) {
     return ret;
 }// singleDICOM()
 
+#ifdef myTextFileInputLists //https://github.com/rordenlab/dcm2niix/issues/288
+int textDICOM(struct TDCMopts* opts, char *fname) {
+	//check input file
+    FILE *fp = fopen(fname, "r");
+    if (fp == NULL)
+    	exit(EXIT_FAILURE);
+    int nConvert = 0;
+    char dcmname[2048];
+    while (fgets(dcmname, sizeof(dcmname), fp)) {
+		int sz = strlen(dcmname);
+		if (sz > 0 && dcmname[sz-1] == '\n') dcmname[sz-1] = 0; //Unix LF
+		if (sz > 1 && dcmname[sz-2] == '\r') dcmname[sz-2] = 0; //Windows CR/LF
+		//if (isDICOMfile(dcmname) == 0) { //<- this will reject DICOM metadata not wrapped with a header
+        if ((!is_fileexists(dcmname)) || (!is_fileNotDir(dcmname)) ) { //<-this will accept meta data
+        	fclose(fp);
+        	printError("Problem with file '%s'\n", dcmname);
+        	return EXIT_FAILURE;
+    	}
+    	//printf("%s\n", dcmname);
+		nConvert ++;
+    }
+    fclose(fp);
+    if (nConvert < 1) {
+    	printError("No DICOM files found '%s'\n", dcmname);
+    	return EXIT_FAILURE;
+    }
+    printMessage("Found %d DICOM file(s)\n", nConvert);
+    #ifdef USING_R
+    fflush(stdout); //show immediately if run from MRIcroGL GUI
+    #endif
+    TDCMsort * dcmSort = (TDCMsort *)malloc(nConvert * sizeof(TDCMsort));
+	struct TDICOMdata *dcmList  = (struct TDICOMdata *)malloc(nConvert * sizeof(struct  TDICOMdata));
+    struct TDTI4D dti4D;
+    struct TSearchList nameList;
+    nameList.maxItems = nConvert; // larger requires more memory, smaller more passes
+    nameList.str = (char **) malloc((nameList.maxItems+1) * sizeof(char *)); //reserve one pointer (32 or 64 bits) per potential file
+    nameList.numItems = 0;
+	nConvert = 0;
+	fp = fopen(fname, "r");
+    while (fgets(dcmname, sizeof(dcmname), fp)) {
+		int sz = strlen(dcmname);
+		if (sz > 0 && dcmname[sz-1] == '\n') dcmname[sz-1] = 0; //Unix LF
+		if (sz > 1 && dcmname[sz-2] == '\r') dcmname[sz-2] = 0; //Windows CR/LF
+		nameList.str[nameList.numItems]  = (char *)malloc(strlen(dcmname)+1);
+    	strcpy(nameList.str[nameList.numItems],dcmname);
+    	nameList.numItems++;
+		dcmList[nConvert] = readDICOMv(nameList.str[nConvert], opts->isVerbose, opts->compressFlag, &dti4D); //ignore compile warning - memory only freed on first of 2 passes
+		fillTDCMsort(dcmSort[nConvert], nConvert, dcmList[nConvert]);
+		nConvert ++;
+    }
+    fclose(fp);
+    qsort(dcmSort, nConvert, sizeof(struct TDCMsort), compareTDCMsort); //sort based on series and image numbers....
+	int ret = saveDcm2Nii(nConvert, dcmSort, dcmList, &nameList, *opts, &dti4D);
+    free(dcmSort);
+    free(dcmList);
+    freeNameList(nameList);
+    return ret;
+}//textDICOM()
+
+/*
+//code below fails on Windows https://github.com/rordenlab/dcm2niix/issues/288
 int textDICOM(struct TDCMopts* opts, char *fname) {
 	//check input file
     FILE *fp = fopen(fname, "r");
@@ -5094,7 +5155,13 @@ int textDICOM(struct TDCMopts* opts, char *fname) {
     free(dcmList);
     freeNameList(nameList);
     return ret;
-}//textDICOM()
+}//textDICOM()*/
+#else //ifdef myTextFileInputLists
+int textDICOM(struct TDCMopts* opts, char *fname) {
+	printError("Unable to parse txt files: re-compile with 'myTextFileInputLists' (see issue 288)");
+	return EXIT_FAILURE;
+}
+#endif
 
 size_t fileBytes(const char * fname) {
     FILE *fp = fopen(fname, "rb");
@@ -5361,7 +5428,7 @@ int nii_loadDirCore(char *indir, struct TDCMopts* opts) {
         	printMessage("Image Decompression is new: please validate conversions\n");
     	}
     }
-    if (opts->isRenameNotConvert > 0) {
+    if (opts->isRenameNotConvert) {
     	return EXIT_SUCCESS;
     }
 #ifdef USING_R
@@ -5543,7 +5610,7 @@ int nii_loadDir(struct TDCMopts* opts) {
     }
     if (isFile && (opts->isOnlySingleFile) && isExt(indir, ".txt") )
     	return textDICOM(opts, indir);
-	if (opts->isRenameNotConvert > 0) {
+	if (opts->isRenameNotConvert) {
 		int nConvert = searchDirRenameDICOM(opts->indir, opts->dirSearchDepth, 0, opts);
 		if (nConvert < 0) return EXIT_FAILURE;
 		printMessage("Converted %d DICOMs\n", nConvert);
