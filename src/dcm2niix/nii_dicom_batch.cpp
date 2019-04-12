@@ -5039,7 +5039,11 @@ int textDICOM(struct TDCMopts* opts, char *fname) {
 	//check input file
     FILE *fp = fopen(fname, "r");
     if (fp == NULL)
+#ifdef USING_R
+        return EXIT_FAILURE;
+#else
     	exit(EXIT_FAILURE);
+#endif
     int nConvert = 0;
     char dcmname[2048];
     while (fgets(dcmname, sizeof(dcmname), fp)) {
@@ -5061,7 +5065,7 @@ int textDICOM(struct TDCMopts* opts, char *fname) {
     	return EXIT_FAILURE;
     }
     printMessage("Found %d DICOM file(s)\n", nConvert);
-    #ifdef USING_R
+    #ifndef USING_R
     fflush(stdout); //show immediately if run from MRIcroGL GUI
     #endif
     TDCMsort * dcmSort = (TDCMsort *)malloc(nConvert * sizeof(TDCMsort));
