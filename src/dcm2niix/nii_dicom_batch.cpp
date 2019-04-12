@@ -5575,6 +5575,7 @@ int nii_loadDir(struct TDCMopts* opts) {
     if (isFile) //if user passes ~/dicom/mr1.dcm we will look at all files in ~/dicom
         dropFilenameFromPath(opts->indir);
     dropTrailingFileSep(opts->indir);
+#ifndef USING_R
     if (strlen(opts->outdir) < 1) {
         strcpy(opts->outdir,opts->indir);
     } else
@@ -5588,6 +5589,7 @@ int nii_loadDir(struct TDCMopts* opts) {
 		return EXIT_FAILURE;
 		#endif
     }
+#endif
     getFileNameX(opts->indirParent, opts->indir, 512);
 #ifndef USING_R
     if (isFile && ( (isExt(indir, ".v"))) )
