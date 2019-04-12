@@ -6124,7 +6124,11 @@ if (d.isHasPhase)
     }
     if ((d.xyzDim[1] > 1) && (d.xyzDim[2] > 1) && (d.imageStart < 132)) {
     	printError("Conversion aborted due to corrupt file: %s\n", fname);
+#ifdef USING_R
+        Rf_error("Irrecoverable error during conversion");
+#else
     	exit (kEXIT_CORRUPT_FILE_FOUND);
+#endif
     }
     if ((numDimensionIndexValues > 1) && (numDimensionIndexValues == numberOfFrames)) {
     	//Philips enhanced datasets can have custom slice orders and pack images with different TE, Phase/Magnitude/Etc.
