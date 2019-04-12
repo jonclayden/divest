@@ -39,6 +39,11 @@ extern "C" {
         bool isScanOnly;
         void *imageList;
         std::vector<TDicomSeries> series;
+        
+        // Used when sorting a directory
+        std::vector<std::string> sourcePaths;
+        std::vector<std::string> targetPaths;
+        std::vector<std::string> ignoredPaths;
 #endif
     };
     void saveIniFile (struct TDCMopts opts);

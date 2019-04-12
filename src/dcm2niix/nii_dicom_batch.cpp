@@ -5345,13 +5345,41 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
 			if (dcm.imageNum > 0) { //use imageNum instead of isValid to convert non-images (kWaveformSq will have instance number but is not a valid image)
 				if ((opts->isIgnoreDerivedAnd2D) && ((dcm.isLocalizer)  || (strcmp(dcm.sequenceName, "_tfl2d1")== 0) || (strcmp(dcm.sequenceName, "_fl3d1_ns")== 0) || (strcmp(dcm.sequenceName, "_fl2d1")== 0)) ) {
 					printMessage("Ignoring localizer %s\n", filename);
+#ifdef USING_R
+                    opts->ignoredPaths.push_back(std::string(filename));
+#endif
 				} else if ((opts->isIgnoreDerivedAnd2D && dcm.isDerived) ) {
 					printMessage("Ignoring derived %s\n", filename);
+#ifdef USING_R
+                    opts->ignoredPaths.push_back(std::string(filename));
+#endif
 				} else {
 					char outname[PATH_MAX] = {""};
 					if (dcm.echoNum > 1) dcm.isMultiEcho = true; //last resort: Siemens gives different echoes the same image number: avoid overwriting, e.g "-f %r.dcm" should generate "1.dcm", "1_e2.dcm" for multi-echo volumes
 					nii_createFilename(dcm, outname, *opts);
 					//if (isDcmExt) strcat (outname,".dcm");
+#ifdef USING_R
+                    // If the file name part of the target path has no extension, add ".dcm"
+                    std::string targetPath(outname);
+                    const size_t periodLoc = targetPath.find_last_of('.');
+                    if (periodLoc == targetPath.length() - 1)
+                        targetPath.append("dcm");
+                    else if (periodLoc > targetPath.find_last_of("\\/"))
+                        targetPath.append(".dcm");
+                    
+                    if (targetPath.compare(filename) == 0) {
+                        if (opts->isVerbose > 1)
+                            printMessage("Skipping %s, which would be copied onto itself\n", filename);
+                    } else if (copyFile(filename, const_cast<char*>(targetPath.c_str())) == EXIT_SUCCESS) {
+                        opts->sourcePaths.push_back(std::string(filename));
+                        opts->targetPaths.push_back(targetPath);
+                        retAll++;
+                        if (opts->isVerbose > 0)
+                            printMessage("Copying %s -> %s\n", filename, targetPath.c_str());
+                    } else {
+                        printWarning("Unable to copy to path %s\n", targetPath.c_str());
+                    }
+#else
 					int ret = copyFile (filename, outname);
 					if (ret != EXIT_SUCCESS) {
 						printError("Unable to rename all DICOM images.\n");
@@ -5360,6 +5388,7 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
 					retAll += 1;
 					if (opts->isVerbose > 0)
 						printMessage("Renaming %s -> %s\n", filename, outname);
+#endif
 				}
 			}
         }
@@ -5579,7 +5608,10 @@ int nii_loadDir(struct TDCMopts* opts) {
     if (isFile) //if user passes ~/dicom/mr1.dcm we will look at all files in ~/dicom
         dropFilenameFromPath(opts->indir);
     dropTrailingFileSep(opts->indir);
-#ifndef USING_R
+#ifdef USING_R
+    // Full file paths are only used by R/divest when reorganising DICOM files
+    if (opts->isRenameNotConvert) {
+#endif
     if (strlen(opts->outdir) < 1) {
         strcpy(opts->outdir,opts->indir);
     } else
@@ -5592,6 +5624,8 @@ int nii_loadDir(struct TDCMopts* opts) {
 		printError("Output folder invalid: %s\n",opts->outdir);
 		return EXIT_FAILURE;
 		#endif
+    }
+#ifdef USING_R
     }
 #endif
     getFileNameX(opts->indirParent, opts->indir, 512);
