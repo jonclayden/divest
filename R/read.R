@@ -4,8 +4,9 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
-.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, scanOnly)
+.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, task = c("read","scan","sort"))
 {
+    task <- match.arg(task)
     if (verbosity < 0L)
     {
         output <- NULL
@@ -17,7 +18,7 @@
         })
     }
     
-    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, scanOnly)
+    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, task)
 }
 
 # Wrapper function to allow mocking in tests
@@ -123,7 +124,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .readPath(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
+        .readPath(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, "read")
     }
     
     usingTempDirectory <- FALSE
@@ -160,11 +161,11 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             return (NULL)
         }
         else if (!file.info(p)$isdir)
-            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, FALSE)
+            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, "read")
         else if (interactive)
         {
             p <- path.expand(p)
-            info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, TRUE))
+            info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, "scan"))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -177,7 +178,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             selection <- .readline("\nSelected series: ")
             if (selection == "")
             {
-                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
+                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, "read")
                 return (allResults[attr(info,"ordering")])
             }
             else if (selection == "0")
@@ -195,7 +196,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             }
         }
         else
-            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, FALSE)
+            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, "read")
     })
     
     return (do.call(c, results))
@@ -205,44 +206,45 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
 #' @export
 sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", nested = TRUE, keepUnsorted = FALSE)
 {
-    if (is.data.frame(path))
-        info <- path
-    else
-        info <- scanDicom(path, forceStack, verbosity, labelFormat)
-    
-    for (i in seq_len(nrow(info)))
-    {
-        directory <- info$label[i]
-        if (nested)
-            directory <- file.path(info$rootPath[i], directory)
-        if (!file.exists(directory))
-            dir.create(directory)
-        
-        from <- attr(info, "paths")[[i]]
-        to <- file.path(directory, basename(from))
-        repeat
-        {
-            clashes <- (duplicated(to) | (from != to & file.exists(to)))
-            if (!any(clashes))
-                break
-            
-            # Add random six-hex-digit suffixes to resolve clashes
-            suffixes <- matrix(sample(c(0:9,letters[1:6]), 6*sum(clashes), replace=TRUE), ncol=6L)
-            to[clashes] <- paste0(to[clashes], "_", apply(suffixes,1,paste,collapse=""))
-        }
-        
-        inPlace <- (from == to)
-        if (verbosity > 0)
-            cat(paste0(paste(from[!inPlace], "->", to[!inPlace], collapse="\n"), "\n"))
-        
-        success <- file.copy(from[!inPlace], to[!inPlace])
-        if (!all(success))
-            warning("Not all files copied successfully into path \"", directory, "\"")
-        else if (!keepUnsorted)
-            unlink(from[!inPlace])
-    }
-    
-    invisible(NULL)
+    .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, "sort")
+    # if (is.data.frame(path))
+    #     info <- path
+    # else
+    #     info <- scanDicom(path, forceStack, verbosity, labelFormat)
+    #
+    # for (i in seq_len(nrow(info)))
+    # {
+    #     directory <- info$label[i]
+    #     if (nested)
+    #         directory <- file.path(info$rootPath[i], directory)
+    #     if (!file.exists(directory))
+    #         dir.create(directory)
+    #
+    #     from <- attr(info, "paths")[[i]]
+    #     to <- file.path(directory, basename(from))
+    #     repeat
+    #     {
+    #         clashes <- (duplicated(to) | (from != to & file.exists(to)))
+    #         if (!any(clashes))
+    #             break
+    #
+    #         # Add random six-hex-digit suffixes to resolve clashes
+    #         suffixes <- matrix(sample(c(0:9,letters[1:6]), 6*sum(clashes), replace=TRUE), ncol=6L)
+    #         to[clashes] <- paste0(to[clashes], "_", apply(suffixes,1,paste,collapse=""))
+    #     }
+    #
+    #     inPlace <- (from == to)
+    #     if (verbosity > 0)
+    #         cat(paste0(paste(from[!inPlace], "->", to[!inPlace], collapse="\n"), "\n"))
+    #
+    #     success <- file.copy(from[!inPlace], to[!inPlace])
+    #     if (!all(success))
+    #         warning("Not all files copied successfully into path \"", directory, "\"")
+    #     else if (!keepUnsorted)
+    #         unlink(from[!inPlace])
+    # }
+    # 
+    # invisible(NULL)
 }
 
 #' @rdname readDicom
@@ -251,7 +253,7 @@ scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
 {
     results <- lapply(path, function(p) {
         if (file.info(p)$isdir)
-            .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, TRUE)
+            .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, "scan")
         else
             warning(paste0("Path \"", p, "\" does not point to a directory"))
     })

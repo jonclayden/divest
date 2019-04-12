@@ -9,11 +9,12 @@
 
 using namespace Rcpp;
 
-RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP scanOnly_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP task_)
 {
 BEGIN_RCPP
     const std::string path = as<std::string>(path_);
     const std::string labelFormat = as<std::string>(labelFormat_);
+    const std::string task = as<std::string>(task_);
     
     TDCMopts options;
     setDefaultOpts(&options, NULL);
@@ -26,7 +27,8 @@ BEGIN_RCPP
     options.isForceStackSameSeries = as<bool>(forceStack_);
     options.isCrop = as<bool>(crop_);
     options.isOnlySingleFile = as<bool>(singleFile_);
-    options.isScanOnly = as<bool>(scanOnly_);
+    options.isScanOnly = (task == "scan");
+    options.isRenameNotConvert = (task == "sort");
     options.isVerbose = as<int>(verbosity_);
     options.compressFlag = kCompressYes;
     strcpy(options.indir, path.c_str());
