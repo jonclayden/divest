@@ -140,7 +140,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef callMethods[] = {
-  { "readDirectory", (DL_FUNC) &readDirectory, 8 },
+  { "readDirectory", (DL_FUNC) &readDirectory, 9 },
   { NULL, NULL, 0 }
 };
 

@@ -73,7 +73,7 @@ test_that("DICOM file sorting works", {
     file.copy(path, temp, recursive=TRUE)
     path <- file.path(temp, "raw")
     
-    expect_output(sortDicom(path), "Found 4 DICOM")
+    expect_output(sortDicom(path), "Renamed 4 DICOM")
     expect_equal(length(list.files(path)), 2L)
     expect_true(all(c("T0_N_S8","T0_N_S9") %in% list.files(path)))
     expect_output(readDicom(file.path(path,"T0_N_S8"),interactive=FALSE), "Found 2 DICOM")

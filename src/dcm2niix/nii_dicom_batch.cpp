@@ -5677,7 +5677,11 @@ int nii_loadDir(struct TDCMopts* opts) {
 	if (opts->isRenameNotConvert) {
 		int nConvert = searchDirRenameDICOM(opts->indir, opts->dirSearchDepth, 0, opts);
 		if (nConvert < 0) return EXIT_FAILURE;
+#ifdef USING_R
+		printMessage("Renamed %d DICOMs\n", nConvert);
+#else
 		printMessage("Converted %d DICOMs\n", nConvert);
+#endif
 		return EXIT_SUCCESS;
 	}
     if ((isFile) && (opts->isOnlySingleFile))
