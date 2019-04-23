@@ -124,6 +124,8 @@ BEGIN_RCPP
             info.attr("class") = CharacterVector::create("divest","data.frame");
             return info;
         }
+        else if (options.isRenameNotConvert)
+            return List::create(Named("source")=options.sourcePaths, Named("target")=options.targetPaths, Named("ignored")=options.ignoredPaths);
         else
             return images;
     }
