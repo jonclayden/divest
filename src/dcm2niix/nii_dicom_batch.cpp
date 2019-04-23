@@ -2333,6 +2333,11 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
 	//Allow user to specify new folders, e.g. "-f dir/%p" or "-f %s/%p/%m"
 	// These folders are created if they do not exist
     char *sep = strchr(outname, kPathSeparator);
+#if defined(USING_R) && (defined(_WIN64) || defined(_WIN32))
+    // R also uses forward slash on Windows, so allow it here
+    if (!sep)
+        sep = strchr(outname, kForeignPathSeparator);
+#endif
     if (sep) {
     	char newdir[2048] = {""};
     	strcat (newdir,baseoutname);
@@ -5361,12 +5366,30 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
 #ifdef USING_R
                     // If the file name part of the target path has no extension, add ".dcm"
                     std::string targetPath(outname);
+                    std::string targetStem, targetExtension;
                     const size_t periodLoc = targetPath.find_last_of('.');
-                    if (periodLoc == targetPath.length() - 1)
-                        targetPath.append("dcm");
-                    else if (periodLoc > targetPath.find_last_of("\\/"))
-                        targetPath.append(".dcm");
+                    if (periodLoc == targetPath.length() - 1) {
+                        targetStem = targetPath.substr(0, targetPath.length() - 1);
+                        targetExtension = ".dcm";
+                    } else if (periodLoc == std::string::npos || periodLoc < targetPath.find_last_of("\\/")) {
+                        targetStem = targetPath;
+                        targetExtension = ".dcm";
+                    } else {
+                        targetStem = targetPath.substr(0, periodLoc);
+                        targetExtension = targetPath.substr(periodLoc);
+                    }
                     
+                    // Deduplicate the target path to avoid overwriting existing files
+                    targetPath = targetStem + targetExtension;
+                    int suffix = 1;
+                    while (is_fileexists(targetPath.c_str())) {
+                        std::ostringstream candidatePath;
+                        candidatePath << targetStem << "_dup" << suffix << targetExtension;
+                        targetPath = candidatePath.str();
+                        suffix++;
+                    }
+                    
+                    // Copy the file, unless the source and target paths are the same
                     if (targetPath.compare(filename) == 0) {
                         if (opts->isVerbose > 1)
                             printMessage("Skipping %s, which would be copied onto itself\n", filename);
