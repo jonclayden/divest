@@ -11,7 +11,8 @@ readDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
   interactive = base::interactive())
 
 sortDicom(path = ".", forceStack = FALSE, verbosity = 0L,
-  labelFormat = "T\%t_N\%n_S\%s", nested = TRUE, keepUnsorted = FALSE)
+  labelFormat = "T\%t_N\%n_S\%s/\%b", nested = TRUE,
+  keepUnsorted = FALSE)
 
 scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
   labelFormat = "T\%t_N\%n_S\%s")
@@ -49,7 +50,7 @@ output generated during the conversion. A negative value will suppress all
 output from \code{dcm2niix} except warnings and errors.}
 
 \item{labelFormat}{A \code{\link{sprintf}}-style string specifying the
-format to use for the final image labels. See Details.}
+format to use for the final image labels or paths. See Details.}
 
 \item{interactive}{If \code{TRUE}, the default in interactive sessions, the
 requested paths will first be scanned and a list of DICOM series will be
@@ -69,8 +70,9 @@ The \code{readDicom} function returns a list of \code{niftiImage}
   objects, which can be easily converted to standard R arrays or written to
   NIfTI-1 format using functions from the \code{RNifti} package. The
   \code{scanDicom} function returns a data frame containing information
-  about each DICOM series found. \code{sortDicom} is called for its side-
-  effect, and so returns \code{NULL}.
+  about each DICOM series found. \code{sortDicom} is mostly called for its
+  side-effect, but also (invisibly) returns a list detailing source and
+  target paths.
 }
 \description{
 These functions are R wrappers around the DICOM-to-NIfTI conversion routines
@@ -83,18 +85,22 @@ The \code{scanDicom} function parses directories full of DICOM files and
 returns information about the acquisition series they contain.
 \code{readDicom} reads these files and converts them to (internal) NIfTI
 images (whose pixel data can be extracted using \code{as.array}).
-\code{sortDicom} sorts the files into subdirectories by series, but does not
-convert them.
+\code{sortDicom} renames the files, but does not convert them.
 
 The \code{labelFormat} argument describes the string format used for image
-labels and sorted subdirectories. Valid codes, each escaped with a
-percentage sign, include \code{a} for coil number, \code{c} for image
-comments, \code{d} for series description, \code{e} for echo number,
-\code{f} for the source directory, \code{i} for patient ID, \code{l} for the
-procedure step description, \code{m} for manufacturer, \code{n} for patient
-name, \code{p} for protocol name, \code{q} for scanning sequence, \code{s}
-for series number, \code{t} for the date and time, \code{u} for acquisition
-number and \code{z} for sequence name.
+labels and sorted files. Valid codes, each escaped with a percentage sign,
+include \code{a} for coil number, \code{b} for the source file base name,
+\code{c} for image comments, \code{d} for series description, \code{e} for
+echo number, \code{f} for the source directory, \code{i} for patient ID,
+\code{j} for the series instance UID, \code{k} for the study instance UID,
+\code{l} for the procedure step description, \code{m} for manufacturer,
+\code{n} for patient name, \code{p} for protocol name, \code{q} for
+scanning sequence, \code{r} for instance number, \code{s} for series number,
+\code{t} for the date and time, \code{u} for acquisition number, \code{v}
+for vendor, \code{x} for study ID and \code{z} for sequence name. For
+\code{sortDicom} the label forms the new file path, and may include one or
+more slashes to create subdirectories. A ".dcm" suffix will be added to file
+names if no extension is specified.
 }
 \examples{
 path <- system.file("extdata", "raw", package="divest")
