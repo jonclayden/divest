@@ -5381,13 +5381,14 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
                     
                     // Deduplicate the target path to avoid overwriting existing files
                     targetPath = targetStem + targetExtension;
-                    int suffix = 1;
+                    GetRNGstate();
                     while (is_fileexists(targetPath.c_str())) {
-                        std::ostringstream candidatePath;
-                        candidatePath << targetStem << "_dup" << suffix << targetExtension;
-                        targetPath = candidatePath.str();
-                        suffix++;
+                        std::ostringstream suffix;
+                        unsigned suffixValue = static_cast<unsigned>(round(R::unif_rand() * (R_pow_di(2.0,24) - 1.0)));
+                        suffix << std::hex << std::setfill('0') << std::setw(6) << suffixValue;
+                        targetPath = targetStem + "_" + suffix.str() + targetExtension;
                     }
+                    PutRNGstate();
                     
                     // Copy the file, unless the source and target paths are the same
                     if (targetPath.compare(filename) == 0) {
