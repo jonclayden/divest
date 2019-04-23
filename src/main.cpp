@@ -9,7 +9,7 @@
 
 using namespace Rcpp;
 
-RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP task_)
+RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP task_, SEXP outputDir_)
 {
 BEGIN_RCPP
     const std::string path = as<std::string>(path_);
@@ -33,6 +33,11 @@ BEGIN_RCPP
     options.compressFlag = kCompressYes;
     strcpy(options.indir, path.c_str());
     strcpy(options.filename, labelFormat.c_str());
+    if (task == "sort" && !Rf_isNull(outputDir_))
+    {
+        const std::string outputDir = as<std::string>(outputDir_);
+        strcpy(options.outdir, outputDir.c_str());
+    }
     
     ImageList images;
     options.imageList = (void *) &images;
