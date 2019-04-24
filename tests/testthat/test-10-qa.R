@@ -1,11 +1,11 @@
 context("Running over QA test batteries")
 
-test_battery <- function (root)
+test_battery <- function (root, labelFormat = "%p_%s")
 {
     if (!file.exists(root))
         skip(paste0("QA battery \"", basename(root), "\" not available"))
     
-    images <- readDicom(file.path(root,"In"), interactive=FALSE, labelFormat="%p_%s", verbosity=-2)
+    images <- readDicom(file.path(root,"In"), interactive=FALSE, labelFormat=labelFormat, verbosity=-2)
     labels <- unlist(images)
     
     ignoreFields <- c("ImageType", "PhaseEncodingDirection")
@@ -67,5 +67,5 @@ test_that("NIH QA battery passes", {
 })
 
 test_that("UIH QA battery passes", {
-    test_battery("dcm_qa_uih")
+    test_battery("dcm_qa_uih", "%p_%s_%t")
 })
