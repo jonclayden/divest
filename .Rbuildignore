@@ -3,3 +3,4 @@
 ^README.Rmd$
 ^tests/testthat/dcm_qa$
 ^tests/testthat/dcm_qa_nih$
+^tests/testthat/dcm_qa_uih$
