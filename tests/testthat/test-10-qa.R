@@ -59,13 +59,13 @@ test_battery <- function (root, labelFormat = "%p_%s")
 }
 
 test_that("main QA battery passes", {
-    test_battery("dcm_qa")
+    test_battery("../dcm_qa")
 })
 
 test_that("NIH QA battery passes", {
-    test_battery("dcm_qa_nih")
+    test_battery("../dcm_qa_nih")
 })
 
 test_that("UIH QA battery passes", {
-    test_battery("dcm_qa_uih", "%p_%s_%t")
+    test_battery("../dcm_qa_uih", "%p_%s_%t")
 })
