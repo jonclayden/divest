@@ -2123,26 +2123,21 @@ void nii_saveAttributes (struct TDICOMdata &data, struct nifti_1_header &header,
     }
     
     // Slice timing
-    if (data.CSA.sliceTiming[0] >= 0.0) {
+    if (data.CSA.sliceTiming[0] >= 0.0 && (data.manufacturer == kMANUFACTURER_UIH || data.manufacturer == kMANUFACTURER_GE || (data.manufacturer == kMANUFACTURER_SIEMENS && !data.isXA10A))) {
         std::vector<double> sliceTimes;
-        if (data.CSA.protocolSliceNumber1 > 1) {
+        if (data.manufacturer == kMANUFACTURER_SIEMENS && data.CSA.protocolSliceNumber1 > 1) {
             //https://github.com/rordenlab/dcm2niix/issues/40
-            //equivalent to dicm2nii "s.SliceTiming = s.SliceTiming(end:-1:1);"
-            int mx = 0;
-            for (int i = 0; i < kMaxEPI3D; i++) {
-                if (data.CSA.sliceTiming[i] < 0.0) break;
-                mx++;
-            }
-            mx--;
-            for (int i = mx; i >= 0; i--) {
-                if (data.CSA.sliceTiming[i] < 0.0) break;
+            for (int i=header.dim[3]-1; i>=0; i--) {
+                if (data.CSA.sliceTiming[i] < 0.0)
+                    break;
                 sliceTimes.push_back(data.CSA.sliceTiming[i] / 1000.0);
             }
+        } else if (data.manufacturer != kMANUFACTURER_SIEMENS && data.CSA.protocolSliceNumber1 < 0) {
+            for (int i=header.dim[3]-1; i>=0; i--)
+                sliceTimes.push_back(data.CSA.sliceTiming[i]);
         } else {
-            for (int i = 0; i < kMaxEPI3D; i++) {
-                if (data.CSA.sliceTiming[i] < 0.0) break;
-                sliceTimes.push_back(data.CSA.sliceTiming[i] / 1000.0);
-            }
+            for (int i=0; i<header.dim[3]; i++)
+                sliceTimes.push_back(data.CSA.sliceTiming[i] / (data.manufacturer == kMANUFACTURER_SIEMENS ? 1000.0 : 1.0));
         }
         images->addAttribute("sliceTiming", sliceTimes);
     }
