@@ -13,10 +13,13 @@ test_that("DICOM-reading code works", {
     expect_equal(attr(d[[i]],"flipAngle"), 15)
     
     # Check all attributes
+    # NB. String sort order is locale-dependent, so use stored names directly for indexing
     attributes <- attributes(d[[i]])
-    attrNames <- sort(setdiff(names(attributes), ".nifti_image_ptr"))
-    expect_known_value(attrNames, "attrib_names.rds", update=FALSE)
-    expect_known_value(attributes[attrNames], "attributes.rds", update=FALSE)
+    attrNames <- setdiff(names(attributes), ".nifti_image_ptr")
+    storedAttrNames <- readRDS("attrib_names.rds")
+    # expect_known_value(attrNames, "attrib_names.rds", update=FALSE)
+    expect_setequal(attrNames, storedAttrNames)
+    expect_known_value(attributes[storedAttrNames], "attributes.rds", update=FALSE)
     
     origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
     expect_equal(round(origin), c(-16,95,135))
