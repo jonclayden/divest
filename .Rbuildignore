@@ -2,6 +2,6 @@
 ^\.travis\.yml$
 ^appveyor\.yml$
 ^README.Rmd$
-^tests/testthat/dcm_qa$
-^tests/testthat/dcm_qa_nih$
-^tests/testthat/dcm_qa_uih$
+^tests/dcm_qa$
+^tests/dcm_qa_nih$
+^tests/dcm_qa_uih$
