@@ -23,7 +23,7 @@ test_battery <- function (root, labelFormat = "%p_%s")
         else
         {
             refImage <- readNifti(refImageFile, internal=TRUE)
-            expect_equal(niftiHeader(refImage), niftiHeader(images[[i]]))
+            expect_equal(niftiHeader(refImage), niftiHeader(images[[i]]), info=labels[i])
         }
         
         if (!file.exists(refMetadataFile))
@@ -51,7 +51,7 @@ test_battery <- function (root, labelFormat = "%p_%s")
                     if (bidsFieldName %in% scaleFields)
                         metadata[[divestFieldName]] <- metadata[[divestFieldName]] / 1e3
                     
-                    expect_equal(metadata[[divestFieldName]], refMetadata[[bidsFieldName]], tolerance=1e-4)
+                    expect_equal(metadata[[!!divestFieldName]], refMetadata[[!!bidsFieldName]], info=labels[i], tolerance=1e-4)
                 }
             }
         }
