@@ -9,7 +9,7 @@ test_battery <- function (root, labelFormat = "%p_%s")
     labels <- unlist(images)
     
     ignoreFields <- c("ImageType", "PhaseEncodingDirection")
-    scaleFields <- c("EchoTime", "RepetitionTime")
+    scaleFields <- c("EchoTime", "RepetitionTime", "InversionTime")
     nameMapping <- c(MagneticFieldStrength="fieldStrength", ManufacturersModelName="scannerModelName", SpacingBetweenSlices="sliceSpacing", TotalReadoutTime="effectiveReadoutTime", MultibandAccelerationFactor="multibandFactor", ImageComments="comments")
     
     for (i in seq_along(images))
