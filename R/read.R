@@ -13,7 +13,7 @@
         sink(connection)
         on.exit({
             sink()
-            cat(paste(c(grep("WARNING|ERROR", output, ignore.case=TRUE, perl=TRUE, value=TRUE), ""), collapse="\n"))
+            cat(paste(c(grep(ifelse(verbosity < -1L, "ERROR", "WARNING|ERROR"), output, ignore.case=TRUE, perl=TRUE, value=TRUE), ""), collapse="\n"))
         })
     }
     
