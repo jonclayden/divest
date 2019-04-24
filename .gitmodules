@@ -4,3 +4,6 @@
 [submodule "dcm_qa_nih"]
 	path = tests/testthat/dcm_qa_nih
 	url = https://github.com/neurolabusc/dcm_qa_nih.git
+[submodule "tests/testthat/dcm_qa_uih"]
+	path = tests/testthat/dcm_qa_uih
+	url = https://github.com/neurolabusc/dcm_qa_uih.git

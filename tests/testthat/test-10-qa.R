@@ -58,10 +58,14 @@ test_battery <- function (root)
     }
 }
 
-test_that("main QA battery matches", {
+test_that("main QA battery passes", {
     test_battery("dcm_qa")
 })
 
-test_that("NIH QA battery matches", {
+test_that("NIH QA battery passes", {
+    test_battery("dcm_qa")
+})
+
+test_that("UIH QA battery passes", {
     test_battery("dcm_qa")
 })
