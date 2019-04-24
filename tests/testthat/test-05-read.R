@@ -15,6 +15,7 @@ test_that("DICOM-reading code works", {
     # Check all attributes
     attributes <- attributes(d[[i]])
     attrNames <- sort(setdiff(names(attributes), ".nifti_image_ptr"))
+    expect_known_value(attrNames, "attrib_names.rds", update=FALSE)
     expect_known_value(attributes[attrNames], "attributes.rds", update=FALSE)
     
     origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
