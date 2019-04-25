@@ -8,14 +8,14 @@
 \usage{
 readDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
   forceStack = FALSE, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
-  interactive = base::interactive())
+  depth = 5L, interactive = base::interactive())
 
 sortDicom(path = ".", forceStack = FALSE, verbosity = 0L,
-  labelFormat = "T\%t_N\%n_S\%s/\%b", nested = TRUE,
+  labelFormat = "T\%t_N\%n_S\%s/\%b", depth = 5L, nested = TRUE,
   keepUnsorted = FALSE)
 
 scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
-  labelFormat = "T\%t_N\%n_S\%s")
+  labelFormat = "T\%t_N\%n_S\%s", depth = 5L)
 }
 \arguments{
 \item{path}{A character vector of paths to scan for DICOM files. Each will
@@ -51,6 +51,9 @@ output from \code{dcm2niix} except warnings and errors.}
 
 \item{labelFormat}{A \code{\link{sprintf}}-style string specifying the
 format to use for the final image labels or paths. See Details.}
+
+\item{depth}{The maximum subdirectory depth in which to search for DICOM
+files, relative to each \code{path}.}
 
 \item{interactive}{If \code{TRUE}, the default in interactive sessions, the
 requested paths will first be scanned and a list of DICOM series will be

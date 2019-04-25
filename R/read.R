@@ -4,7 +4,7 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
-.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, task = c("read","scan","sort"), outputDir = NULL)
+.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","scan","sort"), outputDir = NULL)
 {
     task <- match.arg(task)
     if (verbosity < 0L)
@@ -18,7 +18,7 @@
         })
     }
     
-    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, task, outputDir)
+    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
 }
 
 # Wrapper function to allow mocking in tests
@@ -79,6 +79,8 @@
 #'   output from \code{dcm2niix} except warnings and errors.
 #' @param labelFormat A \code{\link{sprintf}}-style string specifying the
 #'   format to use for the final image labels or paths. See Details.
+#' @param depth The maximum subdirectory depth in which to search for DICOM
+#'   files, relative to each \code{path}.
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
 #'   requested paths will first be scanned and a list of DICOM series will be
 #'   presented. You may then choose which series to convert.
@@ -103,7 +105,7 @@
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
-readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", interactive = base::interactive())
+readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive())
 {
     readFromTempDirectory <- function (tempDirectory, files)
     {
@@ -129,7 +131,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
         if (!all(success))
             stop("Cannot symlink or copy files into temporary directory")
         
-        .readPath(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, "read")
+        .readPath(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
     }
     
     usingTempDirectory <- FALSE
@@ -166,11 +168,11 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             return (NULL)
         }
         else if (!file.info(p)$isdir)
-            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, "read")
+            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, "read")
         else if (interactive)
         {
             p <- path.expand(p)
-            info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, "scan"))
+            info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan"))
             
             nSeries <- nrow(info)
             if (nSeries < 1)
@@ -183,7 +185,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             selection <- .readline("\nSelected series: ")
             if (selection == "")
             {
-                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, "read")
+                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
                 return (allResults[attr(info,"ordering")])
             }
             else if (selection == "0")
@@ -201,7 +203,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             }
         }
         else
-            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, "read")
+            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
     })
     
     return (do.call(c, results))
@@ -209,12 +211,12 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
 
 #' @rdname readDicom
 #' @export
-sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", nested = TRUE, keepUnsorted = FALSE)
+sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", depth = 5L, nested = TRUE, keepUnsorted = FALSE)
 {
     if (nested)
-        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, "sort")
+        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort")
     else
-        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, "sort", ".")
+        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", ".")
     
     if (!keepUnsorted && length(info$source) == length(info$target))
     {
@@ -227,11 +229,11 @@ sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
 
 #' @rdname readDicom
 #' @export
-scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s")
+scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L)
 {
     results <- lapply(path, function(p) {
         if (file.info(p)$isdir)
-            .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, "scan")
+            .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "scan")
         else
             warning(paste0("Path \"", p, "\" does not point to a directory"))
     })
