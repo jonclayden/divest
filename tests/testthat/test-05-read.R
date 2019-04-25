@@ -40,6 +40,10 @@ test_that("DICOM-reading code works", {
     expect_equal(dim(d[[1]]), c(224,256,1))
     expect_warning(readDicom(file.path(path,"nonsense"),interactive=FALSE), "does not exist")
     
+    # Depth argument
+    expect_output(d <- readDicom(file.path(path,".."),depth=0L,interactive=FALSE), "No valid DICOM files")
+    expect_length(d, 0L)
+    
     skip_on_cran()
     
     # (Pseudo-)interactivity
