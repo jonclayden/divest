@@ -55,6 +55,18 @@ test_battery <- function (root, labelFormat = "%p_%s")
                 }
             }
         }
+        
+        # These files only apply to diffusion sequences
+        refBvalFile <- paste(refStem, "bval", sep=".")
+        refBvecFile <- paste(refStem, "bvec", sep=".")
+        
+        if (file.exists(refBvalFile) && file.exists(refBvecFile))
+        {
+            bValues <- drop(as.matrix(read.table(refBvalFile)))
+            bVectors <- t(as.matrix(read.table(refBvecFile)))
+            expect_equivalent(metadata$bValues, bValues, tolerance=1e-4)
+            expect_equivalent(metadata$bVectors, bVectors, tolerance=1e-4)
+        }
     }
 }
 
