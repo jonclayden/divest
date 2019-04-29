@@ -29,6 +29,8 @@ The package's key function is `readDicom`, which scans a directory containing DI
 library(divest)
 path <- system.file("extdata", "raw", package="divest")
 images <- readDicom(path, interactive=FALSE, verbosity=-1)
+## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
+## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
 ## [dcm2niix info]  Warning: all images appear to be a single slice - please check slice/vector orientation
 ## [dcm2niix WARNING] Weird CSA 'ProtocolSliceNumber' (System/Miscellaneous/ImageNumbering reversed): VALIDATE SLICETIMING AND BVECS
 ## [dcm2niix WARNING] Check that 2D images are not mirrored.
@@ -59,7 +61,7 @@ attributes(images[[2]])
 ## [1] "mm" "s" 
 ## 
 ## $.nifti_image_ptr
-## <pointer: 0x7fc6ea5281b0>
+## <pointer: 0x7f94a7007780>
 ## 
 ## $class
 ## [1] "internalImage" "niftiImage"   
@@ -69,6 +71,18 @@ attributes(images[[2]])
 ## 
 ## $imageType
 ## [1] "ORIGINAL_PRIMARY_M_ND_NORM"
+## 
+## $seriesNumber
+## [1] 8
+## 
+## $seriesDescription
+## [1] "DTIb3000s5"
+## 
+## $sequenceName
+## [1] "ep_b2000#16"
+## 
+## $protocolName
+## [1] "DTIb3000s5"
 ## 
 ## $fieldStrength
 ## [1] 1.494
@@ -81,6 +95,12 @@ attributes(images[[2]])
 ## 
 ## $repetitionTime
 ## [1] 4100
+## 
+## $sliceThickness
+## [1] 5
+## 
+## $sliceSpacing
+## [1] 5
 ## 
 ## $phaseEncodingSteps
 ## [1] 72
@@ -152,7 +172,7 @@ It is also possible to obtain information about the available DICOM series witho
 
 ```r
 names(scanDicom(path))
-## [dcm2niix info] Found 4 DICOM image(s)
+## [dcm2niix info] Found 4 DICOM file(s)
 ##  [1] "label"             "rootPath"          "files"            
 ##  [4] "seriesNumber"      "seriesDescription" "patientName"      
 ##  [7] "studyDate"         "echoTime"          "repetitionTime"   

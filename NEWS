@@ -2,6 +2,27 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.8.0
+
+- The output format used by sortDicom() is now more flexible, allowing multiple
+  levels of subdirectories to be created (as requested in issue #3). Most of
+  the work is now done in C++ code, and the "labelFormat" argument default has
+  changed to reflect the full filename, not just the directory component. (This
+  is now more consistent with dcm2niix.) The function's behaviour should be
+  broadly the same as before, but there will be slight differences due to the
+  quite different implementation.
+- The three core R functions gain a "depth" argument, which controls the
+  maximum subdirectory search depth when scanning for DICOM files.
+- The QA battery tests have been moved into the package's main test set. These
+  are (still) skipped in CRAN builds, however, due to the large sizes of the
+  associated datasets.
+- Failing to find any valid DICOM files now produces a simple message, rather
+  than an error.
+- Slice timing metadata should no longer include spurious zero values.
+- Various upstream improvements have been merged, as usual.
+
+===============================================================================
+
 VERSION 0.7.2
 
 - ASAN/UBSAN and Valgrind warnings have been resolved.
