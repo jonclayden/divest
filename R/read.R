@@ -74,9 +74,10 @@
 #'   always be stacked together as long as their dimensions are compatible. If
 #'   \code{FALSE}, the default, images will be separated if they differ in
 #'   echo, coil or exposure number, echo time, protocol name or orientation.
-#' @param verbosity Integer value between -1 and 3, controlling the amount of
-#'   output generated during the conversion. A negative value will suppress all
-#'   output from \code{dcm2niix} except warnings and errors.
+#' @param verbosity Integer value between -2 and 3, controlling the amount of
+#'   output generated during the conversion. A value of -1 will suppress all
+#'   output from \code{dcm2niix} except warnings and errors; -2 also suppresses
+#'   warnings.
 #' @param labelFormat A \code{\link{sprintf}}-style string specifying the
 #'   format to use for the final image labels or paths. See Details.
 #' @param depth The maximum subdirectory depth in which to search for DICOM
