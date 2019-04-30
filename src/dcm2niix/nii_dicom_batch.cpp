@@ -5315,6 +5315,94 @@ int copyFile (char * src_path, char * dst_path) {
     return EXIT_SUCCESS;
 }
 
+#ifdef USING_R
+
+// This implementation differs enough from the mainline one to be separated
+int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* opts ) {
+    // The tinydir_open_sorted function reads the whole directory at once,
+    // which is necessary in this context since we may be creating new
+    // files in the same directory, which don't want to further examine
+    tinydir_dir dir;
+    int count = 0;
+    if (tinydir_open_sorted(&dir, path) != 0)
+        return -1;
+    
+    for (size_t i=0; i<dir.n_files; i++) {
+        // If this directory entry is a subdirectory, search it recursively
+        tinydir_file &file = dir._files[i];
+        const std::string sourcePath = std::string(path) + kFileSep + file.name;
+        char *sourcePathPtr = const_cast<char*>(sourcePath.c_str());
+        if ((file.is_dir) && (depth < maxDepth) && (file.name[0] != '.')) {
+            const int subdirectoryCount = searchDirRenameDICOM(sourcePathPtr, maxDepth, depth+1, opts);
+            if (subdirectoryCount < 0) {
+                tinydir_close(&dir);
+                return -1;
+            }
+            count += subdirectoryCount;
+        } else if (file.is_reg && strlen(file.name) > 0 && file.name[0] != '.' && strcicmp(file.name, "DICOMDIR") != 0 && isDICOMfile(sourcePathPtr)) {
+            TDICOMdata dcm = readDICOM(sourcePathPtr);
+			if (dcm.imageNum > 0) {
+				if ((opts->isIgnoreDerivedAnd2D) && ((dcm.isLocalizer) || (strcmp(dcm.sequenceName, "_tfl2d1")== 0) || (strcmp(dcm.sequenceName, "_fl3d1_ns")== 0) || (strcmp(dcm.sequenceName, "_fl2d1")== 0)) ) {
+					printMessage("Ignoring localizer %s\n", sourcePathPtr);
+                    opts->ignoredPaths.push_back(sourcePath);
+				} else if ((opts->isIgnoreDerivedAnd2D && dcm.isDerived) ) {
+					printMessage("Ignoring derived %s\n", sourcePathPtr);
+                    opts->ignoredPaths.push_back(sourcePath);
+				} else {
+					// Create an initial file name
+                    char outname[PATH_MAX] = {""};
+					if (dcm.echoNum > 1)
+                        dcm.isMultiEcho = true;
+					nii_createFilename(dcm, outname, *opts);
+                    
+                    // If the file name part of the target path has no extension, add ".dcm"
+                    std::string targetPath(outname);
+                    std::string targetStem, targetExtension;
+                    const size_t periodLoc = targetPath.find_last_of('.');
+                    if (periodLoc == targetPath.length() - 1) {
+                        targetStem = targetPath.substr(0, targetPath.length() - 1);
+                        targetExtension = ".dcm";
+                    } else if (periodLoc == std::string::npos || periodLoc < targetPath.find_last_of("\\/")) {
+                        targetStem = targetPath;
+                        targetExtension = ".dcm";
+                    } else {
+                        targetStem = targetPath.substr(0, periodLoc);
+                        targetExtension = targetPath.substr(periodLoc);
+                    }
+                    
+                    // Deduplicate the target path to avoid overwriting existing files
+                    targetPath = targetStem + targetExtension;
+                    GetRNGstate();
+                    while (is_fileexists(targetPath.c_str())) {
+                        std::ostringstream suffix;
+                        unsigned suffixValue = static_cast<unsigned>(round(R::unif_rand() * (R_pow_di(2.0,24) - 1.0)));
+                        suffix << std::hex << std::setfill('0') << std::setw(6) << suffixValue;
+                        targetPath = targetStem + "_" + suffix.str() + targetExtension;
+                    }
+                    PutRNGstate();
+                    
+                    // Copy the file, unless the source and target paths are the same
+                    if (targetPath.compare(sourcePath) == 0) {
+                        if (opts->isVerbose > 1)
+                            printMessage("Skipping %s, which would be copied onto itself\n", sourcePathPtr);
+                    } else if (copyFile(sourcePathPtr, const_cast<char*>(targetPath.c_str())) == EXIT_SUCCESS) {
+                        opts->sourcePaths.push_back(sourcePath);
+                        opts->targetPaths.push_back(targetPath);
+                        count++;
+                        if (opts->isVerbose > 0)
+                            printMessage("Copying %s -> %s\n", sourcePathPtr, targetPath.c_str());
+                    } else {
+                        printWarning("Unable to copy to path %s\n", targetPath.c_str());
+                    }
+				}
+			}
+        }
+    }
+    return count;
+}
+
+#else
+
 int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* opts ) {
     int retAll = 0;
     //bool isDcmExt = isExt(opts->filename, ".dcm"); // "%r.dcm" with multi-echo should generate "1.dcm", "1e2.dcm"
@@ -5345,60 +5433,13 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
 			if (dcm.imageNum > 0) { //use imageNum instead of isValid to convert non-images (kWaveformSq will have instance number but is not a valid image)
 				if ((opts->isIgnoreDerivedAnd2D) && ((dcm.isLocalizer)  || (strcmp(dcm.sequenceName, "_tfl2d1")== 0) || (strcmp(dcm.sequenceName, "_fl3d1_ns")== 0) || (strcmp(dcm.sequenceName, "_fl2d1")== 0)) ) {
 					printMessage("Ignoring localizer %s\n", filename);
-#ifdef USING_R
-                    opts->ignoredPaths.push_back(std::string(filename));
-#endif
 				} else if ((opts->isIgnoreDerivedAnd2D && dcm.isDerived) ) {
 					printMessage("Ignoring derived %s\n", filename);
-#ifdef USING_R
-                    opts->ignoredPaths.push_back(std::string(filename));
-#endif
 				} else {
 					char outname[PATH_MAX] = {""};
 					if (dcm.echoNum > 1) dcm.isMultiEcho = true; //last resort: Siemens gives different echoes the same image number: avoid overwriting, e.g "-f %r.dcm" should generate "1.dcm", "1_e2.dcm" for multi-echo volumes
 					nii_createFilename(dcm, outname, *opts);
 					//if (isDcmExt) strcat (outname,".dcm");
-#ifdef USING_R
-                    // If the file name part of the target path has no extension, add ".dcm"
-                    std::string targetPath(outname);
-                    std::string targetStem, targetExtension;
-                    const size_t periodLoc = targetPath.find_last_of('.');
-                    if (periodLoc == targetPath.length() - 1) {
-                        targetStem = targetPath.substr(0, targetPath.length() - 1);
-                        targetExtension = ".dcm";
-                    } else if (periodLoc == std::string::npos || periodLoc < targetPath.find_last_of("\\/")) {
-                        targetStem = targetPath;
-                        targetExtension = ".dcm";
-                    } else {
-                        targetStem = targetPath.substr(0, periodLoc);
-                        targetExtension = targetPath.substr(periodLoc);
-                    }
-                    
-                    // Deduplicate the target path to avoid overwriting existing files
-                    targetPath = targetStem + targetExtension;
-                    GetRNGstate();
-                    while (is_fileexists(targetPath.c_str())) {
-                        std::ostringstream suffix;
-                        unsigned suffixValue = static_cast<unsigned>(round(R::unif_rand() * (R_pow_di(2.0,24) - 1.0)));
-                        suffix << std::hex << std::setfill('0') << std::setw(6) << suffixValue;
-                        targetPath = targetStem + "_" + suffix.str() + targetExtension;
-                    }
-                    PutRNGstate();
-                    
-                    // Copy the file, unless the source and target paths are the same
-                    if (targetPath.compare(filename) == 0) {
-                        if (opts->isVerbose > 1)
-                            printMessage("Skipping %s, which would be copied onto itself\n", filename);
-                    } else if (copyFile(filename, const_cast<char*>(targetPath.c_str())) == EXIT_SUCCESS) {
-                        opts->sourcePaths.push_back(std::string(filename));
-                        opts->targetPaths.push_back(targetPath);
-                        retAll++;
-                        if (opts->isVerbose > 0)
-                            printMessage("Copying %s -> %s\n", filename, targetPath.c_str());
-                    } else {
-                        printWarning("Unable to copy to path %s\n", targetPath.c_str());
-                    }
-#else
 					int ret = copyFile (filename, outname);
 					if (ret != EXIT_SUCCESS) {
 						printError("Unable to rename all DICOM images.\n");
@@ -5407,7 +5448,6 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
 					retAll += 1;
 					if (opts->isVerbose > 0)
 						printMessage("Renaming %s -> %s\n", filename, outname);
-#endif
 				}
 			}
         }
@@ -5416,6 +5456,8 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
     tinydir_close(&dir);
     return retAll;
 }// searchDirForDICOM()
+
+#endif // USING_R
 
 int nii_loadDirCore(char *indir, struct TDCMopts* opts) {
     struct TSearchList nameList;
