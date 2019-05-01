@@ -5321,7 +5321,7 @@ int copyFile (char * src_path, char * dst_path) {
 int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* opts ) {
     // The tinydir_open_sorted function reads the whole directory at once,
     // which is necessary in this context since we may be creating new
-    // files in the same directory, which don't want to further examine
+    // files in the same directory, which we don't want to further examine
     tinydir_dir dir;
     int count = 0;
     if (tinydir_open_sorted(&dir, path) != 0)
@@ -5339,7 +5339,7 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts* o
                 return -1;
             }
             count += subdirectoryCount;
-        } else if (file.is_reg && strlen(file.name) > 0 && file.name[0] != '.' && strcicmp(file.name, "DICOMDIR") != 0 && isDICOMfile(sourcePathPtr)) {
+        } else if (file.is_reg && strlen(file.name) > 0 && file.name[0] != '.' && strcicmp(file.name,"DICOMDIR") != 0 && isDICOMfile(sourcePathPtr)) {
             TDICOMdata dcm = readDICOM(sourcePathPtr);
 			if (dcm.imageNum > 0) {
 				if ((opts->isIgnoreDerivedAnd2D) && ((dcm.isLocalizer) || (strcmp(dcm.sequenceName, "_tfl2d1")== 0) || (strcmp(dcm.sequenceName, "_fl3d1_ns")== 0) || (strcmp(dcm.sequenceName, "_fl2d1")== 0)) ) {
