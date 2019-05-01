@@ -22,8 +22,8 @@ test_battery <- function (root, labelFormat = "%p_%s")
             warning("Reference image file ", refImageFile, " not present")
         else
         {
-            refImage <- readNifti(refImageFile, internal=TRUE)
-            expect_equal(niftiHeader(refImage), niftiHeader(images[[i]]), info=labels[i])
+            refImage <- RNifti::readNifti(refImageFile, internal=TRUE)
+            expect_equal(RNifti::niftiHeader(refImage), RNifti::niftiHeader(images[[i]]), info=labels[i])
         }
         
         if (!file.exists(refMetadataFile))
