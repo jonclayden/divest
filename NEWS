@@ -2,6 +2,14 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.8.1
+
+- The C++ file sorting implementation has been revised to avoid the possibility
+  of an infinite loop in which the same files are repeatedly resorted.
+- Some tweaks have been made to the package tests.
+
+===============================================================================
+
 VERSION 0.8.0
 
 - The output format used by sortDicom() is now more flexible, allowing multiple
