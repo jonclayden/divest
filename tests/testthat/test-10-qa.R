@@ -23,7 +23,7 @@ test_battery <- function (root, labelFormat = "%p_%s")
         else
         {
             refImage <- RNifti::readNifti(refImageFile, internal=TRUE)
-            expect_equal(RNifti::niftiHeader(refImage), RNifti::niftiHeader(images[[i]]), info=labels[i])
+            expect_equal(RNifti::niftiHeader(refImage), RNifti::niftiHeader(images[[i]]), info=labels[i], tolerance=1e-5)
         }
         
         if (!file.exists(refMetadataFile))
