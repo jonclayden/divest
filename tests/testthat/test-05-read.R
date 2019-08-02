@@ -4,7 +4,7 @@ test_that("DICOM-reading code works", {
     # Read all
     path <- system.file("extdata", "raw", package="divest")
     expect_output(d <- readDicom(path,interactive=FALSE), "Found 4 DICOM")
-    expect_output(readDicom(path,interactive=FALSE,verbosity=-1), "Warning")
+    expect_output(readDicom(path,interactive=FALSE,verbosity=-1), "WARNING")
     
     # Check results
     expect_identical(length(d), 2L)
