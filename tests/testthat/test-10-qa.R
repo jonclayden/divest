@@ -81,3 +81,7 @@ test_that("NIH QA battery passes", {
 test_that("UIH QA battery passes", {
     test_battery("../dcm_qa_uih", "%p_%s_%t")
 })
+
+test_that("slice timing QA battery passes", {
+    test_battery("../dcm_qa_stc", "%v_%p_%s")
+})

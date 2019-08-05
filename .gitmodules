@@ -7,3 +7,6 @@
 [submodule "tests/testthat/dcm_qa_uih"]
 	path = tests/dcm_qa_uih
 	url = https://github.com/neurolabusc/dcm_qa_uih.git
+[submodule "tests/dcm_qa_stc"]
+	path = tests/dcm_qa_stc
+	url = https://github.com/neurolabusc/dcm_qa_stc.git
