@@ -5,3 +5,4 @@
 ^tests/dcm_qa$
 ^tests/dcm_qa_nih$
 ^tests/dcm_qa_uih$
+^tests/dcm_qa_stc$
