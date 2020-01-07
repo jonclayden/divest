@@ -45,100 +45,101 @@ BEGIN_RCPP
     
     // Scan the directory of interest, and create NiftiImage objects if required
     int returnValue = nii_loadDir(&options);
-    if (returnValue == EXIT_SUCCESS)
+    if (returnValue == kEXIT_NO_VALID_FILES_FOUND)
     {
-        if (options.isScanOnly)
+        Rprintf("No valid DICOM files found\n");
+        return R_NilValue;
+    }
+    else if (returnValue != EXIT_SUCCESS)
+        Rf_warning("Reading failed for %d image(s)", options.nFailures);
+    
+    if (options.isScanOnly)
+    {
+        // Construct a data frame containing information about each series
+        // A vector of descriptive strings is also built, and attached as an attribute
+        const int n = options.series.size();
+        CharacterVector label(n,NA_STRING), seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
+        DateVector studyDate(n);
+        NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
+        IntegerVector files(n,NA_INTEGER), seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
+        LogicalVector phase(n,NA_LOGICAL), diffusion(n,false);
+        List paths(n);
+        for (int i = 0; i < n; i++)
         {
-            // Construct a data frame containing information about each series
-            // A vector of descriptive strings is also built, and attached as an attribute
-            const int n = options.series.size();
-            CharacterVector label(n,NA_STRING), seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
-            DateVector studyDate(n);
-            NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
-            IntegerVector files(n,NA_INTEGER), seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
-            LogicalVector phase(n,NA_LOGICAL), diffusion(n,false);
-            List paths(n);
-            for (int i = 0; i < n; i++)
+            const TDICOMdata &data = options.series[i].representativeData;
+            std::ostringstream description;
+            description << "Series " << data.seriesNum;
+            seriesNumber[i] = data.seriesNum;
+            if (strlen(data.seriesDescription) > 0)
             {
-                const TDICOMdata &data = options.series[i].representativeData;
-                std::ostringstream description;
-                description << "Series " << data.seriesNum;
-                seriesNumber[i] = data.seriesNum;
-                if (strlen(data.seriesDescription) > 0)
-                {
-                    description << " \"" << data.seriesDescription << "\"";
-                    seriesDescription[i] = data.seriesDescription;
-                }
-                else if (strlen(data.sequenceName) > 0)
-                    description << " \"" << data.sequenceName << "\"";
-                else if (strlen(data.protocolName) > 0)
-                    description << " \"" << data.protocolName << "\"";
-                if (strlen(data.patientName) > 0)
-                {
-                    description << ", patient \"" << data.patientName << "\"";
-                    patientName[i] = data.patientName;
-                }
-                if (strlen(data.studyDate) >= 8 && strcmp(data.studyDate,"00000000") != 0)
-                {
-                    description << ", acquired on " << std::string(data.studyDate,4) << "-" << std::string(data.studyDate+4,2) << "-" << std::string(data.studyDate+6,2);
-                    studyDate[i] = Date(data.studyDate, "%Y%m%d");
-                }
-                else
-                    studyDate[i] = Date(NA_REAL);
-                if (data.TE > 0.0)
-                {
-                    description << ", TE " << data.TE << " ms";
-                    echoTime[i] = data.TE;
-                }
-                if (data.TR > 0.0)
-                {
-                    description << ", TR " << data.TR << " ms";
-                    repetitionTime[i] = data.TR;
-                }
-                if (data.echoNum > 0)
-                    echoNumber[i] = data.echoNum;
-                if (data.echoNum > 1)
-                    description << ", echo " << data.echoNum;
-                if (data.isHasPhase)
-                    description << ", phase";
-                if (data.CSA.numDti > 0)
-                    diffusion[i] = true;
-                
-                // The name is stored with leading path components, which we remove here
-                if (options.series[i].name.length() > 0)
-                {
+                description << " \"" << data.seriesDescription << "\"";
+                seriesDescription[i] = data.seriesDescription;
+            }
+            else if (strlen(data.sequenceName) > 0)
+                description << " \"" << data.sequenceName << "\"";
+            else if (strlen(data.protocolName) > 0)
+                description << " \"" << data.protocolName << "\"";
+            if (strlen(data.patientName) > 0)
+            {
+                description << ", patient \"" << data.patientName << "\"";
+                patientName[i] = data.patientName;
+            }
+            if (strlen(data.studyDate) >= 8 && strcmp(data.studyDate,"00000000") != 0)
+            {
+                description << ", acquired on " << std::string(data.studyDate,4) << "-" << std::string(data.studyDate+4,2) << "-" << std::string(data.studyDate+6,2);
+                studyDate[i] = Date(data.studyDate, "%Y%m%d");
+            }
+            else
+                studyDate[i] = Date(NA_REAL);
+            if (data.TE > 0.0)
+            {
+                description << ", TE " << data.TE << " ms";
+                echoTime[i] = data.TE;
+            }
+            if (data.TR > 0.0)
+            {
+                description << ", TR " << data.TR << " ms";
+                repetitionTime[i] = data.TR;
+            }
+            if (data.echoNum > 0)
+                echoNumber[i] = data.echoNum;
+            if (data.echoNum > 1)
+                description << ", echo " << data.echoNum;
+            if (data.isHasPhase)
+                description << ", phase";
+            if (data.CSA.numDti > 0)
+                diffusion[i] = true;
+            
+            // The name is stored with leading path components, which we remove here
+            if (options.series[i].name.length() > 0)
+            {
 #if defined(_WIN32) || defined(_WIN64)
-                    size_t pathSeparator = options.series[i].name.find_last_of("\\/");
+                size_t pathSeparator = options.series[i].name.find_last_of("\\/");
 #else
-                    size_t pathSeparator = options.series[i].name.find_last_of('/');
+                size_t pathSeparator = options.series[i].name.find_last_of('/');
 #endif
-                    if (pathSeparator == std::string::npos)
-                        label[i] = options.series[i].name;
-                    else
-                        label[i] = options.series[i].name.substr(pathSeparator+1);
-                }
-                
-                phase[i] = data.isHasPhase;
-                descriptions[i] = description.str();
-                files[i] = options.series[i].files.size();
-                paths[i] = wrap(options.series[i].files);
+                if (pathSeparator == std::string::npos)
+                    label[i] = options.series[i].name;
+                else
+                    label[i] = options.series[i].name.substr(pathSeparator+1);
             }
             
-            DataFrame info = DataFrame::create(Named("label")=label, Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
-            info.attr("descriptions") = descriptions;
-            info.attr("paths") = paths;
-            info.attr("class") = CharacterVector::create("divest","data.frame");
-            return info;
+            phase[i] = data.isHasPhase;
+            descriptions[i] = description.str();
+            files[i] = options.series[i].files.size();
+            paths[i] = wrap(options.series[i].files);
         }
-        else if (options.isRenameNotConvert)
-            return List::create(Named("source")=options.sourcePaths, Named("target")=options.targetPaths, Named("ignored")=options.ignoredPaths);
-        else
-            return images;
+        
+        DataFrame info = DataFrame::create(Named("label")=label, Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
+        info.attr("descriptions") = descriptions;
+        info.attr("paths") = paths;
+        info.attr("class") = CharacterVector::create("divest","data.frame");
+        return info;
     }
-    else if (returnValue == kEXIT_NO_VALID_FILES_FOUND)
-        Rprintf("No valid DICOM files found\n");
+    else if (options.isRenameNotConvert)
+        return List::create(Named("source")=options.sourcePaths, Named("target")=options.targetPaths, Named("ignored")=options.ignoredPaths);
     else
-        Rf_error("DICOM scan failed");
+        return images;
 END_RCPP
 }
 
