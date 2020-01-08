@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest) [![Coverage Status](https://coveralls.io/repos/github/jonclayden/divest/badge.svg?branch=master)](https://coveralls.io/github/jonclayden/divest?branch=master)
+[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest) [![Coverage Status](https://coveralls.io/repos/github/jonclayden/divest/badge.svg?branch=master)](https://coveralls.io/github/jonclayden/divest?branch=master) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.com)
 
 # An R interface to dcm2niix
 
@@ -61,7 +61,7 @@ attributes(images[[2]])
 ## [1] "mm" "s" 
 ## 
 ## $.nifti_image_ptr
-## <pointer: 0x7f94a7007780>
+## <pointer: 0x7ff2d3c3e590>
 ## 
 ## $class
 ## [1] "internalImage" "niftiImage"   
@@ -131,8 +131,8 @@ dumpNifti(images[[2]])
 ##      intent_p1: 0
 ##      intent_p2: 0
 ##      intent_p3: 0
-##    intent_code: 0
-##       datatype: 4
+##    intent_code: 0 (Unknown)
+##       datatype: 4 (INT16)
 ##         bitpix: 16
 ##    slice_start: 0
 ##         pixdim: -1.0  2.5  2.5  5.0  4.1  0.0  0.0  0.0
@@ -140,7 +140,7 @@ dumpNifti(images[[2]])
 ##      scl_slope: 1
 ##      scl_inter: 0
 ##      slice_end: 0
-##     slice_code: 0
+##     slice_code: 0 (Unknown)
 ##     xyzt_units: 10
 ##        cal_max: 0
 ##        cal_min: 0
@@ -148,8 +148,8 @@ dumpNifti(images[[2]])
 ##        toffset: 0
 ##        descrip: TE=1.1e+02;Time=0.000;phase=1
 ##       aux_file: 
-##     qform_code: 1
-##     sform_code: 1
+##     qform_code: 1 (Scanner Anat)
+##     sform_code: 1 (Scanner Anat)
 ##      quatern_b: 0
 ##      quatern_c: 1
 ##      quatern_d: 0
