@@ -1,6 +1,6 @@
 Package: divest
 Version: 0.8.2
-Date: 2019-12-28
+Date: 2020-01-08
 Title: Get Images Out of DICOM Format Quickly
 Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cre")),
              person("Chris", "Rorden", role="aut"),
