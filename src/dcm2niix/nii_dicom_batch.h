@@ -38,7 +38,6 @@ extern "C" {
 #ifdef USING_R
         bool isScanOnly;
         void *imageList;
-        int nConverted, nFailures;
         std::vector<TDicomSeries> series;
         
         // Used when sorting a directory

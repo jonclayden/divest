@@ -5491,9 +5491,6 @@ int nii_loadDirCore(char *indir, struct TDCMopts* opts) {
     struct TDICOMdata *dcmList  = (struct TDICOMdata *)malloc(nameList.numItems * sizeof(struct  TDICOMdata));
     struct TDTI4D dti4D;
     int nConvertTotal = 0;
-#ifdef USING_R
-    opts->nConverted = opts->nFailures = 0;
-#endif
     bool compressionWarning = false;
     bool convertError = false;
     bool isDcmExt = isExt(opts->filename, ".dcm"); // "%r.dcm" with multi-echo should generate "1.dcm", "1e2.dcm"
@@ -5613,19 +5610,9 @@ int nii_loadDirCore(char *indir, struct TDCMopts* opts) {
 				nConvert = removeDuplicates(nConvert, dcmSort);
 			int ret = saveDcm2Nii(nConvert, dcmSort, dcmList, &nameList, *opts, &dti4D);
 			if (ret == EXIT_SUCCESS)
-            {
             	nConvertTotal += nConvert;
-#ifdef USING_R
-                opts->nConverted += nConvert;
-#endif
-            }
             else
-            {
             	convertError = true;
-#ifdef USING_R
-                opts->nFailures += nConvert;
-#endif
-            }
 			free(dcmSort);
 		}//convert all images of this series
     }
