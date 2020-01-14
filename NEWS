@@ -2,6 +2,12 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.8.2
+
+- Fixes for minor compiler warnings.
+
+===============================================================================
+
 VERSION 0.8.1
 
 - The C++ file sorting implementation has been revised to avoid the possibility
