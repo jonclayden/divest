@@ -12,6 +12,9 @@
 	//#define vsnprintf _vsnprintf
 	#define strcasecmp _stricmp
 	#define strncasecmp _strnicmp
+    #ifdef _WIN32
+        #pragma comment(lib, "advapi32")
+    #endif
 #else
 	#include <unistd.h>
 #endif
@@ -685,6 +688,7 @@ struct TDICOMdata clear_dicom_data() {
     struct TDICOMdata d;
     //d.dti4D = NULL;
     d.locationsInAcquisition = 0;
+    d.locationsInAcquisitionConflict = 0; //for GE  discrepancy between tags 0020,1002; 0021,104F; 0054,0081
     d.modality = kMODALITY_UNKNOWN;
     d.effectiveEchoSpacingGE = 0;
     for (int i=0; i < 4; i++) {
@@ -732,6 +736,7 @@ struct TDICOMdata clear_dicom_data() {
     strcpy(d.scanOptions, "");
     //strcpy(d.mrAcquisitionType, "");
     strcpy(d.seriesInstanceUID, "");
+    strcpy(d.instanceUID, "");
     strcpy(d.studyID, "");
     strcpy(d.studyInstanceUID, "");
     strcpy(d.bodyPartExamined,"");
@@ -768,6 +773,8 @@ struct TDICOMdata clear_dicom_data() {
     //~ d.numberOfDynamicScans = 0;
     d.echoNum = 1;
     d.echoTrainLength = 0;
+    d.waterFatShift = 0.0;
+    d.percentSampling = 0.0;
     d.phaseFieldofView = 0.0;
     d.dwellTime = 0;
     d.protocolBlockStartGE = 0;
@@ -799,6 +806,7 @@ struct TDICOMdata clear_dicom_data() {
     d.isSegamiOasis = false; //these images do not store spatial coordinates
     d.isGrayscaleSoftcopyPresentationState = false;
     d.isRawDataStorage = false;
+    d.isPartialFourier = false;
     d.isDiffusion = false;
     d.isVectorFromBMatrix = false;
     d.isStackableSeries = false; //combine DCE series https://github.com/rordenlab/dcm2niix/issues/252
@@ -807,6 +815,7 @@ struct TDICOMdata clear_dicom_data() {
     d.RWVScale = 0.0;
     d.RWVIntercept = 0.0;
     d.isScaleOrTEVaries = false;
+    d.isScaleVariesEnh = false; //issue363
     d.bitsAllocated = 16;//bits
     d.bitsStored = 0;
     d.samplesPerPixel = 1;
@@ -827,6 +836,8 @@ struct TDICOMdata clear_dicom_data() {
     d.numberOfDiffusionDirectionGE = -1;
     d.phaseEncodingGE = kGE_PHASE_ENCODING_POLARITY_UNKNOWN;
     d.rtia_timerGE = -1.0;
+    d.rawDataRunNumber = -1;
+    d.maxEchoNumGE = -1;
     d.numberOfImagesInGridUIH = 0;
     d.phaseEncodingRC = '?';
     d.patientSex = '?';
@@ -905,7 +916,9 @@ uint32_t mz_crc32X(unsigned char *ptr, size_t buf_len)
   return ~crcu32;
 }
 
-void dcmStr(int lLength, unsigned char lBuffer[], char* lOut, bool isStrLarge = false) {
+
+
+void dcmStr(int lLength, unsigned char lBuffer[], char* lOut, bool isStrLarge = false, bool isSpaceToUnderscore = true) {
     if (lLength < 1) return;
 //#ifdef _MSC_VER
 	char * cString = (char *)malloc(sizeof(char) * (lLength + 1));
@@ -944,7 +957,13 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut, bool isStrLarge = 
             if (c == 255) cString[i] = 'y';
         }
     for (int i = 0; i < lLength; i++)
-        if ((cString[i]<1) || (cString[i]==' ') || (cString[i]==',') || (cString[i]=='^') || (cString[i]=='/') || (cString[i]=='\\')  || (cString[i]=='%') || (cString[i]=='*') || (cString[i] == 9) || (cString[i] == 10) || (cString[i] == 11) || (cString[i] == 13)) cString[i] = '_';
+        if ((cString[i]<1) || (cString[i]==',') || (cString[i]=='^') || (cString[i]=='/') || (cString[i]=='\\')  || (cString[i]=='%') || (cString[i]=='*') || (cString[i] == 9) || (cString[i] == 10) || (cString[i] == 11) || (cString[i] == 13)) cString[i] = '_';
+    if (!isSpaceToUnderscore) {
+   		if (cString[lLength-1]==' ') cString[lLength-1] = '_'; //only remove trailing space, e.g. Philips Image Type with odd length
+    } else {
+    	for (int i = 0; i < lLength; i++)
+        	if (cString[i]==' ') cString[i] = '_';
+    }
     int len = 1;
     for (int i = 1; i < lLength; i++) { //remove repeated "_"
         if ((cString[i-1]!='_') || (cString[i]!='_')) {
@@ -968,12 +987,7 @@ void dcmStr(int lLength, unsigned char lBuffer[], char* lOut, bool isStrLarge = 
 //#endif
 } //dcmStr()
 
-inline bool littleEndianPlatform ()
-{
-    uint32_t value = 1;
-    return (*((char *) &value) == 1);
-}
-
+#ifdef MY_OLD //this code works on Intel but not some older systems https://github.com/rordenlab/dcm2niix/issues/327
 float dcmFloat(int lByteLength, unsigned char lBuffer[], bool littleEndian) {//read binary 32-bit float
     //http://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
     bool swap = (littleEndian != littleEndianPlatform());
@@ -1014,6 +1028,51 @@ double dcmFloatDouble(const size_t lByteLength, const unsigned char lBuffer[],
     //printMessage("swapped val = %f\n",retVal);
     return retVal;
 } //dcmFloatDouble()
+#else
+
+float dcmFloat(int lByteLength, unsigned char lBuffer[], bool littleEndian) {//read binary 32-bit float
+    //http://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
+    if (lByteLength < 4) return 0.0;
+    bool swap = (littleEndian != littleEndianPlatform());
+    union {
+        uint32_t i;
+        float f;
+        uint8_t c[4];
+  } i,o;
+  memcpy(&i.i, (char*)&lBuffer[0], 4);
+  //printf("%02x%02x%02x%02x\n",i.c[0], i.c[1], i.c[2], i.c[3]);
+    if (!swap) return i.f;
+  o.c[0] = i.c[3];
+  o.c[1] = i.c[2];
+  o.c[2] = i.c[1];
+  o.c[3] = i.c[0];
+  //printf("swp %02x%02x%02x%02x\n",o.c[0], o.c[1], o.c[2], o.c[3]);
+  return o.f;
+} //dcmFloat()
+
+double dcmFloatDouble(const size_t lByteLength, const unsigned char lBuffer[],
+                      const bool littleEndian) {//read binary 64-bit float
+    //http://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
+    if (lByteLength < 8) return 0.0;
+    bool swap = (littleEndian != littleEndianPlatform());
+    union {
+        uint32_t i;
+        double d;
+        uint8_t c[8];
+  } i,o;
+  memcpy(&i.i, (char*)&lBuffer[0], 8);
+  if (!swap) return i.d;
+  o.c[0] = i.c[7];
+  o.c[1] = i.c[6];
+  o.c[2] = i.c[5];
+  o.c[3] = i.c[4];
+  o.c[4] = i.c[3];
+  o.c[5] = i.c[2];
+  o.c[6] = i.c[1];
+  o.c[7] = i.c[0];
+  return o.d;
+} //dcmFloatDouble()
+#endif
 
 int dcmInt (int lByteLength, unsigned char lBuffer[], bool littleEndian) { //read binary 16 or 32 bit integer
     if (littleEndian) {
@@ -1096,6 +1155,9 @@ int dcmStrManufacturer (const int lByteLength, unsigned char lBuffer[]) {//read 
         ret = kMANUFACTURER_PHILIPS;
     if ((toupper(cString[0])== 'T') && (toupper(cString[1])== 'O'))
         ret = kMANUFACTURER_TOSHIBA;
+    //CANON_MEC
+    if ((toupper(cString[0])== 'C') && (toupper(cString[1])== 'A'))
+        ret = kMANUFACTURER_CANON;
     if ((toupper(cString[0])== 'U') && (toupper(cString[1])== 'I'))
         ret = kMANUFACTURER_UIH;
     if ((toupper(cString[0])== 'B') && (toupper(cString[1])== 'R'))
@@ -1594,6 +1656,8 @@ int isSameFloatGE (float a, float b) {
 
 struct TDICOMdata  nii_readParRec (char * parname, int isVerbose, struct TDTI4D *dti4D, bool isReadPhase) {
 struct TDICOMdata d = clear_dicom_data();
+dti4D->sliceOrder[0] = -1;
+dti4D->intenScale[0] = 0.0;
 strcpy(d.protocolName, ""); //erase dummy with empty
 strcpy(d.seriesDescription, ""); //erase dummy with empty
 strcpy(d.sequenceName, ""); //erase dummy with empty
@@ -2077,9 +2141,9 @@ int	kbval = 33; //V3: 27
 				TE = cols[kTEcho];
             dti4D->triggerDelayTime[vol] = cols[kTriggerTime];
 			if (dti4D->TE[vol] < 0) dti4D->TE[vol] = 0; //used to detect sparse volumes
-			dti4D->intenIntercept[vol] = cols[kRI];
-			dti4D->intenScale[vol] = cols[kRS];
-			dti4D->intenScalePhilips[vol] = cols[kSS];
+			//dti4D->intenIntercept[vol] = cols[kRI];
+			//dti4D->intenScale[vol] = cols[kRS];
+			//dti4D->intenScalePhilips[vol] = cols[kSS];
 			dti4D->isReal[vol] = isReal;
 			dti4D->isImaginary[vol] = isImaginary;
 			dti4D->isPhase[vol] = isPhase;
@@ -2091,14 +2155,20 @@ int	kbval = 33; //V3: 27
     			if ((vol+1) > d.CSA.numDti)
     				d.CSA.numDti = vol+1;
 			}
+			if (numSlice2D < kMaxSlice2D) {//issue 363: intensity can vary with each 2D slice of 4D volume
+				//printf("%d %g %g\n", numSlice2D, cols[kRI], cols[kRS]);
+            	dti4D->intenIntercept[numSlice2D] = cols[kRI];
+				dti4D->intenScale[numSlice2D] = cols[kRS];
+				dti4D->intenScalePhilips[numSlice2D] = cols[kSS];
+			}
 			//if (slice == 1) printWarning("%d\n", (int)cols[kEcho]);
 			slice = slice + (vol * d.xyzDim[3]);
 			//offset images by type: mag+0,real+1, imag+2,phase+3
 			//if (cols[kImageType] != 0) //yikes - phase maps!
 			//	slice = slice + numExpected;
 			//printWarning("%d\t%d\n", slice -1, numSlice2D);
-            if ((slice >= 0)  && (slice < kMaxSlice2D)  && (numSlice2D < kMaxSlice2D) && (numSlice2D >= 0)) {
-				dti4D->sliceOrder[slice -1] = numSlice2D;
+			if ((slice >= 0)  && (slice < kMaxSlice2D)  && (numSlice2D < kMaxSlice2D) && (numSlice2D >= 0)) {
+				dti4D->sliceOrder[slice -1] = numSlice2D;	
 				//printMessage("%d\t%d\t%d\n", numSlice2D, slice, (int)cols[kSlice],(int)vol);
 			}
 			numSlice2D++;
@@ -2121,9 +2191,9 @@ int	kbval = 33; //V3: 27
     	if (dti4D->TE[i] > -1.0) {
 			dti4D->TE[maxVol] = dti4D->TE[i];
 			dti4D->triggerDelayTime[maxVol] = dti4D->triggerDelayTime[i];
-			dti4D->intenIntercept[maxVol] = dti4D->intenIntercept[i];
-			dti4D->intenScale[maxVol] = dti4D->intenScale[i];
-			dti4D->intenScalePhilips[maxVol] = dti4D->intenScalePhilips[i];
+			//dti4D->intenIntercept[maxVol] = dti4D->intenIntercept[i];
+			//dti4D->intenScale[maxVol] = dti4D->intenScale[i];
+			//dti4D->intenScalePhilips[maxVol] = dti4D->intenScalePhilips[i];
 			dti4D->isReal[maxVol] = dti4D->isReal[i];
 			dti4D->isImaginary[maxVol] = dti4D->isImaginary[i];
 			dti4D->isPhase[maxVol] = dti4D->isPhase[i];
@@ -2154,10 +2224,32 @@ int	kbval = 33; //V3: 27
     		maxNumberOfCardiacPhases, maxNumberOfEchoes, maxNumberOfDynamics, maxNumberOfMixes,maxNumberOfLabels);
         d.isValid = false;
     }
+    for (int i = 0; i < numSlice2D; i++) { //issue363
+		if (dti4D->intenIntercept[i] != dti4D->intenIntercept[0]) d.isScaleVariesEnh = true;
+		if (dti4D->intenScale[i] != dti4D->intenScale[0]) d.isScaleVariesEnh = true;
+		if (dti4D->intenScalePhilips[i] != dti4D->intenScalePhilips[0]) d.isScaleVariesEnh = true;
+		//printf("%g --> %g\n", dti4D->intenIntercept[i], dti4D->intenScale[i]);
+    }
+    if (d.isScaleVariesEnh) { //juggle to sorted order, required for subsequent rescaling
+    	printWarning("PAR/REC intensity scaling varies between slices (please validate output).\n");
+    	TDTI4D tmp;
+    	for (int i = 0; i < numSlice2D; i++) { //issue363
+			tmp.intenIntercept[i] = dti4D->intenIntercept[i];
+			tmp.intenScale[i] = dti4D->intenScale[i];
+			tmp.intenScalePhilips[i] = dti4D->intenScalePhilips[i];
+		}
+		for (int i = 0; i < numSlice2D; i++) {
+			int j = dti4D->sliceOrder[i];
+			dti4D->intenIntercept[i] = tmp.intenIntercept[j];
+			dti4D->intenScale[i] = tmp.intenScale[j];
+        	dti4D->intenScalePhilips[i] = tmp.intenScalePhilips[j];
+        }
+    }
     d.isScaleOrTEVaries = true;
 	if (numSlice2D > kMaxSlice2D) {
 		printError("Overloaded slice re-ordering. Number of slices (%d) exceeds kMaxSlice2D (%d)\n", numSlice2D, kMaxSlice2D);
 		dti4D->sliceOrder[0] = -1;
+		dti4D->intenScale[0] = 0.0;
 	}
 	if ((maxSlice-minSlice+1) != d.xyzDim[3]) {
 		int numSlice = (maxSlice - minSlice)+1;
@@ -2356,9 +2448,10 @@ int	kbval = 33; //V3: 27
     if (maxVol > 0) { //maxVol indexed from 0
 		for (int i = 1; i <= maxVol; i++) {
 			//if (dti4D->gradDynVol[i] > d.maxGradDynVol) d.maxGradDynVol = dti4D->gradDynVol[i];
-			if (dti4D->intenIntercept[i] != dti4D->intenIntercept[0]) d.isScaleOrTEVaries = true;
-			if (dti4D->intenScale[i] != dti4D->intenScale[0]) d.isScaleOrTEVaries = true;
-			if (dti4D->intenScalePhilips[i] != dti4D->intenScalePhilips[0]) d.isScaleOrTEVaries = true;
+			//issue363 slope/intercept can vary for each 2D slice, not only between 3D volumes in a 4D time series
+			//if (dti4D->intenIntercept[i] != dti4D->intenIntercept[0]) d.isScaleOrTEVaries = true;
+			//if (dti4D->intenScale[i] != dti4D->intenScale[0]) d.isScaleOrTEVaries = true;
+			//if (dti4D->intenScalePhilips[i] != dti4D->intenScalePhilips[0]) d.isScaleOrTEVaries = true;
 			if (dti4D->isPhase[i] != dti4D->isPhase[0]) d.isScaleOrTEVaries = true;
 			if (dti4D->isReal[i] != dti4D->isReal[0]) d.isScaleOrTEVaries = true;
 			if (dti4D->isImaginary[i] != dti4D->isImaginary[0]) d.isScaleOrTEVaries = true;
@@ -2655,8 +2748,8 @@ unsigned char * nii_loadImgCore(char* imgname, struct nifti_1_header hdr, int bi
 		// FileSize < (ImageSize+HeaderSize): 42399788 < ( 42399792.00)
         //note hdr.vox_offset is a float, and without a type-cast it can lead to unusual values
         //https://www.nitrc.org/forum/message.php?msg_id=27155
-        printMessage("FileSize < (ImageSize+HeaderSize): %lu < (%lu+%lu) \n", fileLen, imgszRead, (long)hdr.vox_offset);
-        //printMessage("FileSize < (ImageSize+HeaderSize): %lu < (%lu) \n", fileLen, imgszRead+(long)hdr.vox_offset);
+        printMessage("FileSize < (ImageSize+HeaderSize): %ld < (%zu+%ld) \n", fileLen, imgszRead, (long)hdr.vox_offset);
+        //printMessage("FileSize < (ImageSize+HeaderSize): %ld < (%zu) \n", fileLen, imgszRead+(long)hdr.vox_offset);
         printWarning("File not large enough to store image data: %s\n", imgname);
         return NULL;
     }
@@ -2737,7 +2830,7 @@ unsigned char * nii_rgb2planar(unsigned char* bImg, struct nifti_1_header *hdr, 
     return bImg;
 } //nii_rgb2Planar()
 
-unsigned char * nii_iVaries(unsigned char *img, struct nifti_1_header *hdr){
+unsigned char * nii_iVaries(unsigned char *img, struct nifti_1_header *hdr, struct TDTI4D *dti4D){
     //each DICOM image can have its own intesity scaling, whereas NIfTI requires the same scaling for all images in a file
     //WARNING: do this BEFORE nii_check16bitUnsigned!!!!
     //if (hdr->datatype != DT_INT16) return img;
@@ -2765,15 +2858,29 @@ unsigned char * nii_iVaries(unsigned char *img, struct nifti_1_header *hdr){
             img32[i] = (float) img32i[i];
     }
     free (img); //release previous image
-    for (int i=0; i < nVox; i++)
-        img32[i] = (img32[i]* hdr->scl_slope)+hdr->scl_inter;
+    if ((dti4D != NULL) && (dti4D->intenScale[0] != 0.0)) { //enhanced dataset, intensity varies across slices of a single file 
+    	if (dti4D->RWVScale[0] != 0.0) printWarning("Intensity scale/slope using 0028,1053 and 0028,1052"); //to do: real-world values and precise values
+    	int dim1to2 = hdr->dim[1]*hdr->dim[2];
+    	int slice = -1;
+    	//(0028,1052) SS = scale slope (2005,100E) RealWorldIntercept = (0040,9224) Real World Slope = (0040,9225)
+    	//printf("vol\tRS(0028,1053)\tRI(0028,1052)\tSS(2005,100E)\trwS(0040,9225)\trwI(0040,9224)\n");	
+    	for (int i=0; i < nVox; i++) { //issue 363 
+    		if ((i % dim1to2) == 0) {
+    			slice++;			 
+    			//printf("%d\t%g\t%g\t%g\t%g\t%g\n", slice, dti4D->intenScale[slice], dti4D->intenIntercept[slice],dti4D->intenScalePhilips[slice], dti4D->RWVScale[slice], dti4D->RWVIntercept[slice]);
+    		}
+        	img32[i] = (img32[i]* dti4D->intenScale[slice])+dti4D->intenIntercept[slice];
+        }
+    } else { //
+    	for (int i=0; i < nVox; i++)
+        	img32[i] = (img32[i]* hdr->scl_slope)+hdr->scl_inter;
+    }
     hdr->scl_slope = 1;
     hdr->scl_inter = 0;
     hdr->datatype = DT_FLOAT;
     hdr->bitpix = 32;
     return (unsigned char*) img32;
 } //nii_iVaries()
-
 
 /*unsigned char * nii_reorderSlicesX(unsigned char* bImg, struct nifti_1_header *hdr, struct TDTI4D *dti4D) {
 //Philips can save slices in any random order... rearrange all of them
@@ -3559,17 +3666,19 @@ unsigned char * nii_loadImgXL(char* imgname, struct nifti_1_header *hdr, struct 
          img = nii_flipImgY(img, hdr);
          #endif*/
     }
-    if ((!dcm.isFloat) && (iVaries)) img = nii_iVaries(img, hdr);
+    if ((dti4D == NULL) && (!dcm.isFloat) && (iVaries)) //must do afte
+    	img = nii_iVaries(img, hdr, NULL);
     int nAcq = dcm.locationsInAcquisition;
     if ((nAcq > 1) && (hdr->dim[0] < 4) && ((hdr->dim[3]%nAcq)==0) && (hdr->dim[3]>nAcq) ) {
         hdr->dim[4] = hdr->dim[3]/nAcq;
         hdr->dim[3] = nAcq;
         hdr->dim[0] = 4;
     }
-    //~ if ((hdr->dim[0] > 3) && (dcm.patientPositionSequentialRepeats > 1) && (dcm.sliceOrder == NULL)) //swizzle 3rd and 4th dimension (Philips stores time as 3rd dimension)
-    //~     img = nii_XYTZ_XYZT(img, hdr,dcm.patientPositionSequentialRepeats);
-	if ((dti4D != NULL) && (dti4D->sliceOrder[0] >= 0))
+    if ((dti4D != NULL) && (dti4D->sliceOrder[0] >= 0))
     	img = nii_reorderSlicesX(img, hdr, dti4D);
+    if ((dti4D != NULL) && (!dcm.isFloat) && (iVaries)) 
+    	img = nii_iVaries(img, hdr, dti4D);
+    
     //~
     /*if (((dcm.patientPositionSequentialRepeats * 2) == dcm.patientPositionRepeats) && (dcm.isHasPhase) && (dcm.isHasMagnitude)) {
     	hdr->dim[3] = hdr->dim[3] / 2;
@@ -3881,11 +3990,10 @@ struct TDCMdim { //DimensionIndexValues
 
 void getFileNameX( char *pathParent, const char *path, int maxLen) {//if path is c:\d1\d2 then filename is 'd2'
     const char *filename = strrchr(path, '/'); //UNIX
-    if (filename == 0) {
-       filename = strrchr(path, '\\'); //Windows
-       if (filename == NULL) filename = strrchr(path, ':'); //Windows
-     }
-    //const char *filename = strrchr(path, kPathSeparator); //x
+    const char *filenamew = strrchr(path, '\\'); //Windows
+    if (filename == NULL) filename = filenamew;
+    //if ((filename != NULL) && (filenamew != NULL)) filename = std::max(filename, filenamew);
+    if ((filename != NULL) && (filenamew != NULL) && (filenamew > filename)) filename = filenamew; //for mixed file separators, e.g. "C:/dir\filenane.tmp"
     if (filename == NULL) {//no path separator
         strcpy(pathParent,path);
         return;
@@ -3896,6 +4004,24 @@ void getFileNameX( char *pathParent, const char *path, int maxLen) {//if path is
 
 void getFileName( char *pathParent, const char *path) {//if path is c:\d1\d2 then filename is 'd2'
 getFileNameX(pathParent, path, kDICOMStr);
+}
+
+struct fidx
+{
+    float value;
+    int index;
+};
+
+int fcmp(const void *a, const void *b)
+{
+    struct fidx *a1 = (struct fidx *)a;
+    struct fidx *a2 = (struct fidx *)b;
+    if ((*a1).value > (*a2).value)
+        return 1;
+    else if ((*a1).value < (*a2).value)
+        return -1;
+    else
+        return 0;
 }
 
 #ifdef USING_R
@@ -3938,6 +4064,7 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
     strcpy(d.sequenceName, ""); //erase dummy with empty
     //do not read folders - code specific to GCC (LLVM/Clang seems to recognize a small file size)
 	dti4D->sliceOrder[0] = -1;
+	dti4D->intenScale[0] = 0.0;
 	struct TVolumeDiffusion volDiffusion = initTVolumeDiffusion(&d, dti4D);
     struct stat s;
     if( stat(fname,&s) == 0 ) {
@@ -4009,8 +4136,11 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #define  kTransferSyntax 0x0002+(0x0010 << 16)
 #define  kImplementationVersionName 0x0002+(0x0013 << 16)
 #define  kSourceApplicationEntityTitle 0x0002+(0x0016 << 16 )
+#define  kDirectoryRecordSequence 0x0004+(0x1220 << 16 )
 //#define  kSpecificCharacterSet 0x0008+(0x0005 << 16 ) //someday we should handle foreign characters...
 #define  kImageTypeTag 0x0008+(0x0008 << 16 )
+//#define  kSOPInstanceUID 0x0008+(0x0018 << 16 ) //Philips inserts time as last item, e.g. ?.?.?.YYYYMMDDHHmmSS.SSSS
+// not reliable  https://neurostars.org/t/heudiconv-no-extraction-of-slice-timing-data-based-on-philips-dicoms/2201/21
 #define  kStudyDate 0x0008+(0x0020 << 16 )
 #define  kAcquisitionDate 0x0008+(0x0022 << 16 )
 #define  kAcquisitionDateTime 0x0008+(0x002A << 16 )
@@ -4037,6 +4167,8 @@ struct TDICOMdata readDICOMv(char * fname, int isVerbose, int compressFlag, stru
 #define  kPatientAge 0x0010+(0x1010 << 16 )
 #define  kPatientWeight 0x0010+(0x1030 << 16 )
 #define  kAnatomicalOrientationType 0x0010+(0x2210 << 16 )
+#define  kDeidentificationMethod 0x0012+(0x0063 << 16)//[DICOMANON, issue 383 
+#define  kBodyPartExamined 0x0018+(0x0015 << 16)
 #define  kBodyPartExamined 0x0018+(0x0015 << 16)
 #define  kScanningSequence 0x0018+(0x0020 << 16)
 #define  kSequenceVariant 0x0018+(0x0021 << 16)
@@ -4057,6 +4189,7 @@ const uint32_t kEffectiveTE  = 0x0018+ (0x9082 << 16);
 #define  kZSpacing  0x0018+(0x0088 << 16 ) //'DS' 'SpacingBetweenSlices'
 #define  kPhaseEncodingSteps  0x0018+(0x0089 << 16 ) //'IS'
 #define  kEchoTrainLength  0x0018+(0x0091 << 16 ) //IS
+#define  kPercentSampling  0x0018+(0x0093 << 16 ) //'DS'
 #define  kPhaseFieldofView  0x0018+(0x0094 << 16 ) //'DS'
 #define  kPixelBandwidth  0x0018+(0x0095 << 16 ) //'DS' 'PixelBandwidth'
 #define  kDeviceSerialNumber  0x0018+(0x1000 << 16 ) //LO
@@ -4073,15 +4206,19 @@ const uint32_t kEffectiveTE  = 0x0018+ (0x9082 << 16);
 #define  kInPlanePhaseEncodingDirection  0x0018+(0x1312<< 16 ) //CS
 #define  kSAR  0x0018+(0x1316 << 16 ) //'DS' 'SAR'
 #define  kPatientOrient  0x0018+(0x5100<< 16 )    //0018,5100. patient orientation - 'HFS'
+#define  kParallelReductionFactorInPlane  0x0018+uint32_t(0x9069<< 16 ) //FD
 #define  kAcquisitionDuration  0x0018+uint32_t(0x9073<< 16 ) //FD
 //#define  kFrameAcquisitionDateTime  0x0018+uint32_t(0x9074<< 16 ) //DT "20181019212528.232500"
 #define  kDiffusionDirectionality  0x0018+uint32_t(0x9075<< 16 )   // NONE, ISOTROPIC, or DIRECTIONAL
+#define  kInversionTimes  0x0018+uint32_t(0x9079<< 16 ) //FD
+#define  kPartialFourier  0x0018+uint32_t(0x9081<< 16 ) //CS
 //#define  kDiffusionBFactorSiemens  0x0019+(0x100C<< 16 ) //   0019;000C;SIEMENS MR HEADER  ;B_value
 #define  kDiffusion_bValue  0x0018+uint32_t(0x9087<< 16 ) // FD
 #define  kDiffusionOrientation  0x0018+uint32_t(0x9089<< 16 ) // FD, seen in enhanced
                                                               // DICOM from Philips 5.*
                                                               // and Siemens XA10.
 #define  kImagingFrequency2 0x0018+uint32_t(0x9098 << 16 ) //FD
+//#define  kFrameAcquisitionDuration 0x0018+uint32_t(0x9220 << 16 ) //FD
 #define  kDiffusionBValueXX 0x0018+uint32_t(0x9602 << 16 ) //FD
 #define  kDiffusionBValueXY 0x0018+uint32_t(0x9603 << 16 ) //FD
 #define  kDiffusionBValueXZ 0x0018+uint32_t(0x9604 << 16 ) //FD
@@ -4099,13 +4236,14 @@ const uint32_t kEffectiveTE  = 0x0018+ (0x9082 << 16);
 #define  kDiffusionGradientDirectionSiemens  0x0019+(0x100E<< 16 ) //FD
 #define  kNumberOfDiffusionDirectionGE 0x0019+(0x10E0<< 16) ///DS NumberOfDiffusionDirection:UserData24
 #define  kLastScanLoc  0x0019+(0x101B<< 16 )
+#define  kRawDataRunNumberGE 0x0019+(0x10A2<< 16 ) //SL
+#define  kMaxEchoNumGE 0x0019+(0x10a9<< 16 ) //DS
 #define  kDiffusionDirectionGEX  0x0019+(0x10BB<< 16 ) //DS phase diffusion direction
 #define  kDiffusionDirectionGEY  0x0019+(0x10BC<< 16 ) //DS frequency diffusion direction
 #define  kDiffusionDirectionGEZ  0x0019+(0x10BD<< 16 ) //DS slice diffusion direction
 #define  kSharedFunctionalGroupsSequence  0x5200+uint32_t(0x9229<< 16 ) // SQ
 #define  kPerFrameFunctionalGroupsSequence  0x5200+uint32_t(0x9230<< 16 ) // SQ
 #define  kBandwidthPerPixelPhaseEncode  0x0019+(0x1028<< 16 ) //FD
-//#define  kRawDataRunNumberGE  0x0019+(0x10a2<< 16 ) //SL
 #define  kStudyID 0x0020+(0x0010 << 16 )
 #define  kSeriesNum 0x0020+(0x0011 << 16 )
 #define  kAcquNum 0x0020+(0x0012 << 16 )
@@ -4116,7 +4254,9 @@ const uint32_t kEffectiveTE  = 0x0018+ (0x9082 << 16);
 #define  kOrientationACR 0x0020+(0x0035 << 16 )
 //#define  kTemporalPositionIdentifier 0x0020+(0x0100 << 16 ) //IS
 #define  kOrientation 0x0020+(0x0037 << 16 )
+#define  kTemporalPosition 0x0020+(0x0100 << 16 ) //IS 
 #define  kImagesInAcquisition 0x0020+(0x1002 << 16 ) //IS
+//#define  kSliceLocation 0x0020+(0x1041 << 16 ) //DS would be useful if not optional type 3
 #define  kImageComments 0x0020+(0x4000<< 16 )// '0020' '4000' 'LT' 'ImageComments'
 #define  kFrameContentSequence 0x0020+uint32_t(0x9111<< 16 ) //SQ
 #define  kTriggerDelayTime 0x0020+uint32_t(0x9153<< 16 ) //FD
@@ -4185,7 +4325,11 @@ const uint32_t kEffectiveTE  = 0x0018+ (0x9082 << 16);
 //#define  kDiffusionDirectionPhilips  0x2001+(0x1004 << 16 )//CS Diffusion Direction
 #define  kSliceNumberMrPhilips 0x2001+(0x100A << 16 ) //IS Slice_Number_MR
 #define  kSliceOrient  0x2001+(0x100B << 16 )//2001,100B Philips slice orientation (TRANSVERSAL, AXIAL, SAGITTAL)
+#define  kEPIFactorPhilips 0x2001+(0x1013 << 16 ) //SL
 #define  kNumberOfSlicesMrPhilips 0x2001+(0x1018 << 16 )//SL 0x2001, 0x1018 ), "Number_of_Slices_MR"
+#define  kPartialMatrixScannedPhilips  0x2001+(0x1019 << 16 )// CS
+#define  kWaterFatShiftPhilips 0x2001+(0x1022 << 16 ) //FL
+//#define  kMRSeriesAcquisitionNumber 0x2001+(0x107B << 16 ) //IS
 //#define  kNumberOfLocationsPhilips  0x2001+(0x1015 << 16 ) //SS
 //#define  kStackSliceNumber  0x2001+(0x1035 << 16 )//? Potential way to determine slice order for Philips?
 #define  kNumberOfDynamicScans  0x2001+(0x1081 << 16 )//'2001' '1081' 'IS' 'NumberOfDynamicScans'
@@ -4196,7 +4340,8 @@ const uint32_t kEffectiveTE  = 0x0018+ (0x9082 << 16);
 #define  kMRStackOffcentreAP 0x2005+(0x1078 << 16)
 #define  kMRStackOffcentreFH 0x2005+(0x1079 << 16)
 #define  kMRStackOffcentreRL 0x2005+(0x107A << 16)
-#define  kPhilipsSlope 0x2005+(0x100E << 16 )
+#define  kPhilipsSlope 0x2005+(0x100E << 16 )  
+#define  kMRImageDynamicScanBeginTime 0x2005+(0x10a0 << 16) //FL
 #define  kDiffusionDirectionRL 0x2005+(0x10B0 << 16)
 #define  kDiffusionDirectionAP 0x2005+(0x10B1 << 16)
 #define  kDiffusionDirectionFH 0x2005+(0x10B2 << 16)
@@ -4213,12 +4358,16 @@ uint32_t kItemDelimitationTag = 0xFFFE +(0xE00D << 16 );
 uint32_t kSequenceDelimitationItemTag = 0xFFFE +(0xE0DD << 16 );
 double TE = 0.0; //most recent echo time recorded
 	bool is2005140FSQ = false;
+	bool isDICOMANON = false; //issue383
+	bool isMATLAB = false; //issue383
 	//double contentTime = 0.0;
+	int echoTrainLengthPhil = 0;
 	int philMRImageDiffBValueNumber = 0;
 	int sqDepth = 0;
 	int acquisitionTimesGE_UIH = 0;
     int sqDepth00189114 = -1;
     bool hasDwiDirectionality = false;
+    //float sliceLocation = INFINITY; //useless since this tag is optional
     //int numFirstPatientPosition = 0;
     int nDimIndxVal = -1; //tracks Philips kDimensionIndexValues
     int locationsInAcquisitionGE = 0;
@@ -4237,6 +4386,7 @@ double TE = 0.0; //most recent echo time recorded
     //int minGradNum = kMaxDTI4D + 1;
     //int maxGradNum = -1;
     int numberOfDynamicScans = 0;
+    //int mRSeriesAcquisitionNumber = 0;
     uint32_t lLength;
     uint32_t groupElement;
     long lPos = 0;
@@ -4261,8 +4411,10 @@ double TE = 0.0; //most recent echo time recorded
     char vr[2];
     //float intenScalePhilips = 0.0;
     char acquisitionDateTimeTxt[kDICOMStr] = "";
+    char imageType1st[kDICOMStr] = "";
     bool isEncapsulatedData = false;
     int multiBandFactor = 0;
+    int frequencyRows = 0;
     int numberOfImagesInMosaic = 0;
     int encapsulatedDataFragments = 0;
     int encapsulatedDataFragmentStart = 0; //position of first FFFE,E000 for compressed images
@@ -4287,12 +4439,25 @@ double TE = 0.0; //most recent echo time recorded
     bool isImaginary = false;
     bool isMagnitude = false;
     d.seriesNum = -1;
+    //start issue 372:
+    vec3 sliceV; //cross-product of kOrientation 0020,0037
+    sliceV.v[0] = NAN;
+    float sliceMM[kMaxSlice2D];
+    int nSliceMM = 0;
+    float minSliceMM = INFINITY;
+    float maxSliceMM = -INFINITY;
+    float minDynamicScanBeginTime = INFINITY;
+    float maxDynamicScanBeginTime = -INFINITY;
+    float minPatientPosition[4] = {NAN, NAN, NAN, NAN};
+    float maxPatientPosition[4] = {NAN, NAN, NAN, NAN};
+    //end issue 372
+    //float frameAcquisitionDuration = 0.0; //issue369
     float patientPositionPrivate[4] = {NAN, NAN, NAN, NAN};
     float patientPosition[4] = {NAN, NAN, NAN, NAN}; //used to compute slice direction for Philips 4D
     //float patientPositionPublic[4] = {NAN, NAN, NAN, NAN}; //used to compute slice direction for Philips 4D
     float patientPositionEndPhilips[4] = {NAN, NAN, NAN, NAN};
     float patientPositionStartPhilips[4] = {NAN, NAN, NAN, NAN};
-	//struct TDTI philDTI[kMaxDTI4D];
+    //struct TDTI philDTI[kMaxDTI4D];
     //for (int i = 0; i < kMaxDTI4D; i++)
     //	philDTI[i].V[0] = -1;
     //array for storing DimensionIndexValues
@@ -4551,6 +4716,11 @@ double TE = 0.0; //most recent echo time recorded
             	vr[1] = 'Q';
             	lLength = 0; //Do not skip kItemTag - required to determine nesting of Philips Enhanced
             }
+            if ((d.manufacturer != kMANUFACTURER_PHILIPS) && (isSQ(groupElement))) { //https://github.com/rordenlab/dcm2niix/issues/144
+            	vr[0] = 'S';
+            	vr[1] = 'Q';
+            	lLength = 0; //Do not skip kItemTag - required to determine nesting of Philips Enhanced
+            }
         } //if explicit else implicit VR
         if (lLength == 0xFFFFFFFF) {
             lLength = 8; //SQ (Sequences) use 0xFFFFFFFF [4294967295] to denote unknown length
@@ -4627,18 +4797,23 @@ double TE = 0.0; //most recent echo time recorded
          		char mediaUID[kDICOMStr];
                 dcmStr (lLength, &buffer[lPos], mediaUID);
                 //Philips "XX_" files
+                //see https://github.com/rordenlab/dcm2niix/issues/328
                 if (strstr(mediaUID, "1.2.840.10008.5.1.4.1.1.66") != NULL) d.isRawDataStorage = true;
+                if (strstr(mediaUID, "1.3.46.670589.11.0.0.12.1") != NULL) d.isRawDataStorage = true; //Private MR Spectrum Storage
+                if (strstr(mediaUID, "1.3.46.670589.11.0.0.12.2") != NULL) d.isRawDataStorage = true; //Private MR Series Data Storage
+                if (strstr(mediaUID, "1.3.46.670589.11.0.0.12.4") != NULL) d.isRawDataStorage = true; //Private MR Examcard Storage
                 if (d.isRawDataStorage) d.isDerived = true;
-         		//Philips "PS_" files
+                if (d.isRawDataStorage) printMessage("Skipping non-image DICOM: %s\n", fname);
+                //Philips "PS_" files
                 if (strstr(mediaUID, "1.2.840.10008.5.1.4.1.1.11.1") != NULL) d.isGrayscaleSoftcopyPresentationState = true;
                 if (d.isGrayscaleSoftcopyPresentationState) d.isDerived = true;
                 break;
          	}
             case kMediaStorageSOPInstanceUID : {// 0002, 0003
-            	char SOPInstanceUID[kDICOMStr];
-            	dcmStr (lLength, &buffer[lPos], SOPInstanceUID);
+            	//char SOPInstanceUID[kDICOMStr];
+            	dcmStr (lLength, &buffer[lPos], d.instanceUID);
             	//printMessage(">>%s\n", d.seriesInstanceUID);
-            	d.instanceUidCrc = mz_crc32X((unsigned char*) &SOPInstanceUID, strlen(SOPInstanceUID));
+            	d.instanceUidCrc = mz_crc32X((unsigned char*) &d.instanceUID, strlen(d.instanceUID));
                 break;
             }
             case kTransferSyntax: {
@@ -4705,13 +4880,14 @@ double TE = 0.0; //most recent echo time recorded
                 printError("OSIRIX Detected\n");
             	break; }*/
             case kImplementationVersionName: {
-            	char impTxt[kDICOMStr];
+                char impTxt[kDICOMStr];
                 dcmStr (lLength, &buffer[lPos], impTxt);
                 int slen = (int) strlen(impTxt);
-				//if ((slen > 5) && (strstr(impTxt, "dcm4che") != NULL) )
-				//	isDcm4Che = true;
+				if ((slen > 5) && (strstr(impTxt, "MATLAB") != NULL) )
+					isMATLAB = true;
 				if((slen < 5) || (strstr(impTxt, "XA10A") == NULL) ) break;
 				d.isXA10A = true;
+				
             	break; }
             case kSourceApplicationEntityTitle: {
             	char saeTxt[kDICOMStr];
@@ -4720,9 +4896,16 @@ double TE = 0.0; //most recent echo time recorded
 				if((slen < 5) || (strstr(saeTxt, "oasis") == NULL) ) break;
                 d.isSegamiOasis = true;
             	break; }
+            case kDirectoryRecordSequence: {
+                d.isRawDataStorage = true;
+                break;       
+            }
             case kImageTypeTag: {
-            	dcmStr (lLength, &buffer[lPos], d.imageType);
-                int slen;
+            	bool is1st = strlen(d.imageType) == 0;
+            	dcmStr (lLength, &buffer[lPos], d.imageType, false, false); //<-distinguish spaces from pathdelim: [ORIGINAL\PHASE MAP\FFE] should return "PHASE MAP" not "PHASE_MAP"
+            	if (is1st)
+            		strcpy(imageType1st, d.imageType);
+            	int slen;
                 slen = (int) strlen(d.imageType);
 				if((slen > 5) && strstr(d.imageType, "_MOCO_") ) {
                 	//d.isDerived = true; //this would have 'i- y' skip MoCo images
@@ -4736,6 +4919,8 @@ double TE = 0.0; //most recent echo time recorded
                 	d.isDerived = true;
 				if((slen > 5) && strstr(d.imageType, "_FA_") )
                 	d.isDerived = true;
+				if((slen > 12) && strstr(d.imageType, "_DIFFUSION_") )
+                	d.isDiffusion = true;
 				//if (strcmp(transferSyntax, "ORIGINAL_PRIMARY_M_ND_MOSAIC") == 0)
                 if((slen > 5) && !strcmp(d.imageType + slen - 6, "MOSAIC") )
                 	isMosaic = true;
@@ -4857,7 +5042,6 @@ double TE = 0.0; //most recent echo time recorded
                 if (((int) strlen(acqContrast) > 8) && (strstr(acqContrast, "DIFFUSION") != NULL))
                     d.isDiffusion = true;
                 break;
-
             case kAcquisitionTime :
                 char acquisitionTimeTxt[kDICOMStr];
                 dcmStr (lLength, &buffer[lPos], acquisitionTimeTxt);
@@ -4884,6 +5068,14 @@ double TE = 0.0; //most recent echo time recorded
                 int slen = (int) strlen(aotTxt);
 				if((slen < 9) || (strstr(aotTxt, "QUADRUPED") == NULL) ) break;
                 printError("Anatomical Orientation Type (0010,2210) is QUADRUPED: rotate coordinates accordingly\n");
+            	break; }
+            case kDeidentificationMethod: { //issue 383
+            	char anonTxt[kDICOMStr];
+            	dcmStr (lLength, &buffer[lPos], anonTxt);
+                int slen = (int) strlen(anonTxt);
+				if((slen < 10) || (strstr(anonTxt, "DICOMANON") == NULL) ) break;
+				isDICOMANON = true;
+                printWarning("Matlab DICOMANON can scramble SeriesInstanceUID (0020,000e) and remove crucial data (see issue 383). \n");
             	break; }
             case kPatientID :
                 dcmStr (lLength, &buffer[lPos], d.patientID);
@@ -4941,6 +5133,10 @@ double TE = 0.0; //most recent echo time recorded
             case kPatientOrient :
                 dcmStr (lLength, &buffer[lPos], d.patientOrient);
                 break;
+            case kParallelReductionFactorInPlane:
+            	if (d.manufacturer == kMANUFACTURER_SIEMENS) break;
+            	d.accelFactPE = dcmFloatDouble(lLength, &buffer[lPos],d.isLittleEndian);
+            	break;
             case kAcquisitionDuration:
             	//n.b. used differently by different vendors https://github.com/rordenlab/dcm2niix/issues/225
             	d.acquisitionDuration = dcmFloatDouble(lLength, &buffer[lPos],d.isLittleEndian);
@@ -4961,6 +5157,27 @@ double TE = 0.0; //most recent echo time recorded
                 if (strcmp(dir, "ISOTROPIC") == 0)
                 	isPhilipsDerived = true;
                 break; }
+            case kInversionTimes : {//issue 380
+                if ((lLength < 8) || ((lLength % 8) != 0)) break;
+            	d.TI = dcmFloatDouble(lLength, &buffer[lPos], d.isLittleEndian);
+            	/*
+            	//see issue385 : Philips reports Implausible InversionTimes
+            	int nTI = lLength / 8;
+            	if (nTI > 1) {
+            		bool isTIvaries = false; 
+                	for (int i = 1; i < nTI; i++) {
+        				float ti = dcmFloatDouble(8, &buffer[lPos+(i*8)],d.isLittleEndian);
+        				if (!isSameFloatGE(ti, d.TI)) isTIvaries = true;	
+        			} 
+        			if (isTIvaries) printWarning("0018,9079 reports multiple inversion times: %s\n", fname); 
+				}
+				*/
+                break; }
+            case kPartialFourier : //(0018,9081) CS [YES],[NO]
+				if (lLength < 2) break;
+                if (toupper(buffer[lPos]) == 'Y')
+                	d.isPartialFourier = true;
+                break;
             case kMREchoSequence :
             	if (d.manufacturer != kMANUFACTURER_BRUKER) break;
             	if (sqDepth == 0) sqDepth = 1; //should not happen, in case faulty anonymization
@@ -4997,7 +5214,6 @@ double TE = 0.0; //most recent echo time recorded
             	//d.CSA.dtiV[0] =  dcmStrInt(lLength, &buffer[lPos]);
             	//d.CSA.numDti = 1;
             	break; }
-
             case kDiffusionGradientDirectionSiemens : {
             	if (d.manufacturer != kMANUFACTURER_SIEMENS) break;
 				float v[4];
@@ -5021,6 +5237,22 @@ double TE = 0.0; //most recent echo time recorded
                  printMessage("last scan location %f\n,",dcmStrFloat(lLength, &buffer[lPos]));
 
                  break;*/
+			//GE bug: multiple echos can create identical instance numbers
+            //  in theory, one could detect as kRawDataRunNumberGE varies
+            //  sliceN of echoE will have the same value for all timepoints
+            //  this value does not appear indexed
+            //  different echoes record same echo time.
+            //  use multiEchoSortGEDICOM.py to salvage
+            case kRawDataRunNumberGE :
+            	if (d.manufacturer != kMANUFACTURER_GE)
+            		break;
+                d.rawDataRunNumber = dcmInt(lLength,&buffer[lPos],d.isLittleEndian);
+                break;
+            case kMaxEchoNumGE :
+            	if (d.manufacturer != kMANUFACTURER_GE)
+            		break;
+                d.maxEchoNumGE = round(dcmStrFloat(lLength, &buffer[lPos]));
+                break;
             case kDiffusionDirectionGEX :
                 if (d.manufacturer == kMANUFACTURER_GE)
                   set_diffusion_directionGE(&volDiffusion, lLength, (&buffer[lPos]), 0);
@@ -5036,17 +5268,6 @@ double TE = 0.0; //most recent echo time recorded
             case kBandwidthPerPixelPhaseEncode:
                 d.bandwidthPerPixelPhaseEncode = dcmFloatDouble(lLength, &buffer[lPos],d.isLittleEndian);
                 break;
-            //GE bug: multiple echos can create identical instance numbers
-            //  in theory, one could detect as kRawDataRunNumberGE varies
-            //  sliceN of echoE will have the same value for all timepoints
-            //  this value does not appear indexed
-            //  different echoes record same echo time.
-            //  use multiEchoSortGEDICOM.py to salvage
-            //case kRawDataRunNumberGE :
-            //	if (d.manufacturer != kMANUFACTURER_GE)
-            //		break;
-            //    d.rawDataRunNumberGE = dcmInt(lLength,&buffer[lPos],d.isLittleEndian);
-            //    break;
             case kStudyInstanceUID : // 0020, 000D
                 dcmStr (lLength, &buffer[lPos], d.studyInstanceUID);
                 break;
@@ -5062,6 +5283,10 @@ double TE = 0.0; //most recent echo time recorded
 				}
 				patientPositionNum++;
 				isAtFirstPatientPosition = true;
+				//char dx[kDICOMStr];
+                //dcmStr (lLength, &buffer[lPos], dx);
+				//printMessage("*%s*", dx);
+				
 				dcmMultiFloat(lLength, (char*)&buffer[lPos], 3, &patientPosition[0]); //slice position
 				if (isnan(d.patientPosition[1])) {
 					//dcmMultiFloat(lLength, (char*)&buffer[lPos], 3, &d.patientPosition[0]); //slice position
@@ -5081,8 +5306,24 @@ double TE = 0.0; //most recent echo time recorded
 				} //if not first slice in file
 				set_isAtFirstPatientPosition_tvd(&volDiffusion, isAtFirstPatientPosition);
 				//if (isAtFirstPatientPosition) numFirstPatientPosition++;
-				if (isVerbose == 1) //verbose > 1 will report full DICOM tag
+				if (isVerbose > 0) //verbose > 1 will report full DICOM tag
 					printMessage("   Patient Position 0020,0032 (#,@,X,Y,Z)\t%d\t%ld\t%g\t%g\t%g\n", patientPositionNum, lPos, patientPosition[1], patientPosition[2], patientPosition[3]);
+				if ((isOrient) && (nSliceMM < kMaxSlice2D)) {
+					vec3 pos = setVec3(patientPosition[1], patientPosition[2], patientPosition[3]);
+					sliceMM[nSliceMM] = dotProduct(pos, sliceV);
+					if (sliceMM[nSliceMM] < minSliceMM) {
+						minSliceMM = sliceMM[nSliceMM];
+						for (int k = 0; k < 4; k++)
+							minPatientPosition[k] = patientPosition[k];
+					}
+					if (sliceMM[nSliceMM] > maxSliceMM) {
+						maxSliceMM = sliceMM[nSliceMM];
+						for (int k = 0; k < 4; k++)
+							maxPatientPosition[k] = patientPosition[k];
+					}
+					nSliceMM++;
+				} 
+				
 				break; }
             case kInPlanePhaseEncodingDirection:
                 d.phaseEncodingRC = toupper(buffer[lPos]); //first character is either 'R'ow or 'C'ol
@@ -5312,15 +5553,16 @@ double TE = 0.0; //most recent echo time recorded
             case kImagingFrequency :
             	d.imagingFrequency = dcmStrFloat(lLength, &buffer[lPos]);
                 break;
-           	case kTriggerTime:
+           	case kTriggerTime: {
 				//untested method to detect slice timing for GE PSD “epi” with multiphase option
 				// will not work for current PSD “epiRT” (BrainWave RT, fMRI/DTI package provided by Medical Numerics)
-            	if (d.manufacturer != kMANUFACTURER_GE) break;
-            	d.triggerDelayTime = dcmStrFloat(lLength, &buffer[lPos]);
+            	if ((d.manufacturer != kMANUFACTURER_GE) && (d.manufacturer != kMANUFACTURER_PHILIPS)) break; //issue384            	
+            	d.triggerDelayTime = dcmStrFloat(lLength, &buffer[lPos]); //???? issue 336
+            	if (d.manufacturer != kMANUFACTURER_GE) break;            	
             	d.CSA.sliceTiming[acquisitionTimesGE_UIH] = d.triggerDelayTime;
                 //printf("%g\n", d.CSA.sliceTiming[acquisitionTimesGE_UIH]);
 				acquisitionTimesGE_UIH ++;
-				break;
+				break; }
             case kEffectiveTE : {
             	TE = dcmFloatDouble(lLength, &buffer[lPos], d.isLittleEndian);
             	if (d.TE <= 0.0)
@@ -5344,6 +5586,8 @@ double TE = 0.0; //most recent echo time recorded
             case kEchoTrainLength :
             	d.echoTrainLength  =  dcmStrInt(lLength, &buffer[lPos]);
             	break;
+            case kPercentSampling :
+            	d.percentSampling = dcmStrFloat(lLength, &buffer[lPos]);
             case kPhaseFieldofView :
             	d.phaseFieldofView = dcmStrFloat(lLength, &buffer[lPos]);
                 break;
@@ -5367,6 +5611,10 @@ double TE = 0.0; //most recent echo time recorded
             			d.phaseEncodingLines = acquisitionMatrix[3];
             		if (acquisitionMatrix[2] > 0)
             			d.phaseEncodingLines = acquisitionMatrix[2];
+            		if (acquisitionMatrix[1] > 0)
+            			frequencyRows = acquisitionMatrix[1];
+            		if (acquisitionMatrix[0] > 0)
+            			frequencyRows = acquisitionMatrix[0];
             	}
             	break;
             case kFlipAngle :
@@ -5405,6 +5653,14 @@ double TE = 0.0; //most recent echo time recorded
                 if ((lLength == 4) && (d.manufacturer == kMANUFACTURER_PHILIPS))
                     d.intenScalePhilips = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);
                 break;
+                
+            case kMRImageDynamicScanBeginTime: { //FL
+                if (lLength != 4) break;
+                float dyn = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);
+                if (dyn < minDynamicScanBeginTime) minDynamicScanBeginTime = dyn;
+                if (dyn > maxDynamicScanBeginTime) maxDynamicScanBeginTime = dyn;
+                break;
+            }
             case kIntercept :
                 d.intenIntercept = dcmStrFloat(lLength, &buffer[lPos]);
                 break;
@@ -5469,10 +5725,12 @@ double TE = 0.0; //most recent echo time recorded
             	printMessage("StackSliceNumber %d\n",stackSliceNumber);
             	break;
 			}*/
+			//case kMRSeriesAcquisitionNumber: // 0x2001+(0x107B << 16 ) //IS
+			//	mRSeriesAcquisitionNumber =  dcmStrInt(lLength, &buffer[lPos]);
+            //   break;
 			case kNumberOfDynamicScans:
                 //~d.numberOfDynamicScans =  dcmStrInt(lLength, &buffer[lPos]);
                 numberOfDynamicScans =  dcmStrInt(lLength, &buffer[lPos]);
-
                 break;
             case	kMRAcquisitionType: //detect 3D acquisition: we can reorient these without worrying about slice time correct or BVEC/BVAL orientation
             	if (lLength > 1) d.is2DAcq = (buffer[lPos]=='2') && (toupper(buffer[lPos+1]) == 'D');
@@ -5539,6 +5797,9 @@ double TE = 0.0; //most recent echo time recorded
                 isIconImageSequence = true;
             	break;
 			case kPMSCT_RLE1 :
+			    //https://groups.google.com/forum/#!topic/comp.protocols.dicom/8HuP_aNy9Pc
+				//https://discourse.slicer.org/t/fail-to-load-pet-ct-gemini/8158/3
+				// d.compressionScheme = kCompressPMSCT_RLE1; //force RLE 
 				if (d.compressionScheme != kCompressPMSCT_RLE1) break;
 				d.imageStart = (int)lPos + (int)lFileOffset;
 				d.imageBytes = lLength;
@@ -5628,7 +5889,7 @@ double TE = 0.0; //most recent echo time recorded
               //     (isAtFirstPatientPosition || isnan(d.patientPosition[1])))
 
               //if((d.manufacturer == kMANUFACTURER_SIEMENS) || ((d.manufacturer == kMANUFACTURER_PHILIPS) && !is2005140FSQ))
-              if((d.manufacturer == kMANUFACTURER_HITACHI) || (d.manufacturer == kMANUFACTURER_SIEMENS) || (d.manufacturer == kMANUFACTURER_PHILIPS)) {
+              if((d.manufacturer == kMANUFACTURER_TOSHIBA) || (d.manufacturer == kMANUFACTURER_CANON) || (d.manufacturer == kMANUFACTURER_HITACHI) || (d.manufacturer == kMANUFACTURER_SIEMENS) || (d.manufacturer == kMANUFACTURER_PHILIPS)) {
                 //for kMANUFACTURER_HITACHI see https://nciphub.org/groups/qindicom/wiki/StandardcompliantenhancedmultiframeDWI
                 float v[4];
                 //dcmMultiFloat(lLength, (char*)&buffer[lPos], 3, v);
@@ -5660,6 +5921,9 @@ double TE = 0.0; //most recent echo time recorded
             case kImagingFrequency2 :
             	d.imagingFrequency = dcmFloatDouble(lLength, &buffer[lPos], d.isLittleEndian);
             	break;
+            //case kFrameAcquisitionDuration :
+            //	frameAcquisitionDuration = dcmFloatDouble(lLength, &buffer[lPos], d.isLittleEndian); //issue369
+            //	break;
             case kDiffusionBValueXX : {
             	if (!(d.manufacturer == kMANUFACTURER_BRUKER)) break; //other manufacturers provide bvec directly, rather than bmatrix
             	double bMat = dcmFloatDouble(lLength, &buffer[lPos], d.isLittleEndian);
@@ -5712,11 +5976,28 @@ double TE = 0.0; //most recent echo time recorded
 						patientPositionEndPhilips[k] = patientPositionPrivate[k];
             	}
             	break; }
+            case kEPIFactorPhilips :
+            	if (d.manufacturer != kMANUFACTURER_PHILIPS)
+            		break;
+                echoTrainLengthPhil = dcmInt(lLength,&buffer[lPos],d.isLittleEndian);
+                break;
             case kNumberOfSlicesMrPhilips :
             	if (d.manufacturer != kMANUFACTURER_PHILIPS)
             		break;
                 locationsInAcquisitionPhilips = dcmInt(lLength,&buffer[lPos],d.isLittleEndian);
                 //printMessage("====> locationsInAcquisitionPhilips\t%d\n", locationsInAcquisitionPhilips);
+				break;
+			case kPartialMatrixScannedPhilips :
+            	if (d.manufacturer != kMANUFACTURER_PHILIPS)
+            		break;
+				if (lLength < 2) break;
+                if (toupper(buffer[lPos]) == 'Y')
+                	d.isPartialFourier = true;
+                break;            	
+			case kWaterFatShiftPhilips :
+            	if (d.manufacturer != kMANUFACTURER_PHILIPS)
+            		break;
+            	d.waterFatShift = dcmFloat(lLength, &buffer[lPos],d.isLittleEndian);
 				break;
 			case kDiffusionDirectionRL:
 				if (d.manufacturer != kMANUFACTURER_PHILIPS) break;
@@ -5944,17 +6225,31 @@ double TE = 0.0; //most recent echo time recorded
                		}
                 }
                 dcmMultiFloat(lLength, (char*)&buffer[lPos], 6, d.orient);
+                vec3 readV = setVec3(d.orient[1],d.orient[2],d.orient[3]);
+				vec3 phaseV = setVec3(d.orient[4],d.orient[5],d.orient[6]);
+				sliceV = crossProduct(readV ,phaseV);
+                //printf("sliceV %g %g %g\n", sliceV.v[0], sliceV.v[1], sliceV.v[2]);
                 isOrient = true;
                 break; }
+            case kTemporalPosition :
+                if (d.manufacturer == kMANUFACTURER_GE)
+            		break; //for GE use kRawDataRunNumber
+                d.rawDataRunNumber =  dcmStrInt(lLength, &buffer[lPos]);
+                break;
             case kImagesInAcquisition :
                 imagesInAcquisition =  dcmStrInt(lLength, &buffer[lPos]);
                 break;
+            //case kSliceLocation : //optional so useless, infer from image position patient (0020,0032) and image orientation (0020,0037) 
+            //	sliceLocation =  dcmStrFloat(lLength, &buffer[lPos]);
+            //	break;
             case kImageStart:
                 //if ((!geiisBug) && (!isIconImageSequence)) //do not exit for proprietary thumbnails
                 if (isIconImageSequence) {
-                	int imgBytes = (d.xyzDim[1] * d.xyzDim[2] * int(d.bitsAllocated / 8));
-                	if (imgBytes == lLength)
-                		isIconImageSequence = false;
+                	//20200116 see example from Tashrif Bilah that saves GEIIS thumbnails uncompressed
+                	//  therefore, the next couple lines are not a perfect detection for GEIIS thumbnail icons
+                	//int imgBytes = (d.xyzDim[1] * d.xyzDim[2] * int(d.bitsAllocated / 8));
+                	//if (imgBytes == lLength)
+                	//	isIconImageSequence = false;
 					if ((isIconImageSequence) && (sqDepth < 1)) printWarning("Assuming 7FE0,0010 refers to an icon not the main image\n");
 
                 }
@@ -6053,6 +6348,8 @@ double TE = 0.0; //most recent echo time recorded
 
     } //while d.imageStart == 0
     free (buffer);
+    if (d.bitsStored < 0) d.isValid = false;
+    if (d.bitsStored == 1) printWarning("1-bit binary DICOMs not supported\n"); //maybe not valid - no examples to test
     //printf("%d bval=%g bvec=%g %g %g<<<\n", d.CSA.numDti, d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3]);
     //printMessage("><>< DWI bxyz %g %g %g %g\n", d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3]);
     if (encapsulatedDataFragmentStart > 0) {
@@ -6087,14 +6384,26 @@ double TE = 0.0; //most recent echo time recorded
 		d.acquisitionTime = atof(acquisitionTimeTxt);
     }
     d.dateTime = (atof(d.studyDate)* 1000000) + atof(d.studyTime);
-    //printMessage("slices in Acq %d %d\n",d.locationsInAcquisition,locationsInAcquisitionPhilips);
+    //printMessage("slices in Acq %d %d %g %g\n",locationsInAcquisitionGE, d.locationsInAcquisition, d.xyzMM[3], d.zSpacing);
     if ((d.manufacturer == kMANUFACTURER_PHILIPS) && (d.locationsInAcquisition == 0))
         d.locationsInAcquisition = locationsInAcquisitionPhilips;
     if ((d.manufacturer == kMANUFACTURER_GE) && (imagesInAcquisition > 0))
         d.locationsInAcquisition = imagesInAcquisition; //e.g. if 72 slices acquired but interpolated as 144
     if ((d.manufacturer == kMANUFACTURER_GE) && (d.locationsInAcquisition > 0)  &&  (locationsInAcquisitionGE > 0) && (d.locationsInAcquisition != locationsInAcquisitionGE) ) {
-    	if (isVerbose)  printMessage("Check number of slices, discrepancy between tags (0020,1002; 0021,104F; 0054,0081) (%d vs %d) %s\n", locationsInAcquisitionGE, d.locationsInAcquisition, fname);
-    	if (locationsInAcquisitionGE < d.locationsInAcquisition) d.locationsInAcquisition = locationsInAcquisitionGE;
+    	if (isVerbose)
+    		printMessage("Check number of slices, discrepancy between tags (0020,1002; 0021,104F; 0054,0081) (%d vs %d) %s\n", locationsInAcquisitionGE, d.locationsInAcquisition, fname);
+    	/* SAH.start: Fix for ZIP2 */
+    	int zipFactor = (int) roundf(d.xyzMM[3] / d.zSpacing);
+    	if (zipFactor > 1) {
+    		printMessage("Issue 373: Check for ZIP2 Factor: %d  SliceThickness+SliceGap: %f, SpacingBetweenSlices: %f \n", zipFactor, d.xyzMM[3], d.zSpacing);
+    		locationsInAcquisitionGE *= zipFactor; // Multiply number of slices by ZIP factor. Do this prior to checking for conflict below (?).
+    	}
+    	/* SAH.end */
+    	if (locationsInAcquisitionGE < d.locationsInAcquisition) {
+    		d.locationsInAcquisitionConflict = d.locationsInAcquisition;
+    		d.locationsInAcquisition = locationsInAcquisitionGE;
+    	} else
+    		d.locationsInAcquisitionConflict = locationsInAcquisitionGE;
     }
     if ((d.manufacturer == kMANUFACTURER_GE) && (d.locationsInAcquisition == 0))
         d.locationsInAcquisition = locationsInAcquisitionGE;
@@ -6139,6 +6448,13 @@ double TE = 0.0; //most recent echo time recorded
         printError("Unable to decode %d-bit images with Transfer Syntax 1.2.840.10008.1.2.4.51, decompress with dcmdjpg or gdcmconv\n", d.bitsAllocated);
         d.isValid = false;
     }
+    
+    if ((isMosaic) && (d.CSA.mosaicSlices < 1) && (numberOfImagesInMosaic < 1) && (!isInterpolated) && (d.phaseEncodingLines > 0)  && (frequencyRows > 0) && ((d.xyzDim[1] % frequencyRows) == 0) && ((d.xyzDim[1] / frequencyRows) > 2) && ((d.xyzDim[2] % d.phaseEncodingLines) == 0) && ((d.xyzDim[2] / d.phaseEncodingLines) > 2)  ) {
+        //n.b. in future check if frequency is in row or column direction (and same with phase)
+        // >2 avoids detecting interpolated as mosaic, in future perhaps check "isInterpolated"
+        numberOfImagesInMosaic = (d.xyzDim[1]/frequencyRows) * (d.xyzDim[2]/d.phaseEncodingLines);
+        printWarning("Guessing this is a mosaic up to %d slices (issue 337).\n",  numberOfImagesInMosaic);    
+    }    
     if ((numberOfImagesInMosaic > 1) && (d.CSA.mosaicSlices < 1))
     	d.CSA.mosaicSlices = numberOfImagesInMosaic;
     if (d.isXA10A) d.manufacturer = kMANUFACTURER_SIEMENS; //XA10A mosaics omit Manufacturer 0008,0070!
@@ -6208,6 +6524,7 @@ if (d.isHasPhase)
     if (!isnan(patientPositionStartPhilips[1])) //for Philips data without
 		for (int k = 0; k < 4; k++)
 			d.patientPosition[k] = patientPositionStartPhilips[k];
+	//printMessage("%d %g\n", d.imageNum, sliceLocation); //shame this tag is optional
 	if (isVerbose) {
         printMessage("DICOM file: %s\n", fname);
         printMessage(" patient position (0020,0032)\t%g\t%g\t%g\n", d.patientPosition[1],d.patientPosition[2],d.patientPosition[3]);
@@ -6218,15 +6535,52 @@ if (d.isHasPhase)
         if (d.CSA.dtiV[0] > 0)
         	printMessage(" DWI bxyz %g %g %g %g\n", d.CSA.dtiV[0], d.CSA.dtiV[1], d.CSA.dtiV[2], d.CSA.dtiV[3]);
     }
-    if ((d.xyzDim[1] > 1) && (d.xyzDim[2] > 1) && (d.imageStart < 132) && (!d.isRawDataStorage)) {
+    if ((d.isValid) && (d.xyzDim[1] > 1) && (d.xyzDim[2] > 1) && (d.imageStart < 132) && (!d.isRawDataStorage)) {
     	//20190524: Philips MR 55.1 creates non-image files that report kDim1/kDim2 - we can detect them since 0008,0016 reports "RawDataStorage"
-    	printError("Conversion aborted due to corrupt file: %s %d %d\n", fname, d.xyzDim[1], d.xyzDim[2]);
+    	//see https://neurostars.org/t/dcm2niix-error-from-philips-dicom-qsm-data-can-this-be-skipped/4883
+    	printError("Conversion aborted due to corrupt file: %s %dx%d %d\n", fname, d.xyzDim[1], d.xyzDim[2], d.imageStart);
 #ifdef USING_R
         Rf_error("Irrecoverable error during conversion");
 #else
     	exit (kEXIT_CORRUPT_FILE_FOUND);
 #endif
     }
+    if ((numberOfFrames > 1) && (numDimensionIndexValues == 0) && (numberOfFrames == nSliceMM)) { //issue 372
+    	fidx* objects = (fidx*)malloc(sizeof(struct fidx) * numberOfFrames);
+    	for (int i = 0; i < numberOfFrames; i++)	{
+        	objects[i].value = sliceMM[i];
+        	objects[i].index = i;
+    	}
+    	qsort(objects, numberOfFrames, sizeof(struct fidx), fcmp);
+    	numDimensionIndexValues = numberOfFrames;
+    	for (int i = 0; i < numberOfFrames; i++) {
+    		//	printf("%d > %g\n", objects[i].index, objects[i].value);	
+    		dcmDim[objects[i].index].dimIdx[0] = i;
+    	}
+    	for (int i = 0; i < 4; i++)	{
+    		d.patientPosition[i] = minPatientPosition[i];
+    		d.patientPositionLast[i] = maxPatientPosition[i];
+    	}
+    	//printf("%g -> %g\n", objects[0].value, objects[numberOfFrames-1].value);	
+    	//printf("%g %g %g -> %g %g %g\n", d.patientPosition[1], d.patientPosition[2], d.patientPosition[3], 	d.patientPositionLast[1], d.patientPositionLast[2], d.patientPositionLast[3]);
+    	free(objects);
+    }  //issue 372 
+    if ((d.echoTrainLength == 0) && (echoTrainLengthPhil)) 
+    	d.echoTrainLength = echoTrainLengthPhil; //+1 ?? to convert "EPI factor" to echo train length, see issue 377
+    if ((d.manufacturer == kMANUFACTURER_PHILIPS) && (d.xyzDim[4] > 1) && (d.is3DAcq) && (d.echoTrainLength > 1) && (minDynamicScanBeginTime < maxDynamicScanBeginTime)) { //issue369
+    	float TR = 1000.0 * ((maxDynamicScanBeginTime-minDynamicScanBeginTime) / (d.xyzDim[4]-1)); //-1 : fence post problem
+    	if (fabs(TR - d.TR) > 0.001) {
+    		printWarning("Assuming TR = %gms, not 0018,0080 = %gms (see issue 369)\n", TR, d.TR);
+    		d.TR = TR;
+    	}    	
+    }
+    //	printWarning("3D EPI with FrameAcquisitionDuration = %gs volumes = %d (see issue 369)\n", frameAcquisitionDuration/1000.0, d.xyzDim[4]);
+    
+    //printf("%g %g\n", minDynamicScanBeginTime, maxDynamicScanBeginTime);
+    //if ((d.manufacturer == kMANUFACTURER_PHILIPS) && (d.xyzDim[4] > 1) && (d.is3DAcq) && (d.echoTrainLength > 1) && (frameAcquisitionDuration > 0.0)) //issue369
+    //	printWarning("3D EPI with FrameAcquisitionDuration = %gs volumes = %d (see issue 369)\n", frameAcquisitionDuration/1000.0, d.xyzDim[4]);
+    if (numDimensionIndexValues > 1)
+    	strcpy(d.imageType, imageType1st); //for multi-frame datasets, return name of book, not name of last chapter
     if ((numDimensionIndexValues > 1) && (numDimensionIndexValues == numberOfFrames)) {
     	//Philips enhanced datasets can have custom slice orders and pack images with different TE, Phase/Magnitude/Etc.
     	if (isVerbose > 1) { //
@@ -6245,7 +6599,7 @@ if (d.isHasPhase)
 				if (mn[i] != mx[i])
 					printMessage(" Dimension %d Range: %d..%d\n", i, mn[i], mx[i]);
     	} //verbose > 1
-    	//sort dimensions
+		//sort dimensions
 #ifdef USING_R
         std::sort(dcmDim.begin(), dcmDim.begin() + numberOfFrames, compareTDCMdim);
 #else
@@ -6253,8 +6607,17 @@ if (d.isHasPhase)
 #endif
 		//for (int i = 0; i < numberOfFrames; i++)
 		//	printf("diskPos= %d dimIdx= %d  %d %d %d TE= %g\n", i,  dcmDim[i].diskPos, dcmDim[i].dimIdx[1], dcmDim[i].dimIdx[2], dcmDim[i].dimIdx[3], dti4D->TE[i]);
-		for (int i = 0; i < numberOfFrames; i++)
+		for (int i = 0; i < numberOfFrames; i++)  {
 			dti4D->sliceOrder[i] = dcmDim[i].diskPos;
+			dti4D->intenScale[i] =  dcmDim[i].intenScale;
+			dti4D->intenIntercept[i] =  dcmDim[i].intenIntercept;
+			dti4D->intenScalePhilips[i] =  dcmDim[i].intenScalePhilips;
+			dti4D->RWVIntercept[i] =  dcmDim[i].RWVIntercept;
+			dti4D->RWVScale[i] =  dcmDim[i].RWVScale;
+			if (dti4D->intenIntercept[i] != dti4D->intenIntercept[0]) d.isScaleVariesEnh = true;
+			if (dti4D->intenScale[i] != dti4D->intenScale[0]) d.isScaleVariesEnh = true;
+			if (dti4D->intenScalePhilips[i] != dti4D->intenScalePhilips[0]) d.isScaleVariesEnh = true;
+		}
 		if ( !(d.manufacturer == kMANUFACTURER_BRUKER && d.isDiffusion) && (d.xyzDim[4] > 1) && (d.xyzDim[4] < kMaxDTI4D)) { //record variations in TE
 			d.isScaleOrTEVaries = false;
 			bool isTEvaries = false;
@@ -6265,26 +6628,27 @@ if (d.isHasPhase)
 			for (int i = 0; i < d.xyzDim[4]; i++) {
 				//dti4D->gradDynVol[i] = 0; //only PAR/REC
 				dti4D->TE[i] =  dcmDim[j+(i * d.xyzDim[3])].TE;
-				dti4D->intenScale[i] =  dcmDim[j+(i * d.xyzDim[3])].intenScale;
-				dti4D->intenIntercept[i] =  dcmDim[j+(i * d.xyzDim[3])].intenIntercept;
 				dti4D->isPhase[i] =  dcmDim[j+(i * d.xyzDim[3])].isPhase;
 				dti4D->isReal[i] =  dcmDim[j+(i * d.xyzDim[3])].isReal;
 				dti4D->isImaginary[i] =  dcmDim[j+(i * d.xyzDim[3])].isImaginary;
-				dti4D->intenScalePhilips[i] =  dcmDim[j+(i * d.xyzDim[3])].intenScalePhilips;
-				dti4D->RWVIntercept[i] =  dcmDim[j+(i * d.xyzDim[3])].RWVIntercept;
-				dti4D->RWVScale[i] =  dcmDim[j+(i * d.xyzDim[3])].RWVScale;
 				dti4D->triggerDelayTime[i] =  dcmDim[j+(i * d.xyzDim[3])].triggerDelayTime;
 				dti4D->S[i].V[0] = dcmDim[j+(i * d.xyzDim[3])].V[0];
 				dti4D->S[i].V[1] = dcmDim[j+(i * d.xyzDim[3])].V[1];
 				dti4D->S[i].V[2] = dcmDim[j+(i * d.xyzDim[3])].V[2];
 				dti4D->S[i].V[3] = dcmDim[j+(i * d.xyzDim[3])].V[3];
+				//printf("te=\t%g\tscl=\t%g\tintercept=\t%g\n",dti4D->TE[i], dti4D->intenScale[i],dti4D->intenIntercept[i]);
 				if (dti4D->TE[i] != d.TE) isTEvaries = true;
-				if (dti4D->intenScale[i] != d.intenScale) isScaleVaries = true;
-				if (dti4D->intenIntercept[i] != d.intenIntercept) isScaleVaries = true;
 				if (dti4D->isPhase[i] != isPhase) d.isScaleOrTEVaries = true;
 				if (dti4D->triggerDelayTime[i] != d.triggerDelayTime) d.isScaleOrTEVaries = true;
 				if (dti4D->isReal[i] != isReal) d.isScaleOrTEVaries = true;
 				if (dti4D->isImaginary[i] != isImaginary) d.isScaleOrTEVaries = true;
+				//dti4D->intenScale[i] =  dcmDim[j+(i * d.xyzDim[3])].intenScale;
+				//dti4D->intenIntercept[i] =  dcmDim[j+(i * d.xyzDim[3])].intenIntercept;
+				//dti4D->intenScalePhilips[i] =  dcmDim[j+(i * d.xyzDim[3])].intenScalePhilips;
+				//dti4D->RWVIntercept[i] =  dcmDim[j+(i * d.xyzDim[3])].RWVIntercept;
+				//dti4D->RWVScale[i] =  dcmDim[j+(i * d.xyzDim[3])].RWVScale;
+				//if (dti4D->intenScale[i] != d.intenScale) isScaleVaries = true;
+				//if (dti4D->intenIntercept[i] != d.intenIntercept) isScaleVaries = true;
 			}
 			if((isScaleVaries) || (isTEvaries)) d.isScaleOrTEVaries = true;
 			if (isTEvaries) d.isMultiEcho = true;
@@ -6341,13 +6705,19 @@ if (d.isHasPhase)
 			d.CSA.numDti = maxGradNum - off;
 		}
 	}*/
-    if (d.CSA.numDti >= kMaxDTI4D) {
+	if (d.CSA.numDti >= kMaxDTI4D) {
         printError("Unable to convert DTI [recompile with increased kMaxDTI4D] detected=%d, max = %d\n", d.CSA.numDti, kMaxDTI4D);
         d.CSA.numDti = 0;
     }
+    if ((hasDwiDirectionality) && (d.CSA.numDti < 1))
+    	d.CSA.numDti = 1;
     if ((d.isValid) && (d.imageNum == 0)) { //Philips non-image DICOMs (PS_*, XX_*) are not valid images and do not include instance numbers
-    	printError("Instance number (0020,0013) not found: %s\n", fname);
-        d.imageNum = 1; //not set
+    	//TYPE 1 for MR image http://dicomlookup.com/lookup.asp?sw=Tnumber&q=(0020,0013)
+    	// Only type 2 for some other DICOMs! Therefore, generate warning not error
+    	printWarning("Instance number (0020,0013) not found: %s\n", fname);
+    	d.imageNum = abs((int)d.instanceUidCrc) % 2147483647;//INT_MAX;
+    	if (d.imageNum == 0) d.imageNum = 1; //https://github.com/rordenlab/dcm2niix/issues/341
+    	//d.imageNum = 1; //not set
     }
     if ((numDimensionIndexValues < 1) && (d.manufacturer == kMANUFACTURER_PHILIPS) && (d.seriesNum > 99999) && (philMRImageDiffBValueNumber > 0)) {
     	//Ugly kludge to distinguish Philips classic DICOM dti
@@ -6368,21 +6738,62 @@ if (d.isHasPhase)
 		strcpy(d.seriesInstanceUID, d.studyInstanceUID);
 		d.seriesUidCrc = mz_crc32X((unsigned char*) &d.protocolName, strlen(d.protocolName));
 	}
+	if (((d.manufacturer == kMANUFACTURER_TOSHIBA) || (d.manufacturer == kMANUFACTURER_CANON))&&  (B0Philips > 0.0)) {//issue 388
+		char txt[1024] = {""};
+    	sprintf(txt, "b=%d(", (int) round(B0Philips));
+    	if (strstr(d.imageComments, txt) != NULL) {
+			//printf("%s>>>%s %g\n", txt, d.imageComments,  B0Philips);
+			int len = strlen(txt);
+			strcpy(txt, (char*)&d.imageComments[len]);
+			len = strlen(txt);
+			for (int i = 0; i <= len; i++) {
+        		if ((txt[i] >= '0') && (txt[i] <= '9')) continue;
+        		if ((txt[i] == '.') || (txt[i] == '-')) continue;
+        		txt[i] = ' ';
+        	}
+        	float v[4];
+			dcmMultiFloat(len,(char*)&txt[0], 3, &v[0]);
+			//printf(">>>%g = %g %g %g : %s %s\n", v[0], v[1], v[2], v[3], txt,fname);
+            d.CSA.dtiV[0] = B0Philips;
+            d.CSA.dtiV[1] = v[1];
+            d.CSA.dtiV[2] = v[2];
+            d.CSA.dtiV[3] = v[3];
+            d.CSA.numDti = 1;
+        }
+            	
+	}
+	if ((isDICOMANON) && (isMATLAB)) {
+		//issue 383
+		d.seriesInstanceUID[0] = '\0';
+		strcat(d.seriesInstanceUID, d.studyDate);
+		strcat(d.seriesInstanceUID, d.studyTime);
+		d.seriesUidCrc = mz_crc32X((unsigned char*) &d.seriesInstanceUID, strlen(d.seriesInstanceUID));
+	}
     if ((d.manufacturer == kMANUFACTURER_SIEMENS) && (strstr(d.sequenceName, "_fl2d1") != NULL)) {
     	d.isLocalizer = true;
 	}
+	//UIH 3D T1 scans report echo train length, which is interpreted as 3D EPI
+	if ((d.manufacturer == kMANUFACTURER_UIH) &&  (strstr(d.sequenceName, "gre_fsp") != NULL)) d.echoTrainLength = 0;          
 	//printf(">>%s\n", d.sequenceName); d.isValid = false;
 	// Andrey Fedorov has requested keeping GE bvalues, see issue 264
 	//if ((d.CSA.numDti > 0) && (d.manufacturer == kMANUFACTURER_GE) && (d.numberOfDiffusionDirectionGE < 1))
 	//	d.CSA.numDti = 0; //https://github.com/rordenlab/dcm2niix/issues/264
     if ((!d.isLocalizer) && (isInterpolated) && (d.imageNum <= 1))
     	printWarning("interpolated protocol '%s' may be unsuitable for dwidenoise/mrdegibbs. %s\n", d.protocolName, fname);
+    if (((numDimensionIndexValues+3) < MAX_NUMBER_OF_DIMENSIONS) && (d.rawDataRunNumber > 0))
+    	d.dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS-4] = d.rawDataRunNumber; 
     if ((numDimensionIndexValues+2) < MAX_NUMBER_OF_DIMENSIONS)
     	d.dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS-3] = d.instanceUidCrc;
     if ((numDimensionIndexValues+1) < MAX_NUMBER_OF_DIMENSIONS)
     	d.dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS-2] = d.echoNum;
     if (numDimensionIndexValues < MAX_NUMBER_OF_DIMENSIONS) //https://github.com/rordenlab/dcm2niix/issues/221
     	d.dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS-1] = mz_crc32X((unsigned char*) &d.seriesInstanceUID, strlen(d.seriesInstanceUID));
+    if ((d.isValid) && (d.seriesUidCrc == 0)) {
+	    if (d.seriesNum < 1) 
+	        d.seriesUidCrc = 1; //no series information
+	    else
+	        d.seriesUidCrc = d.seriesNum; //file does not have Series UID, use series number instead   
+	}
     if (d.seriesNum < 1) //https://github.com/rordenlab/dcm2niix/issues/218
 		d.seriesNum = mz_crc32X((unsigned char*) &d.seriesInstanceUID, strlen(d.seriesInstanceUID));
     getFileName(d.imageBaseName, fname);
