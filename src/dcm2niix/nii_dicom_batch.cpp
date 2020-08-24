@@ -5260,10 +5260,12 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmLis
 			dcmList[indx].RWVScale = dti4Ds.RWVScale[0];
 		} //if isScaleVariesEnh
 		
+#ifndef USING_R
 		if (dcmList[indx].isScaleVariesEnh) printf("Varies\n");
 		if (!dcmList[indx].isScaleVariesEnh) printf("no Varies\n");
 		printf("%g %g %g\n", dcmList[indx].intenScale, dcmList[indx].intenIntercept, dcmList[indx].intenScalePhilips);
 		//continue;
+#endif
 		
 		if (s > 1) dcmList[indx].CSA.numDti = 0; //only save bvec for first type (magnitude)
 		int ret2 = saveDcm2NiiCore(nConvert, dcmSort, dcmList, nameList, opts, &dti4Ds, s);
