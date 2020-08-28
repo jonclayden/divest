@@ -138,9 +138,9 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     usingTempDirectory <- FALSE
     if (is.data.frame(path))
     {
-        subset <- as.logical(eval(substitute(subset), path))
+        subset <- eval(substitute(subset), path)
         if (!is.null(subset))
-            path <- attr(path,"paths")[subset]
+            path <- attr(path,"paths")[as.logical(subset)]
         else
             path <- attr(path,"paths")
         usingTempDirectory <- TRUE
@@ -148,10 +148,10 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     else if (!missing(subset))
     {
         info <- scanDicom(path, forceStack, verbosity, labelFormat)
-        subset <- as.logical(eval(substitute(subset), info))
+        subset <- eval(substitute(subset), info)
         if (!is.null(subset))
         {
-            path <- attr(info,"paths")[subset]
+            path <- attr(info,"paths")[as.logical(subset)]
             usingTempDirectory <- TRUE
         }
     }
