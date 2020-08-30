@@ -2,6 +2,16 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.9.0
+
+- Upstream improvements have been integrated, including for diffusion-weighted
+  series containing only b=0 volumes.
+- Passing a data frame to readDicom() without specifying a "subset" argument
+  should now convert all files as intended, rather than doing nothing.
+- Test behaviour has been tweaked for full compatibility with RNifti v1.2.0.
+
+===============================================================================
+
 VERSION 0.8.2
 
 - Fixes for minor compiler warnings.
