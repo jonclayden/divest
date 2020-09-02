@@ -49,7 +49,7 @@ If desired, functions from the `RNifti` package can be used to inspect and modif
 
 ```{r}
 library(RNifti)
-dumpNifti(images[[i]])
+niftiHeader(images[[i]])
 ```
 ```{r, eval=FALSE}
 writeNifti(images[[i]], "stack")

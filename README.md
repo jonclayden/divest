@@ -127,7 +127,7 @@ If desired, functions from the `RNifti` package can be used to inspect and modif
 
 ```r
 library(RNifti)
-dumpNifti(images[[i]])
+niftiHeader(images[[i]])
 ## NIfTI-1 header
 ##     sizeof_hdr: 348
 ##       dim_info: 57
