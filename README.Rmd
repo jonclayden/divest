@@ -10,13 +10,13 @@ knitr::opts_chunk$set(collapse = TRUE)
 
 > *divest*, **v.**: rid oneself of something that one no longer wants or requires
 
-The `divest` package is a variant of [Chris Rorden's](http://www.mccauslandcenter.sc.edu/crnl/) excellent [`dcm2niix`](https://github.com/rordenlab/dcm2niix) DICOM-to-NIfTI conversion tool, which has been minimally restructured to support an in-memory interface to R. It links the speed and reliability of the popular `dcm2niix` to the R-native NIfTI tools provided by the [`RNifti` package](https://github.com/jonclayden/RNifti).
+The `divest` package is an alternative interface to [Chris Rorden's](http://www.mccauslandcenter.sc.edu/crnl/) excellent [`dcm2niix` DICOM-to-NIfTI conversion tool](https://github.com/rordenlab/dcm2niix). Code has been contributed to `dcm2niix` to support an in-memory interface that links that tool's speed and reliability to the R-native NIfTI tools provided by the [`RNifti` package](https://github.com/jonclayden/RNifti).
 
-The package is [on CRAN](https://cran.r-project.org/package=divest), and the latest development version of the package can always be installed from GitHub using the `devtools` package.
+The package is [on CRAN](https://cran.r-project.org/package=divest), and the latest development version of the package can always be installed from GitHub using the `remotes` package.
 
 ```{r, eval=FALSE}
-# install.packages("devtools")
-devtools::install_github("jonclayden/divest")
+# install.packages("remotes")
+remotes::install_github("jonclayden/divest")
 ```
 
 **Please note that, like `dcm2niix`, the `divest` package is to be used for research purposes only, and is not a clinical tool. It comes with no warranty.**
@@ -34,23 +34,25 @@ images <- readDicom(path, interactive=FALSE, verbosity=-1)
 The conversion is interactive by default, prompting the user to select which series to convert, but here we simply convert everything non-interactively. The minimal test dataset provided with the package contains two images from each of two acquisitions. (It is incomplete, hence the warnings.) We can see the basic properties of a converted composite image by printing it.
 
 ```{r}
-images[[2]]
+# Extract the image with a fourth dimension
+i <- which(sapply(images, RNifti::ndim) == 4)
+images[[i]]
 ```
 
 Additional properties of the scanning sequence, such as the magnetic field strength used, are stored in attributes if they can be deduced from the DICOM files.
 
 ```{r}
-attributes(images[[2]])
+attributes(images[[i]])
 ```
 
 If desired, functions from the `RNifti` package can be used to inspect and modify the details of the converted NIfTI image, or to write it to file.
 
 ```{r}
 library(RNifti)
-dumpNifti(images[[2]])
+dumpNifti(images[[i]])
 ```
 ```{r, eval=FALSE}
-writeNifti(images[[2]], "stack")
+writeNifti(images[[i]], "stack")
 ```
 
 It is also possible to obtain information about the available DICOM series without actually performing the conversion. The `scanDicom` function returns a data frame containing certain information about each series.

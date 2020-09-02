@@ -8,14 +8,14 @@
 
 > *divest*, **v.**: rid oneself of something that one no longer wants or requires
 
-The `divest` package is a variant of [Chris Rorden's](http://www.mccauslandcenter.sc.edu/crnl/) excellent [`dcm2niix`](https://github.com/rordenlab/dcm2niix) DICOM-to-NIfTI conversion tool, which has been minimally restructured to support an in-memory interface to R. It links the speed and reliability of the popular `dcm2niix` to the R-native NIfTI tools provided by the [`RNifti` package](https://github.com/jonclayden/RNifti).
+The `divest` package is an alternative interface to [Chris Rorden's](http://www.mccauslandcenter.sc.edu/crnl/) excellent [`dcm2niix` DICOM-to-NIfTI conversion tool](https://github.com/rordenlab/dcm2niix). Code has been contributed to `dcm2niix` to support an in-memory interface that links that tool's speed and reliability to the R-native NIfTI tools provided by the [`RNifti` package](https://github.com/jonclayden/RNifti).
 
-The package is [on CRAN](https://cran.r-project.org/package=divest), and the latest development version of the package can always be installed from GitHub using the `devtools` package.
+The package is [on CRAN](https://cran.r-project.org/package=divest), and the latest development version of the package can always be installed from GitHub using the `remotes` package.
 
 
 ```r
-# install.packages("devtools")
-devtools::install_github("jonclayden/divest")
+# install.packages("remotes")
+remotes::install_github("jonclayden/divest")
 ```
 
 **Please note that, like `dcm2niix`, the `divest` package is to be used for research purposes only, and is not a clinical tool. It comes with no warranty.**
@@ -30,17 +30,18 @@ library(divest)
 path <- system.file("extdata", "raw", package="divest")
 images <- readDicom(path, interactive=FALSE, verbosity=-1)
 ## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
-## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
-## [dcm2niix info]  Warning: all images appear to be a single slice - please check slice/vector orientation
-## [dcm2niix WARNING] Weird CSA 'ProtocolSliceNumber' (System/Miscellaneous/ImageNumbering reversed): VALIDATE SLICETIMING AND BVECS
+## [dcm2niix WARNING] All images appear to be a single slice - please check slice/vector orientation
 ## [dcm2niix WARNING] Check that 2D images are not mirrored.
+## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
 ```
 
 The conversion is interactive by default, prompting the user to select which series to convert, but here we simply convert everything non-interactively. The minimal test dataset provided with the package contains two images from each of two acquisitions. (It is incomplete, hence the warnings.) We can see the basic properties of a converted composite image by printing it.
 
 
 ```r
-images[[2]]
+# Extract the image with a fourth dimension
+i <- which(sapply(images, RNifti::ndim) == 4)
+images[[i]]
 ## Internal image: "T0_N_S8"
 ## - 96 x 96 x 1 x 2 voxels
 ## - 2.5 x 2.5 x 5 mm x 4.1 s per voxel
@@ -50,7 +51,7 @@ Additional properties of the scanning sequence, such as the magnetic field stren
 
 
 ```r
-attributes(images[[2]])
+attributes(images[[i]])
 ## $imagedim
 ## [1] 96 96  1  2
 ## 
@@ -61,7 +62,10 @@ attributes(images[[2]])
 ## [1] "mm" "s" 
 ## 
 ## $.nifti_image_ptr
-## <pointer: 0x7ff2d3c3e590>
+## <pointer: 0x7fc594ce4f30>
+## 
+## $.nifti_image_ver
+## [1] 1
 ## 
 ## $class
 ## [1] "internalImage" "niftiImage"   
@@ -123,7 +127,7 @@ If desired, functions from the `RNifti` package can be used to inspect and modif
 
 ```r
 library(RNifti)
-dumpNifti(images[[2]])
+dumpNifti(images[[i]])
 ## NIfTI-1 header
 ##     sizeof_hdr: 348
 ##       dim_info: 57
@@ -164,7 +168,7 @@ dumpNifti(images[[2]])
 ```
 
 ```r
-writeNifti(images[[2]], "stack")
+writeNifti(images[[i]], "stack")
 ```
 
 It is also possible to obtain information about the available DICOM series without actually performing the conversion. The `scanDicom` function returns a data frame containing certain information about each series.
