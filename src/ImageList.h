@@ -44,6 +44,27 @@ public:
         element.attr(name) = value;
     }
     
+    void addAttribute (const std::string &name, char *value)
+    {
+        char *ptr = value;
+        bool empty = true;
+        while (*ptr != '\0')
+        {
+            // Strings composed entirely of spaces are considered empty and not stored
+            if (*ptr != ' ')
+            {
+                empty = false;
+                break;
+            }
+            ptr++;
+        }
+        if (!empty)
+        {
+            Rcpp::RObject element = list[list.length()-1];
+            element.attr(name) = const_cast<const char *>(value);
+        }
+    }
+    
     void addDateAttribute (const std::string &name, const char *value)
     {
         Rcpp::RObject element = list[list.length()-1];
