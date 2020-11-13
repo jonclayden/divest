@@ -44,6 +44,16 @@ public:
         element.attr(name) = value;
     }
     
+    template <>
+    void addAttribute (const std::string &name, const float &value)
+    {
+        if (value > 0.0)
+        {
+            Rcpp::RObject element = list[list.length()-1];
+            element.attr(name) = value;
+        }
+    }
+    
     void addAttribute (const std::string &name, char *value)
     {
         char *ptr = value;
