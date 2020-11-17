@@ -8,6 +8,19 @@
 
 #include "RNifti.h"
 
+namespace internal {
+
+template <class Type>
+inline bool validAttribute (const Type &value)    { return true; }
+
+template <>
+inline bool validAttribute (const float &value)   { return value > 0.0; }
+
+template <>
+inline bool validAttribute (const double &value)  { return value > 0.0; }
+
+}
+
 class ImageList
 {
 private:
@@ -40,14 +53,7 @@ public:
     template <typename ValueType>
     void addAttribute (const std::string &name, const ValueType &value)
     {
-        Rcpp::RObject element = list[list.length()-1];
-        element.attr(name) = value;
-    }
-    
-    template <>
-    void addAttribute (const std::string &name, const float &value)
-    {
-        if (value > 0.0)
+        if (internal::validAttribute(value))
         {
             Rcpp::RObject element = list[list.length()-1];
             element.attr(name) = value;
