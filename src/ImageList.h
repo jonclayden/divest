@@ -77,8 +77,22 @@ public:
     
     void addDateAttribute (const std::string &name, const char *value)
     {
-        Rcpp::RObject element = list[list.length()-1];
-        element.attr(name) = Rcpp::Date(value, "%Y%m%d");
+        // DICOM data format is YYYYMMDD; empty values are zero-filled
+        if (strlen(value) == 8 && strcmp(value,"00000000") != 0)
+        {
+            Rcpp::RObject element = list[list.length()-1];
+            element.attr(name) = Rcpp::Date(value, "%Y%m%d");
+        }
+    }
+    
+    void addTimeAttribute (const std::string &name, const char *value)
+    {
+        // DICOM time format is HHMMSS.FFFFFF; empty values are zero-filled
+        if (strlen(value) == 13 && strcmp(value,"000000.000000") != 0)
+        {
+            Rcpp::RObject element = list[list.length()-1];
+            element.attr(name) = value;
+        }
     }
     
     template <typename ValueType>
