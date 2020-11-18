@@ -1,6 +1,7 @@
 ^\.covrignore$
 ^\.travis\.yml$
 ^appveyor\.yml$
+^\.github$
 ^README.Rmd$
 ^tests/dcm_qa$
 ^tests/dcm_qa_nih$
