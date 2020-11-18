@@ -4,6 +4,7 @@
 #ifdef USING_R
 
 #define STRICT_R_HEADERS
+#define R_USE_C99_IN_CXX
 #include <Rcpp.h>
 
 #include "RNifti.h"
