@@ -2,6 +2,14 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.10.0
+
+- Upstream improvements to v1.0.20210317, including support for Siemens XA20
+  and XA30.
+- Somewhat generalised OpenJPEG support.
+
+===============================================================================
+
 VERSION 0.9.0
 
 - Upstream improvements have been integrated, including for diffusion-weighted
