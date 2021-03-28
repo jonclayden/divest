@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([divest], [0.3.0], [code@clayden.org])
+AC_INIT([divest], [0.10.0], [code@clayden.org])
 # AC_CONFIG_SRCDIR([ImageList.h])
 
 # Get compiler flags from R
@@ -24,7 +24,7 @@ AC_PROG_CC
 JPEG2K_FLAGS="-DmyDisableOpenJPEG"
 JPEG2K_LIBS=""
 AC_SEARCH_LIBS([opj_version], [openjp2], [
-    AC_CHECK_HEADER([openjpeg-2.1/openjpeg.h], [
+    AC_CHECK_HEADER([openjpeg.h], [
         JPEG2K_FLAGS=""
         JPEG2K_LIBS="-lopenjp2"
         AC_MSG_NOTICE(Using OpenJPEG for JPEG2000 support)

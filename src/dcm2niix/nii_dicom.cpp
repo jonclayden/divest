@@ -53,11 +53,7 @@
     #include <jasper/jasper.h>
 #endif
 #ifndef myDisableOpenJPEG
-#ifdef USING_R
-    #include <openjpeg-2.1/openjpeg.h>
-#else
     #include "openjpeg.h"
-#endif
 
 #ifdef myEnableJasper
   ERROR: YOU CAN NOT COMPILE WITH myEnableJasper AND NOT myDisableOpenJPEG OPTIONS SET SIMULTANEOUSLY
@@ -267,7 +263,7 @@ cleanup2:
     opj_destroy_codec(codec);
     return ret;
 }
-#endif //if
+#endif //myDisableOpenJPEG
 
 #ifndef M_PI
 #define M_PI           3.14159265358979323846
