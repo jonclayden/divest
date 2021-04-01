@@ -2,6 +2,12 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.10.1
+
+- Fixes for new compiler warnings on certain platforms.
+
+===============================================================================
+
 VERSION 0.10.0
 
 - Upstream improvements to v1.0.20210317, including support for Siemens XA20
