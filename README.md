@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest) [![Coverage Status](https://coveralls.io/repos/github/jonclayden/divest/badge.svg?branch=master)](https://coveralls.io/github/jonclayden/divest?branch=master) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
+[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![CI Status](https://github.com/jonclayden/divest/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/divest/actions/workflows/ci.yaml) [![Coverage Status](https://coveralls.io/repos/github/jonclayden/divest/badge.svg?branch=master)](https://coveralls.io/github/jonclayden/divest?branch=master) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
 
 # An R interface to dcm2niix
 
@@ -29,10 +29,6 @@ The package's key function is `readDicom`, which scans a directory containing DI
 library(divest)
 path <- system.file("extdata", "raw", package="divest")
 images <- readDicom(path, interactive=FALSE, verbosity=-1)
-## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
-## [dcm2niix WARNING] All images appear to be a single slice - please check slice/vector orientation
-## [dcm2niix WARNING] Check that 2D images are not mirrored.
-## [dcm2niix WARNING] Unable to determine manufacturer (0008,0070), so conversion is not tuned for vendor.
 ```
 
 The conversion is interactive by default, prompting the user to select which series to convert, but here we simply convert everything non-interactively. The minimal test dataset provided with the package contains two images from each of two acquisitions. (It is incomplete, hence the warnings.) We can see the basic properties of a converted composite image by printing it.
@@ -62,7 +58,7 @@ attributes(images[[i]])
 ## [1] "mm" "s" 
 ## 
 ## $.nifti_image_ptr
-## <pointer: 0x7fc594ce4f30>
+## <pointer: 0x125ea32b0>
 ## 
 ## $.nifti_image_ver
 ## [1] 1
@@ -177,6 +173,10 @@ It is also possible to obtain information about the available DICOM series witho
 ```r
 names(scanDicom(path))
 ## [dcm2niix info] Found 4 DICOM file(s)
+## [dcm2niix WARNING] Unknown manufacturer         
+## [dcm2niix WARNING] Unknown manufacturer         
+## [dcm2niix WARNING] Unknown manufacturer         
+## [dcm2niix WARNING] Unknown manufacturer
 ##  [1] "label"             "rootPath"          "files"            
 ##  [4] "seriesNumber"      "seriesDescription" "patientName"      
 ##  [7] "studyDate"         "echoTime"          "repetitionTime"   

@@ -2,7 +2,7 @@
 knitr::opts_chunk$set(collapse = TRUE)
 ```
 
-[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![Build Status](https://travis-ci.org/jonclayden/divest.svg?branch=master)](https://travis-ci.org/jonclayden/divest) [![Build status](https://ci.appveyor.com/api/projects/status/lc8v02uc1ywkskrc?svg=true)](https://ci.appveyor.com/project/jonclayden/divest) [![Coverage Status](https://coveralls.io/repos/github/jonclayden/divest/badge.svg?branch=master)](https://coveralls.io/github/jonclayden/divest?branch=master) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
+[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![CI Status](https://github.com/jonclayden/divest/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/divest/actions/workflows/ci.yaml) [![Coverage Status](https://coveralls.io/repos/github/jonclayden/divest/badge.svg?branch=master)](https://coveralls.io/github/jonclayden/divest?branch=master) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
 
 # An R interface to dcm2niix
 
@@ -25,7 +25,7 @@ remotes::install_github("jonclayden/divest")
 
 The package's key function is `readDicom`, which scans a directory containing DICOM files, stacks related data into merged 3D or 4D images where appropriate, and returns a list of `niftiImage` objects. For example,
 
-```{r}
+```{r, results="hide"}
 library(divest)
 path <- system.file("extdata", "raw", package="divest")
 images <- readDicom(path, interactive=FALSE, verbosity=-1)
