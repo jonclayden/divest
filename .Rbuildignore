@@ -3,6 +3,8 @@
 ^appveyor\.yml$
 ^\.github$
 ^README.Rmd$
+^compile_commands.json$
+^\.cache$
 ^tests/dcm_qa$
 ^tests/dcm_qa_nih$
 ^tests/dcm_qa_uih$
