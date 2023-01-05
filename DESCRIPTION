@@ -1,6 +1,6 @@
 Package: divest
-Version: 0.10.2
-Date: 2022-01-06
+Version: 0.10.3
+Date: 2023-01-05
 Title: Get Images Out of DICOM Format Quickly
 Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cre"), comment=c(ORCID="0000-0002-6608-0619")),
              person("Chris", "Rorden", role="aut"),
@@ -8,9 +8,9 @@ Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cr
              person("Cong", "Xu", role="cph"),
              person("Pascal", "Gloor", role="cph"))
 Maintainer: Jon Clayden <code@clayden.org>
-Imports: Rcpp (>= 0.11.0), RNifti (>= 0.3.0)
-Suggests: jsonlite, testthat, covr
+Imports: Rcpp, RNifti
 LinkingTo: Rcpp, RNifti
+Suggests: jsonlite, testthat, covr
 Description: Provides tools to sort DICOM-format medical image files, and
     convert them to NIfTI-1 format.
 License: BSD_3_clause + file LICENCE

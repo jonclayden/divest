@@ -2,6 +2,12 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 0.10.3
+
+- Uses of the deprecated C function sprintf() have now been circumvented.
+
+===============================================================================
+
 VERSION 0.10.2
 
 - Upstream improvements, to v1.0.20211006 and beyond.
