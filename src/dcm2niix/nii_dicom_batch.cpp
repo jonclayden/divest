@@ -791,7 +791,7 @@ void siemensCsaAscii(const char *filename, TCsaAscii *csaAscii, int csaOffset, i
 		if (keyPosTi) {
 			for (int k = 0; k < kMaxWipFree; k++) {
 				char txt[1024] = {""};
-				sprintf(txt, "%s%d]", keyStrTiFree, k);
+				snprintf(txt, 1024, "%s%d]", keyStrTiFree, k);
 				csaAscii->alTI[k] = readKeyFloatNan(txt, keyPos, csaLengthTrim);
 			}
 		}
@@ -804,7 +804,7 @@ void siemensCsaAscii(const char *filename, TCsaAscii *csaAscii, int csaOffset, i
 		if (keyPosFree) {
 			for (int k = 0; k < kMaxWipFree; k++) {
 				char txt[1024] = {""};
-				sprintf(txt, "%s%d]", keyStrAlFree, k);
+				snprintf(txt, 1024, "%s%d]", keyStrAlFree, k);
 				csaAscii->alFree[k] = readKeyFloat(txt, keyPos, csaLengthTrim);
 			}
 		}
@@ -823,7 +823,7 @@ void siemensCsaAscii(const char *filename, TCsaAscii *csaAscii, int csaOffset, i
 		if (keyPosFree) {
 			for (int k = 0; k < kMaxWipFree; k++) {
 				char txt[1024] = {""};
-				sprintf(txt, "%s%d]", keyStrAdFree, k);
+				snprintf(txt, 1024, "%s%d]", keyStrAdFree, k);
 				csaAscii->adFree[k] = readKeyFloatNan(txt, keyPos, csaLengthTrim);
 			}
 		}
@@ -1573,7 +1573,7 @@ tse3d: T2*/
 			} //for k */
 			for (int k = 3; k < 11; k++) { //vessel locations
 				char newstr[256];
-				sprintf(newstr, "\t\"sWipMemBlockAdFree%d\": %%g,\n", k); //issue483: sWipMemBlock.AdFree -> sWipMemBlockAdFree
+				snprintf(newstr, 256, "\t\"sWipMemBlockAdFree%d\": %%g,\n", k); //issue483: sWipMemBlock.AdFree -> sWipMemBlockAdFree
 				json_FloatNotNan(fp, newstr, csaAscii.adFree[k]);
 			}
 		}
@@ -3011,7 +3011,7 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 				strcat(outname, dcm.seriesDescription);
 			if (f == 'E') {
 				isEchoReported = true;
-				sprintf(newstr, "%d", dcm.echoNum);
+				snprintf(newstr, 256, "%d", dcm.echoNum);
 				strcat(outname, newstr);
 			}
 			if (f == 'F')
@@ -3057,28 +3057,28 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 					printWarning("Unable to append protocol name (0018,1030) to filename (it is empty).\n");
 			}
 			if (f == 'R') {
-				sprintf(newstr, "%d", dcm.imageNum);
+				snprintf(newstr, 256, "%d", dcm.imageNum);
 				strcat(outname, newstr);
 				isImageNumReported = true;
 			}
 			if (f == 'Q')
 				strcat(outname, dcm.scanningSequence);
 			if (f == 'S') {
-				sprintf(newstr, "%ld", dcm.seriesNum);
+				snprintf(newstr, 256, "%ld", dcm.seriesNum);
 				strcat(outname, newstr);
 				isSeriesReported = true;
 			}
 			if (f == 'T') {
-				sprintf(newstr, "%0.0f", dcm.dateTime);
+				snprintf(newstr, 256, "%0.0f", dcm.dateTime);
 				strcat(outname, newstr);
 			}
 			if (f == 'U') {
 				if (opts.isRenameNotConvert) {
-					sprintf(newstr, "%d", dcm.acquNum);
+					snprintf(newstr, 256, "%d", dcm.acquNum);
 					strcat(outname, newstr);
 					//isAcquisitionReported = true;
 				} else {
-					sprintf(newstr, "%d", dcm.acquNum);
+					snprintf(newstr, 256, "%d", dcm.acquNum);
 					strcat(outname, newstr);
 #ifdef mySegmentByAcq
 	//isAcquisitionReported = true;
@@ -3108,7 +3108,7 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 			if (f == 'X')
 				strcat(outname, dcm.studyID);
 			if ((f == 'Y') && (dcm.rawDataRunNumber >= 0)) {
-				sprintf(newstr, "%d", dcm.rawDataRunNumber); //GE (0019,10A2) else (0020,0100)
+				snprintf(newstr, 256, "%d", dcm.rawDataRunNumber); //GE (0019,10A2) else (0020,0100)
 				strcat(outname, newstr);
 			}
 			if (f == 'Z')
@@ -3116,23 +3116,23 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 			if ((f >= '0') && (f <= '9')) {
 				if ((pos < strlen(inname)) && (toupper(inname[pos + 1]) == 'S')) {
 					char zeroPad[12] = {""};
-					sprintf(zeroPad, "%%0%dd", f - '0');
-					sprintf(newstr, zeroPad, dcm.seriesNum);
+					snprintf(zeroPad, 12, "%%0%dd", f - '0');
+					snprintf(newstr, 256, zeroPad, dcm.seriesNum);
 					strcat(outname, newstr);
 					pos++; // e.g. %3f requires extra increment: skip both number and following character
 				}
 				if ((pos < strlen(inname)) && (toupper(inname[pos + 1]) == 'R')) {
 					char zeroPad[12] = {""};
-					sprintf(zeroPad, "%%0%dd", f - '0');
-					sprintf(newstr, zeroPad, dcm.imageNum);
+					snprintf(zeroPad, 12, "%%0%dd", f - '0');
+					snprintf(newstr, 256, zeroPad, dcm.imageNum);
 					isImageNumReported = true;
 					strcat(outname, newstr);
 					pos++; // e.g. %3f requires extra increment: skip both number and following character
 				}
 				if ((pos < strlen(inname)) && (toupper(inname[pos + 1]) == 'Y') && (dcm.rawDataRunNumber >= 0)) {
 					char zeroPad[12] = {""};
-					sprintf(zeroPad, "%%0%dd", f - '0');
-					sprintf(newstr, zeroPad, dcm.rawDataRunNumber); //GE (0019,10A2) else (0020,0100)
+					snprintf(zeroPad, 12, "%%0%dd", f - '0');
+					snprintf(newstr, 256, zeroPad, dcm.rawDataRunNumber); //GE (0019,10A2) else (0020,0100)
 					strcat(outname, newstr);
 					pos++; // e.g. %3f requires extra increment: skip both number and following character
 				}
@@ -3158,17 +3158,17 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 #else
 	if ((isAddNamePostFixes) && (!isEchoReported) && ((dcm.isMultiEcho) || (dcm.echoNum > 1))) { //multiple echoes saved as same series
 #endif
-		sprintf(newstr, "_e%d", dcm.echoNum);
+		snprintf(newstr, 256, "_e%d", dcm.echoNum);
 		strcat(outname, newstr);
 		isEchoReported = true;
 	}
 	if ((isAddNamePostFixes) && (!isSeriesReported) && (!isEchoReported) && (dcm.echoNum > 1)) { //last resort: user provided no method to disambiguate echo number in filename
-		sprintf(newstr, "_e%d", dcm.echoNum);
+		snprintf(newstr, 256, "_e%d", dcm.echoNum);
 		strcat(outname, newstr);
 		isEchoReported = true;
 	}
 	if ((dcm.isNonParallelSlices) && (!isImageNumReported)) {
-		sprintf(newstr, "_i%05d", dcm.imageNum);
+		snprintf(newstr, 256, "_i%05d", dcm.imageNum);
 		strcat(outname, newstr);
 	}
 	/*if (dcm.maxGradDynVol > 0) { //Philips segmented
@@ -3190,7 +3190,7 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 			strcat(outname, "Mag"); //Philips enhanced with BOTH phase and Magnitude in single file
 	}
 	if ((isAddNamePostFixes) && (dcm.aslFlags == kASL_FLAG_NONE) && (dcm.triggerDelayTime >= 1) && (dcm.manufacturer != kMANUFACTURER_GE)) { //issue 336 GE uses this for slice timing
-		sprintf(newstr, "_t%d", (int)roundf(dcm.triggerDelayTime));
+		snprintf(newstr, 256, "_t%d", (int)roundf(dcm.triggerDelayTime));
 		strcat(outname, newstr);
 	}
 	//could add (isAddNamePostFixes) to these next two, but consequences could be catastrophic
@@ -3269,7 +3269,7 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 #endif
 			}
 			char ch[12] = {""};
-			sprintf(ch, "%c", outname[pos]);
+			snprintf(ch, 12, "%c", outname[pos]);
 			strcat(newdir, ch);
 		}
 	}
@@ -3638,11 +3638,11 @@ int pigz_File(char *fname, struct TDCMopts opts, size_t imgsz) {
 	strcat(command, opts.pigzname);
 	if ((opts.gzLevel > 0) && (opts.gzLevel < 12)) {
 		char newstr[256];
-		sprintf(newstr, "\"%s -n -f -%d \"", blockSize, opts.gzLevel);
+		snprintf(newstr, 256, "\"%s -n -f -%d \"", blockSize, opts.gzLevel);
 		strcat(command, newstr);
 	} else {
 		char newstr[256];
-		sprintf(newstr, "\"%s -n \"", blockSize);
+		snprintf(newstr, 256, "\"%s -n \"", blockSize);
 		strcat(command, newstr);
 	}
 	strcat(command, fname);
@@ -4260,7 +4260,7 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 		strcat(command, opts.pigzname);
 		if ((opts.gzLevel > 0) && (opts.gzLevel < 12)) {
 			char newstr[256];
-			sprintf(newstr, "\" -n -f -%d > \"", opts.gzLevel);
+			snprintf(newstr, 256, "\" -n -f -%d > \"", opts.gzLevel);
 			strcat(command, newstr);
 		} else
 			strcat(command, "\" -n -f > \""); //current versions of pigz (2.3) built on Windows can hang if the filename is included, presumably because it is not finding the path characters ':\'
@@ -4337,9 +4337,9 @@ int nii_saveNII3D(char *niiFilename, struct nifti_1_header hdr, unsigned char *i
 	char zeroPad[PATH_MAX] = {""};
 	double fnVol = nVol;
 	int zeroPadLen = (1 + log10(fnVol));
-	sprintf(zeroPad, "%%s_%%0%dd", zeroPadLen);
+	snprintf(zeroPad, PATH_MAX, "%%s_%%0%dd", zeroPadLen);
 	for (int i = 1; i <= nVol; i++) {
-		sprintf(fname, zeroPad, niiFilename, i);
+		snprintf(fname, 2048, zeroPad, niiFilename, i);
 		if (nii_saveNII(fname, hdr1, (unsigned char *)&im[pos], opts, d) == EXIT_FAILURE)
 			return EXIT_FAILURE;
 		pos += imgsz;
@@ -4350,7 +4350,7 @@ int nii_saveNII3D(char *niiFilename, struct nifti_1_header hdr, unsigned char *i
 void nii_storeIntegerScaleFactor(int scale, struct nifti_1_header *hdr) {
 	//appends NIfTI header description field with " isN" where N is integer scaling
 	char newstr[256];
-	sprintf(newstr, " is%d", scale);
+	snprintf(newstr, 256, " is%d", scale);
 	if ((strlen(newstr) + strlen(hdr->descrip)) < 80)
 		strcat(hdr->descrip, newstr);
 }
@@ -6492,7 +6492,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				char pathoutnameROI[2048] = {""};
 				strcat(pathoutnameROI, pathoutname);
 				char append[128] = {""};
-				sprintf(append, "_ROI%d", j + 1);
+				snprintf(append, 128, "_ROI%d", j + 1);
 				strcat(pathoutnameROI, append);
 				struct nifti_1_header hdrr = hdrrx;
 				hdrr.dim[0] = 3;
@@ -8135,7 +8135,7 @@ void readIniFile(struct TDCMopts *opts, const char *argv[]) {
 
 void readIniFile(struct TDCMopts *opts, const char *argv[]) {
 	setDefaultOpts(opts, argv);
-	sprintf(opts->optsname, "%s%s", getenv("HOME"), STATUSFILENAME);
+	snprintf(opts->optsname, 512, "%s%s", getenv("HOME"), STATUSFILENAME);
 	FILE *fp = fopen(opts->optsname, "r");
 	if (fp == NULL)
 		return;

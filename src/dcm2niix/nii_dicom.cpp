@@ -648,12 +648,12 @@ int headerDcm2Nii2(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_hea
 	if (h->slice_code == NIFTI_SLICE_UNKNOWN)
 		h->slice_code = d2.CSA.sliceOrder; //sometimes the first slice order is screwed up https://github.com/eauerbach/CMRR-MB/issues/29
 	if (d.modality == kMODALITY_MR)
-		sprintf(txt, "TE=%.2g;Time=%.3f", d.TE, d.acquisitionTime);
+		snprintf(txt, 1024, "TE=%.2g;Time=%.3f", d.TE, d.acquisitionTime);
 	else
-		sprintf(txt, "Time=%.3f", d.acquisitionTime);
+		snprintf(txt, 1024, "Time=%.3f", d.acquisitionTime);
 	if (d.CSA.phaseEncodingDirectionPositive >= 0) {
 		char dtxt[1024] = {""};
-		sprintf(dtxt, ";phase=%d", d.CSA.phaseEncodingDirectionPositive);
+		snprintf(dtxt, 1024, ";phase=%d", d.CSA.phaseEncodingDirectionPositive);
 		strcat(txt, dtxt);
 	}
 	//from dicm2nii 20151117 InPlanePhaseEncodingDirection
@@ -663,7 +663,7 @@ int headerDcm2Nii2(struct TDICOMdata d, struct TDICOMdata d2, struct nifti_1_hea
 		h->dim_info = (3 << 4) + (2 << 2) + 1;
 	if (d.CSA.multiBandFactor > 1) {
 		char dtxt[1024] = {""};
-		sprintf(dtxt, ";mb=%d", d.CSA.multiBandFactor);
+		snprintf(dtxt, 1024, ";mb=%d", d.CSA.multiBandFactor);
 		strcat(txt, dtxt);
 	}
 	// GCC 8 warns about truncation using snprintf
@@ -7375,7 +7375,7 @@ const uint32_t kEffectiveTE = 0x0018 + (0x9082 << 16);
 	}
 	if (((d.manufacturer == kMANUFACTURER_TOSHIBA) || (d.manufacturer == kMANUFACTURER_CANON)) && (B0Philips > 0.0)) { //issue 388
 		char txt[1024] = {""};
-		sprintf(txt, "b=%d(", (int)round(B0Philips));
+		snprintf(txt, 1024, "b=%d(", (int)round(B0Philips));
 		if (strstr(d.imageComments, txt) != NULL) {
 			//printf("%s>>>%s %g\n", txt, d.imageComments, B0Philips);
 			int len = strlen(txt);
