@@ -55,7 +55,7 @@ extern "C" {
 
 static const int kMaxEPI3D = 1024; //maximum number of EPI images in Siemens Mosaic
 
-#if defined(__linux__) //Unix users must use setrlimit
+#if defined(__linux__) || defined(USING_R) //Unix users must use setrlimit
   static const int kMaxSlice2D = 65535; //issue460 maximum number of 2D slices in 4D (Philips) images
 #else
   static const int kMaxSlice2D = 131070;// 65535; //issue460 maximum number of 2D slices in 4D (Philips) images
