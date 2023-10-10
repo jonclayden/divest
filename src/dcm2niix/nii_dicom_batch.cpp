@@ -2615,7 +2615,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
             if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
 	    {
               if (i < 6)
-	        printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. sliceDir < 0) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
+	        printMessage("nii_saveDTI() (BVECS_DEBUG) (mgh adj. sliceDir < 0) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
             }
 
             if (fabs(vx[i].V[3]) > FLT_EPSILON)
@@ -2625,7 +2625,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
               if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
 	      {
                 if (i < 6)
-		  printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. sliceDir < 0) flip bvecs sign column 3: %f => %f\n", tmp, vx[i].V[3]);
+		  printMessage("nii_saveDTI() (BVECS_DEBUG) (mgh adj. sliceDir < 0) flip bvecs sign column 3: %f => %f\n", tmp, vx[i].V[3]);
               }
 	    }
           }
@@ -2641,7 +2641,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
                 if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
 	        {
                   if (i < 6)
-                    printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant) flip bvecs sign column j: %f => %f\n", tmp, vx[i].V[j]);
+                    printMessage("nii_saveDTI() (BVECS_DEBUG) (mgh adj. abs(sliceDir) == kSliceOrientMosaicNegativeDeterminant) flip bvecs sign column j: %f => %f\n", tmp, vx[i].V[j]);
                 }
 	      }
             }
@@ -2657,7 +2657,7 @@ int *nii_saveDTI(char pathoutname[], int nConvert, struct TDCMsort dcmSort[], st
               if (getenv("DCM2NIIXFSWRAPPER_DEBUG") != NULL && strcmp(getenv("DCM2NIIXFSWRAPPER_DEBUG"), "yes") == 0)
 	      {
                 if (i < 6)
-		  printf("nii_saveDTI() (BVECS_DEBUG) (mgh adj. abs(sliceDir) != kSliceOrientMosaicNegativeDeterminant) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
+		  printMessage("nii_saveDTI() (BVECS_DEBUG) (mgh adj. abs(sliceDir) != kSliceOrientMosaicNegativeDeterminant) flip bvecs sign column 1: %f => %f\n", tmp, vx[i].V[1]);
               }
 	    }
           }
@@ -6710,7 +6710,7 @@ void setBidsSiemens(struct TDICOMdata *d, int nConvert, int isVerbose, const cha
 		strcat(suffixBIDS, modalityBIDS);
 	}
 	if ((isVerbose > 0) || (strlen(dataTypeBIDS) < 1))
-		printf("::autoBids:Siemens CSAseqFname:'%s' pulseSeq:'%s' seqName:'%s'\n", 
+		printMessage("::autoBids:Siemens CSAseqFname:'%s' pulseSeq:'%s' seqName:'%s'\n", 
 			seqDetails, d->pulseSequenceName, d->sequenceName);
 	if (isDerived)
 		strcpy(dataTypeBIDS, "derived");
@@ -6860,7 +6860,7 @@ void setBidsPhilips(struct TDICOMdata *d, int nConvert, int isVerbose) {
 	}
 	//if ((isVerbose > 0) || (strlen(dataTypeBIDS) < 1))
 	if (isVerbose > 0)
-		printf("::autoBids:Philips pulseSeq:'%s' scanSeq:'%s' seqVariant:'%s'\n", 
+		printMessage("::autoBids:Philips pulseSeq:'%s' scanSeq:'%s' seqVariant:'%s'\n", 
 			d->pulseSequenceName, d->scanningSequence, d->sequenceVariant);
 	if (isDerived)
 		strcpy(dataTypeBIDS, "derived");
@@ -7039,7 +7039,7 @@ void setBidsGE(struct TDICOMdata *d, int nConvert, int isVerbose, const char *fi
 		strcat(suffixBIDS,modalityBIDS);
 	}
 	if ((isVerbose > 0) || (strlen(dataTypeBIDS) < 1))
-		printf("::autoBids:GE usedSeqName:'%s' seqName:'%s' internalSeqName:'%s' seriesDesc:'%s' scanSeq:'%s' stepDesc:'%s' bidsData:'%s' bidsSuffix:'%s'\n", 
+		printMessage("::autoBids:GE usedSeqName:'%s' seqName:'%s' internalSeqName:'%s' seriesDesc:'%s' scanSeq:'%s' stepDesc:'%s' bidsData:'%s' bidsSuffix:'%s'\n", 
 			seqName, d->pulseSequenceName, d->phaseEncodingDirectionDisplayedUIH, d->seriesDescription, d->scanningSequence, d->procedureStepDescription, dataTypeBIDS, suffixBIDS);
 	if (isDerived)
 		strcpy(dataTypeBIDS, "derived");

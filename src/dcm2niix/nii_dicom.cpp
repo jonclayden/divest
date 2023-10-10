@@ -4870,7 +4870,7 @@ const uint32_t kEffectiveTE = 0x0018 + uint32_t(0x9082 << 16); //FD
 				}
 				if ((volumeNumber == 1) && (acquisitionTimePhilips >= 0.0) && (inStackPositionNumber > 0)) {
 					d.CSA.sliceTiming[inStackPositionNumber - 1] = acquisitionTimePhilips;
-					printf("%d\t%f\n", inStackPositionNumber, acquisitionTimePhilips);
+					printMessage("%d\t%f\n", inStackPositionNumber, acquisitionTimePhilips);
 					acquisitionTimePhilips = - 1.0;
 				}
 				int ndim = nDimIndxVal;
@@ -7504,7 +7504,7 @@ https://neurostars.org/t/how-dcm2niix-handles-different-imaging-types/22697/6
 		int imgBytes = (int) (lLength);
 		int imgBytesExpected = (d.bitsAllocated >> 3) * d.samplesPerPixel * d.xyzDim[1]  * d.xyzDim[2] ;
 		if ((imgBytes >= imgBytesExpected) && (d.xyzDim[1] > 1) && (d.xyzDim[2] > 1)) {
-			printf("Assuming final tag is Pixel Data (7fe0,0010) (issue 639)\n");
+			printMessage("Assuming final tag is Pixel Data (7fe0,0010) (issue 639)\n");
 			d.imageStart = imageStart;
 		}
 	}
