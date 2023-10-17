@@ -1,3 +1,57 @@
+.resolvePaths <- function (path, subset = NULL, dirsOnly = FALSE)
+{
+    # Data frame case (caller should handle subsets with character path)
+    if (is.data.frame(path))
+    {
+        if (!is.null(subset))
+            paths <- unlist(attr(path,"paths")[subset])
+        else
+            paths <- unlist(attr(path,"paths"))
+        
+        # Don't overwrite an existing temporary directory
+        originalTempDirectory <- tempDirectory <- file.path(tempdir(), paste("divest",Sys.getpid(),sep="_"))
+        suffix <- 1
+        while (file.exists(tempDirectory))
+        {
+            tempDirectory <- paste(originalTempDirectory, as.character(suffix), sep="_")
+            suffix <- suffix + 1
+        }
+        
+        dir.create(tempDirectory, recursive=TRUE)
+        
+        success <- file.symlink(paths, tempDirectory)
+        if (!all(success))
+        {
+            unlink(tempDirectory, recursive=TRUE)
+            dir.create(tempDirectory, recursive=TRUE)
+            success <- file.copy(paths, tempDirectory)
+        }
+        
+        if (all(success))
+            return (structure(tempDirectory, temporary=TRUE))
+        else
+            stop("Cannot symlink or copy files into temporary directory")
+    }
+    
+    # Path should now only be a character vector
+    for (i in seq_along(path))
+    {
+        if (!file.exists(path[i]))
+        {
+            warning(paste0("Path \"", path[i], "\" does not exist"))
+            path <- path[-i]
+        }
+        else if (dirsOnly && !file.info(path[i])$isdir)
+        {
+            warning(paste0("Path \"", path[i], "\" does not point to a directory"))
+            path <- path[-i]
+        }
+        else
+            path[i] <- path.expand(path[i])
+    }
+    return (path)
+}
+
 .sortInfoTable <- function (table)
 {
     ordering <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
@@ -108,71 +162,21 @@
 #' @export
 readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive())
 {
-    readFromTempDirectory <- function (tempDirectory, files)
-    {
-        # Don't overwrite an existing path
-        originalTempDirectory <- tempDirectory
-        i <- 1
-        while (file.exists(tempDirectory))
-        {
-            tempDirectory <- paste(originalTempDirectory, as.character(i), sep="_")
-            i <- i + 1
-        }
-        
-        dir.create(tempDirectory, recursive=TRUE)
-        on.exit(unlink(tempDirectory, recursive=TRUE))
-        
-        success <- file.symlink(files, tempDirectory)
-        if (!all(success))
-        {
-            unlink(tempDirectory, recursive=TRUE)
-            dir.create(tempDirectory, recursive=TRUE)
-            success <- file.copy(files, tempDirectory)
-        }
-        if (!all(success))
-            stop("Cannot symlink or copy files into temporary directory")
-        
-        .readPath(tempDirectory, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
-    }
-    
-    usingTempDirectory <- FALSE
+    if (!is.data.frame(path) && !missing(subset))
+        path <- scanDicom(path, forceStack, verbosity, labelFormat)
     if (is.data.frame(path))
-    {
         subset <- eval(substitute(subset), path)
-        if (!is.null(subset))
-            path <- attr(path,"paths")[as.logical(subset)]
-        else
-            path <- attr(path,"paths")
-        usingTempDirectory <- TRUE
-    }
-    else if (!missing(subset))
-    {
-        info <- scanDicom(path, forceStack, verbosity, labelFormat)
-        subset <- eval(substitute(subset), info)
-        if (!is.null(subset))
-        {
-            path <- attr(info,"paths")[as.logical(subset)]
-            usingTempDirectory <- TRUE
-        }
-    }
+    
+    path <- .resolvePaths(path, subset)
+    
+    if (any(attr(path, "temporary")))
+        on.exit(unlink(path[attr(path,"temporary")], recursive=TRUE))
     
     results <- lapply(path, function(p) {
-        if (usingTempDirectory)
+        if (!file.info(p)$isdir)
+            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, "read")
+        else if (interactive && is.null(subset))
         {
-            absolute <- grepl(paste0("^([A-Za-z]:)?",.Platform$file.sep), p)
-            p[!absolute] <- file.path(getwd(), p[!absolute])
-            readFromTempDirectory(file.path(tempdir(),"divest"), p)
-        }
-        else if (!file.exists(p))
-        {
-            warning(paste0("Path \"", p, "\" does not exist"))
-            return (NULL)
-        }
-        else if (!file.info(p)$isdir)
-            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, "read")
-        else if (interactive)
-        {
-            p <- path.expand(p)
             info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan"))
             
             nSeries <- nrow(info)
@@ -194,17 +198,12 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             else
             {
                 selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
-                selectedResults <- lapply(selection, function(s) {
-                    files <- attr(info,"paths")[[s]]
-                    absolute <- grepl(paste0("^([A-Za-z]:)?",.Platform$file.sep), files)
-                    files[!absolute] <- file.path(getwd(), files[!absolute])
-                    readFromTempDirectory(file.path(tempdir(),paste0("divest",as.character(s))), files)
-                })
-                return (do.call(c,selectedResults))
+                selectedResults <- lapply(.resolvePaths(info,selection), .readPath, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
+                return (do.call(c, selectedResults))
             }
         }
         else
-            .readPath(path.expand(p), flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
+            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
     })
     
     return (do.call(c, results))
