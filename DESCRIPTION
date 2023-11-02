@@ -17,4 +17,5 @@ License: BSD_3_clause + file LICENCE
 URL: https://github.com/jonclayden/divest
 BugReports: https://github.com/jonclayden/divest/issues
 Encoding: UTF-8
-RoxygenNote: 6.1.1
+RoxygenNote: 7.2.3
+Roxygen: list(old_usage=TRUE)

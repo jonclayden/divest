@@ -2,6 +2,7 @@
 % Please edit documentation in R/read.R
 \name{readDicom}
 \alias{readDicom}
+\alias{convertDicom}
 \alias{sortDicom}
 \alias{scanDicom}
 \title{Read one or more DICOM directories}
@@ -9,6 +10,10 @@
 readDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
   forceStack = FALSE, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
   depth = 5L, interactive = base::interactive())
+
+convertDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
+  forceStack = FALSE, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
+  depth = 5L, interactive = base::interactive(), output = path)
 
 sortDicom(path = ".", forceStack = FALSE, verbosity = 0L,
   labelFormat = "T\%t_N\%n_S\%s/\%b", depth = 5L, nested = TRUE,
