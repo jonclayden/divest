@@ -16,12 +16,15 @@ BEGIN_RCPP
     const std::string labelFormat = as<std::string>(labelFormat_);
     const std::string task = as<std::string>(task_);
     
+    const bool willConvert = (task == "read" || task == "convert");
+    
     TDCMopts options;
     setDefaultOpts(&options, NULL);
     options.isGz = false;
     options.gzLevel = 0;
     options.isFlipY = as<bool>(flipY_);
-    options.isCreateBIDS = false;
+    options.isCreateBIDS = willConvert;
+    options.isOnlyBIDS = (task == "read");
     options.isCreateText = false;
     options.isSortDTIbyBVal = false;
     options.isForceStackSameSeries = as<bool>(forceStack_);
@@ -34,7 +37,7 @@ BEGIN_RCPP
     options.compressFlag = kCompressYes;
     strcpy(options.indir, path.c_str());
     strcpy(options.filename, labelFormat.c_str());
-    if (task == "sort" && !Rf_isNull(outputDir_))
+    if (!Rf_isNull(outputDir_))
     {
         const std::string outputDir = as<std::string>(outputDir_);
         strcpy(options.outdir, outputDir.c_str());

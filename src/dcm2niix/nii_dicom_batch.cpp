@@ -2176,14 +2176,12 @@ tse3d: T2*/
 	fclose(fp);
 } // nii_SaveBIDSX()
 
-#ifndef USING_R
-
 void swapEndian(struct nifti_1_header *hdr, unsigned char *im, bool isNative) {
 	//swap endian from big->little or little->big
 	// must be told which is native to detect datatype and number of voxels
 	// one could also auto-detect: hdr->sizeof_hdr==348
 	if (!isNative)
-#ifdef USING_MGH_NIFTI_IO
+#if defined(USING_MGH_NIFTI_IO) || defined(USING_R)
 		swap_nifti_header(hdr, 1);
 #else
 		swap_nifti_header(hdr);
@@ -2195,7 +2193,7 @@ void swapEndian(struct nifti_1_header *hdr, unsigned char *im, bool isNative) {
 	int bitpix = hdr->bitpix;
 	int datatype = hdr->datatype;
 	if (isNative)
-#ifdef USING_MGH_NIFTI_IO
+#if defined(USING_MGH_NIFTI_IO) || defined(USING_R)
 		swap_nifti_header(hdr, 1);
 #else
 		swap_nifti_header(hdr);
@@ -2210,6 +2208,8 @@ void swapEndian(struct nifti_1_header *hdr, unsigned char *im, bool isNative) {
 	if (bitpix == 64)
 		nifti_swap_8bytes(nVox, im);
 }
+
+#ifndef USING_R
 
 void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts, struct nifti_1_header *h, const char *filename) {
 	struct TDTI4D *dti4D = (struct TDTI4D *)malloc(sizeof(struct TDTI4D));
@@ -3883,175 +3883,7 @@ void writeNiiGz(char *baseName, struct nifti_1_header hdr, unsigned char *src_bu
 } //writeNiiGz()
 #endif
 
-#ifdef USING_R
-
-// Version of nii_saveNII() for R/divest: create nifti_image pointer and push onto stack
-int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts, struct TDICOMdata d) {
-	hdr.vox_offset = 352;
-	// Extract the basename from the full file path
-	char *start = niiFilename + strlen(niiFilename);
-	while (start >= niiFilename && *start != '/' && *start != kPathSeparator)
-		start--;
-	std::string name(++start);
-	nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
-	if (image == NULL)
-		return EXIT_FAILURE;
-	image->data = (void *)im;
-	ImageList *images = (ImageList *)opts.imageList;
-	images->append(image, name);
-	free(image);
-	return EXIT_SUCCESS;
-}
-
-void nii_saveAttributes(struct TDICOMdata &data, struct nifti_1_header &header, struct TDCMopts &opts, const char *filename) {
-	ImageList *images = (ImageList *)opts.imageList;
-	switch (data.modality) {
-	case kMODALITY_CR:
-		images->addAttribute("modality", "CR");
-		break;
-	case kMODALITY_CT:
-		images->addAttribute("modality", "CT");
-		break;
-	case kMODALITY_MR:
-		images->addAttribute("modality", "MR");
-		break;
-	case kMODALITY_PT:
-		images->addAttribute("modality", "PT");
-		break;
-	case kMODALITY_US:
-		images->addAttribute("modality", "US");
-		break;
-	}
-	switch (data.manufacturer) {
-	case kMANUFACTURER_SIEMENS:
-		images->addAttribute("manufacturer", "Siemens");
-		break;
-	case kMANUFACTURER_GE:
-		images->addAttribute("manufacturer", "GE");
-		break;
-	case kMANUFACTURER_MEDISO:
-		images->addAttribute("manufacturer", "Mediso");
-		break;
-	case kMANUFACTURER_PHILIPS:
-		images->addAttribute("manufacturer", "Philips");
-		break;
-	case kMANUFACTURER_TOSHIBA:
-		images->addAttribute("manufacturer", "Toshiba");
-		break;
-	case kMANUFACTURER_UIH:
-		images->addAttribute("manufacturer", "UIH");
-		break;
-	case kMANUFACTURER_BRUKER:
-		images->addAttribute("manufacturer", "Bruker");
-		break;
-	case kMANUFACTURER_HITACHI:
-		images->addAttribute("manufacturer", "Hitachi");
-		break;
-	case kMANUFACTURER_CANON:
-		images->addAttribute("manufacturer", "Canon");
-		break;
-	case kMANUFACTURER_MRSOLUTIONS:
-		images->addAttribute("manufacturer", "MRSolutions");
-		break;
-	case kMANUFACTURER_HYPERFINE:
-		images->addAttribute("manufacturer", "Hyperfine");
-		break;
-	}
-	images->addAttribute("scannerModelName", data.manufacturersModelName);
-	images->addAttribute("imageType", data.imageType);
-	if (data.seriesNum > 0)
-		images->addAttribute("seriesNumber", int(data.seriesNum));
-	images->addAttribute("seriesDescription", data.seriesDescription);
-	images->addAttribute("sequenceName", data.sequenceName);
-	images->addAttribute("protocolName", data.protocolName);
-	images->addDateAttribute("studyDate", data.studyDate);
-	images->addTimeAttribute("studyTime", data.studyTime);
-	images->addAttribute("fieldStrength", data.fieldStrength);
-	images->addAttribute("flipAngle", data.flipAngle);
-	images->addAttribute("echoTime", data.TE);
-	images->addAttribute("repetitionTime", data.TR);
-	images->addAttribute("inversionTime", data.TI);
-	if (!data.isXRay) {
-		images->addAttribute("sliceThickness", data.zThick);
-		images->addAttribute("sliceSpacing", data.zSpacing);
-	}
-	if (data.CSA.multiBandFactor > 1)
-		images->addAttribute("multibandFactor", data.CSA.multiBandFactor);
-	if (data.phaseEncodingSteps > 0)
-		images->addAttribute("phaseEncodingSteps", data.phaseEncodingSteps);
-	if (data.phaseEncodingLines > 0)
-		images->addAttribute("phaseEncodingLines", data.phaseEncodingLines);
-	// Calculations relating to the reconstruction in the phase encode direction,
-	// which are needed to derive effective echo spacing and readout time below.
-	// See the nii_SaveBIDS() function for details
-	int reconMatrixPE = data.phaseEncodingLines;
-	if ((header.dim[2] > 0) && (header.dim[1] > 0)) {
-		if (header.dim[1] == header.dim[2]) //phase encoding does not matter
-			reconMatrixPE = header.dim[2];
-		else if (data.phaseEncodingRC == 'C')
-			reconMatrixPE = header.dim[2];
-		else if (data.phaseEncodingRC == 'R')
-			reconMatrixPE = header.dim[1];
-	}
-	double bandwidthPerPixelPhaseEncode = data.bandwidthPerPixelPhaseEncode;
-	if (bandwidthPerPixelPhaseEncode == 0.0)
-		bandwidthPerPixelPhaseEncode = data.CSA.bandwidthPerPixelPhaseEncode;
-	double effectiveEchoSpacing = 0.0;
-	if ((reconMatrixPE > 0) && (bandwidthPerPixelPhaseEncode > 0.0))
-		effectiveEchoSpacing = 1.0 / (bandwidthPerPixelPhaseEncode * reconMatrixPE);
-	if (data.effectiveEchoSpacingGE > 0.0) {
-		double roundFactor = data.isPartialFourier ? 4.0 : 2.0;
-		double totalReadoutTime = ((ceil(1.0 / roundFactor * data.phaseEncodingLines / data.accelFactPE) * roundFactor) - 1.0) * data.effectiveEchoSpacingGE * 0.000001;
-		effectiveEchoSpacing = totalReadoutTime / (reconMatrixPE - 1);
-	}
-	images->addAttribute("effectiveEchoSpacing", effectiveEchoSpacing);
-	if (data.manufacturer == kMANUFACTURER_UIH)
-		images->addAttribute("effectiveReadoutTime", data.acquisitionDuration / 1000.0);
-	else if ((reconMatrixPE > 0) && (effectiveEchoSpacing > 0.0))
-		images->addAttribute("effectiveReadoutTime", effectiveEchoSpacing * (reconMatrixPE - 1.0));
-	images->addAttribute("pixelBandwidth", data.pixelBandwidth);
-	if ((data.manufacturer == kMANUFACTURER_SIEMENS) && (data.dwellTime > 0))
-		images->addAttribute("dwellTime", data.dwellTime * 1e-9);
-	// Phase encoding polarity
-	// We only save these attributes if both direction and polarity are known
-	bool isSkipPhaseEncodingAxis = data.is3DAcq;
-	if (data.echoTrainLength > 1)
-		isSkipPhaseEncodingAxis = false; //issue 371: ignore phaseEncoding for 3D MP-RAGE/SPACE, but report for 3D EPI
-	if (((data.phaseEncodingRC == 'R') || (data.phaseEncodingRC == 'C')) && (!isSkipPhaseEncodingAxis) && ((data.CSA.phaseEncodingDirectionPositive == 1) || (data.CSA.phaseEncodingDirectionPositive == 0))) {
-		if (data.phaseEncodingRC == 'C') {
-			images->addAttribute("phaseEncodingDirection", "j");
-			// Notice the XOR (^): the sense of phaseEncodingDirectionPositive
-			// is reversed if we are flipping the y-axis
-			images->addAttribute("phaseEncodingSign", ((data.CSA.phaseEncodingDirectionPositive == 0) ^ opts.isFlipY) ? -1 : 1);
-		} else if (data.phaseEncodingRC == 'R') {
-			images->addAttribute("phaseEncodingDirection", "i");
-			images->addAttribute("phaseEncodingSign", data.CSA.phaseEncodingDirectionPositive == 0 ? -1 : 1);
-		}
-	}
-	// Slice timing (stored in seconds)
-	if (data.CSA.sliceTiming[0] >= 0.0 && (data.manufacturer == kMANUFACTURER_UIH || data.manufacturer == kMANUFACTURER_GE || (data.manufacturer == kMANUFACTURER_SIEMENS && !data.isXA10A))) {
-		std::vector<double> sliceTimes;
-		for (int i = 0; i < header.dim[3]; i++) {
-			if (data.CSA.sliceTiming[i] < 0.0)
-				break;
-			sliceTimes.push_back(data.CSA.sliceTiming[i] / 1000.0);
-		}
-		images->addAttribute("sliceTiming", sliceTimes);
-	}
-	images->addAttribute("patientIdentifier", data.patientID);
-	images->addAttribute("patientName", data.patientName);
-	images->addDateAttribute("patientBirthDate", data.patientBirthDate);
-	if (strlen(data.patientAge) > 0 && strcmp(data.patientAge, "000Y") != 0)
-		images->addAttribute("patientAge", data.patientAge);
-	if (data.patientSex == 'F')
-		images->addAttribute("patientSex", "F");
-	else if (data.patientSex == 'M')
-		images->addAttribute("patientSex", "M");
-	images->addAttribute("patientWeight", data.patientWeight);
-	images->addAttribute("comments", data.imageComments);
-}
-
-#else
+#ifndef USING_R
 
 int pigz_File(char *fname, struct TDCMopts opts, size_t imgsz) {
 	//given "/dir/file.nii" creates "/dir/file.nii.gz"
@@ -5203,9 +5035,26 @@ void removeSclSlopeInter(struct nifti_1_header *hdr, unsigned char *img) {
 	//printWarning("NRRD unable to record scl_slope/scl_inter %g/%g\n", hdr->scl_slope, hdr->scl_inter);
 }
 
-#ifndef USING_R
-
 int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts, struct TDICOMdata d) {
+#ifdef USING_R
+    // For R/divest this means that the image should be created in-memory
+    if (opts.isOnlyBIDS) {
+        hdr.vox_offset = 352;
+        // Extract the basename from the full file path
+        char *start = niiFilename + strlen(niiFilename);
+        while (start >= niiFilename && *start != '/' && *start != kPathSeparator)
+            start--;
+        std::string name(++start);
+        nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
+        if (image == NULL)
+            return EXIT_FAILURE;
+        image->data = (void *)im;
+        ImageList *images = (ImageList *)opts.imageList;
+        images->append(image, name);
+        free(image);
+        return EXIT_SUCCESS;
+    }
+#else
 	if (opts.isOnlyBIDS)
 		return EXIT_SUCCESS;
 	if (opts.saveFormat != kSaveFormatNIfTI) {
@@ -5214,6 +5063,7 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 		free(dti4D);
 		return ret;
 	}
+#endif
 	hdr.vox_offset = 352;
 	size_t imgsz = nii_ImgBytes(hdr);
 	if (imgsz < 1) {
@@ -5310,6 +5160,7 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 		swapEndian(&hdr, im, false); //unbyte-swap endian (e.g. big->little)
 #endif
 
+#ifndef USING_R
 	if ((opts.isGz) && (strlen(opts.pigzname) > 0)) {
 #ifndef myDisableGzSizeLimits
 		if ((imgsz + hdr.vox_offset) > kMaxPigz) {
@@ -5319,10 +5170,9 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 #endif
 		return pigz_File(fname, opts, imgsz);
 	}
+#endif
 	return EXIT_SUCCESS;
 } // nii_saveNII()
-
-#endif
 
 int nii_saveNIIx(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts) {
 	struct TDICOMdata dcm = clear_dicom_data();
@@ -8297,7 +8147,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	//3D-EPI vs 3D SPACE/MPRAGE/ETC
 	if ((opts.isRotate3DAcq) && (opts.isCrop) && (dcmList[indx0].is3DAcq) && (!dcmList[indx0].isEPI) && (hdr0.dim[3] > 1) && (hdr0.dim[0] < 4)) //for T1 scan: && (dcmList[indx0].TE < 25)
 		returnCode = nii_saveCrop(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);														//n.b. must be run AFTER nii_setOrtho()!
-#ifdef USING_R
+#if 0
 	// Note that for R, only one image should be created per series
 	// Hence this extra test
 	if (returnCode != EXIT_SUCCESS)

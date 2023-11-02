@@ -1,3 +1,18 @@
+.tempDirectory <- function ()
+{
+    # Don't overwrite an existing temporary directory
+    originalTempDirectory <- tempDirectory <- file.path(tempdir(), paste("divest",Sys.getpid(),sep="_"))
+    suffix <- 1
+    while (file.exists(tempDirectory))
+    {
+        tempDirectory <- paste(originalTempDirectory, as.character(suffix), sep="_")
+        suffix <- suffix + 1
+    }
+    
+    dir.create(tempDirectory, recursive=TRUE)
+    return (tempDirectory)
+}
+
 .resolvePaths <- function (path, subset = NULL, dirsOnly = FALSE)
 {
     # Data frame case (caller should handle subsets with character path)
@@ -8,17 +23,7 @@
         else
             paths <- unlist(attr(path,"paths"))
         
-        # Don't overwrite an existing temporary directory
-        originalTempDirectory <- tempDirectory <- file.path(tempdir(), paste("divest",Sys.getpid(),sep="_"))
-        suffix <- 1
-        while (file.exists(tempDirectory))
-        {
-            tempDirectory <- paste(originalTempDirectory, as.character(suffix), sep="_")
-            suffix <- suffix + 1
-        }
-        
-        dir.create(tempDirectory, recursive=TRUE)
-        
+        tempDirectory <- .tempDirectory()
         success <- file.symlink(paths, tempDirectory)
         if (!all(success))
         {
@@ -58,7 +63,7 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
-.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","scan","sort"), outputDir = NULL)
+.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","convert","scan","sort"), outputDir = .tempDirectory())
 {
     task <- match.arg(task)
     if (verbosity < 0L)
@@ -207,6 +212,13 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     })
     
     return (do.call(c, results))
+}
+
+#' @rdname readDicom
+#' @export
+convertDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = path)
+{
+    .readPath(path, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "convert", output)
 }
 
 #' @rdname readDicom
