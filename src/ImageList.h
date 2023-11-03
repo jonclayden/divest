@@ -36,7 +36,6 @@ public:
     void append (nifti_image * const image, const std::string &name)
     {
         RNifti::NiftiImage wrapper(image, true);
-        wrapper.setPersistence(true);
         Rcpp::RObject pointer = wrapper.toPointer(name);
         
         if (deferredAttributes.size() > 0)
