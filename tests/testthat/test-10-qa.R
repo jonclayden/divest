@@ -8,7 +8,7 @@ test_battery <- function (root, labelFormat = "%p_%s")
     images <- readDicom(file.path(root,"In"), interactive=FALSE, labelFormat=labelFormat, verbosity=-2)
     labels <- unlist(images)
     
-    ignoreFields <- c("ImageType", "PhaseEncodingDirection")
+    ignoreFields <- c("ImageType", "PhaseEncodingDirection", "ConversionSoftwareVersion")
     scaleFields <- c("EchoTime", "RepetitionTime", "InversionTime")
     nameMapping <- c(MagneticFieldStrength="fieldStrength", ManufacturersModelName="scannerModelName", SpacingBetweenSlices="sliceSpacing", TotalReadoutTime="effectiveReadoutTime", MultibandAccelerationFactor="multibandFactor", ImageComments="comments")
     
