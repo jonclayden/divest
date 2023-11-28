@@ -243,7 +243,7 @@ convertDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
 sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", depth = 5L, nested = TRUE, keepUnsorted = FALSE)
 {
     if (nested)
-        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort")
+        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", path)
     else
         info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", ".")
     
