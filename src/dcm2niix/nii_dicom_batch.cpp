@@ -5037,8 +5037,7 @@ void removeSclSlopeInter(struct nifti_1_header *hdr, unsigned char *img) {
 
 int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts, struct TDICOMdata d) {
 #ifdef USING_R
-    // For R/divest this means that the image should be created in-memory
-    if (opts.isOnlyBIDS) {
+    if (opts.isImageInMemory) {
         hdr.vox_offset = 352;
         // Extract the basename from the full file path
         char *start = niiFilename + strlen(niiFilename);
@@ -8049,7 +8048,6 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	else {
 		if (volOrderIndex) //reorder volumes
 			imgM = reorderVolumes(&hdr0, imgM, volOrderIndex);
-#ifndef USING_R
 		if ((opts.isIgnoreDerivedAnd2D) && (numADC > 0))
 			printMessage("Ignoring derived diffusion image(s). Better isotropic and ADC maps can be generated later processing.\n");
 		if ((!opts.isIgnoreDerivedAnd2D) && (numADC > 0)) { //ADC maps can disrupt analysis: save a copy with the ADC map, and another without
@@ -8112,18 +8110,17 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				nii_saveNII(pathoutnameROI, hdrr, imgR, opts, dcmList[dcmSort[0].indx]);
 			}
 		}
-#endif
 		imgM = removeADC(&hdr0, imgM, numADC);
-#ifndef USING_R
 		if (iVaries)
 			printMessage("Saving as 32-bit float (slope, intercept or bits allocated varies).\n");
+#ifndef USING_R
 		if (opts.saveFormat != kSaveFormatNIfTI)
 			returnCode = nii_saveForeign(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx], dti4D, dcmList[indx0].CSA.numDti);
 		else if (opts.isSave3D)
 			returnCode = nii_saveNII3D(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
 		else
-			returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
 #endif
+			returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
 	}
 #endif
 	if (dcmList[indx0].gantryTilt != 0.0) {

@@ -20,11 +20,11 @@ BEGIN_RCPP
     
     TDCMopts options;
     setDefaultOpts(&options, NULL);
-    options.isGz = false;
-    options.gzLevel = 0;
+    options.isGz = true;
+    options.gzLevel = 6;
     options.isFlipY = as<bool>(flipY_);
     options.isCreateBIDS = willConvert;
-    options.isOnlyBIDS = (task == "read");
+    options.isImageInMemory = (task == "read");
     options.isCreateText = false;
     options.isSortDTIbyBVal = false;
     options.isForceStackSameSeries = as<bool>(forceStack_);
