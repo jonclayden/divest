@@ -77,7 +77,24 @@
         })
     }
     
-    .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
+    results <- .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
+    
+    if (task == "read")
+    {
+        addAttributes <- function (im)
+        {
+            jsonPath <- file.path(outputDir, paste(as.character(im),"json",sep="."))
+            if (file.exists(jsonPath))
+            {
+                # attribs <- jsonlite::read_json(jsonPath, simplifyVector=TRUE)
+                attributes(im) <- c(attributes(im), bidsToDivest(jsonPath))
+            }
+            return (im)
+        }
+        results <- lapply(results, addAttributes)
+    }
+    
+    return (results)
 }
 
 # Wrapper function to allow mocking in tests
