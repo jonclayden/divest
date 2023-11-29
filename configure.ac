@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.69])
-AC_INIT([divest], [0.10.0], [code@clayden.org])
+AC_PREREQ([2.71])
+AC_INIT([divest], [1.0.0], [code@clayden.org])
 # AC_CONFIG_SRCDIR([ImageList.h])
 
 # Get compiler flags from R
@@ -18,7 +18,11 @@ AC_LANG(C++)
 
 # Checks for programs.
 AC_PROG_CXX
-AC_PROG_CC
+AC_CHECK_INCLUDES_DEFAULT
+
+# Checks for functions.
+FUNCDEFS=""
+AC_CHECK_FUNC([fmemopen], [FUNCDEFS="-DHAVE_FMEMOPEN"])
 
 # Checks for OpenJPEG.
 JPEG2K_FLAGS="-DmyDisableOpenJPEG"
@@ -42,6 +46,7 @@ if test -z "${JPEG2K_LIBS}"; then
     ])
 fi
 
+AC_SUBST(FUNCDEFS)
 AC_SUBST(JPEG2K_FLAGS)
 AC_SUBST(JPEG2K_LIBS)
 
