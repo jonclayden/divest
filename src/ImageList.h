@@ -24,13 +24,34 @@ inline bool validAttribute (const double &value)  { return value > 0.0; }
 class ImageList
 {
 private:
+    // BIDS JSON buffer size limit per image, currently 4 MiB
+    const size_t jsonBufferSize = 0x400000;
+    char *jsonBuffer;
+    FILE *jsonHandle_;
+    
     Rcpp::List list;
     Rcpp::List deferredAttributes;
     
 public:
+    ImageList () : jsonBuffer(NULL), jsonHandle_(NULL) {}
+    
     operator SEXP ()
     {
         return list;
+    }
+    
+    FILE * jsonHandle ()
+    {
+#ifdef HAVE_FMEMOPEN
+        if (jsonHandle_ == NULL)
+        {
+            // If the system supports it, use fmemopen to stream into a string buffer
+            // This is C style, but dcm2niix expects a FILE*
+            jsonBuffer = R_alloc(jsonBufferSize, 1);
+            jsonHandle_ = fmemopen(jsonBuffer, jsonBufferSize, "w");
+        }
+#endif
+        return jsonHandle_;
     }
     
     void append (nifti_image * const image, const std::string &name)
@@ -44,6 +65,13 @@ public:
             for (int i = 0; i < deferredAttributes.size(); i++)
                 pointer.attr(attributeNames[i]) = deferredAttributes[i];
             deferredAttributes = Rcpp::List();
+        }
+        
+        if (jsonHandle_ != NULL)
+        {
+            // dcm2niix handles closing the file handle
+            pointer.attr(".bidsJson") = const_cast<const char *>(jsonBuffer);
+            jsonHandle_ = NULL;
         }
         
         list.push_back(pointer);

@@ -1191,7 +1191,18 @@ void nii_SaveBIDSX(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts
 	char txtname[2048] = {""};
 	strcpy(txtname, pathoutname);
 	strcat(txtname, ".json");
+#ifdef USING_R
+	FILE *fp = NULL;
+	if (opts.isImageInMemory)
+	{
+		ImageList *images = (ImageList *)opts.imageList;
+		fp = images->jsonHandle();
+	}
+	if (fp == NULL)
+		fp = fopen(txtname, "w");
+#else
 	FILE *fp = fopen(txtname, "w");
+#endif
 	fprintf(fp, "{\n");
 	switch (d.modality) {
 	case kMODALITY_CR:
