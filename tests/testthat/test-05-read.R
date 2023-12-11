@@ -14,10 +14,9 @@ test_that("DICOM-reading code works", {
     
     # Check all attributes
     # NB. String sort order is locale-dependent, so use stored names directly for indexing
-    attributes <- attributes(d[[i]])
-    attrNames <- grep("^[^\\.]", names(attributes), perl=TRUE, value=TRUE)
+    attributes <- divest:::imageAttributes(d[[i]])
+    attrNames <- setdiff(names(attributes), "conversionSoftwareVersion")
     storedAttrNames <- readRDS("attrib_names.rds")
-    # expect_known_value(attrNames, "attrib_names.rds", update=FALSE)
     expect_setequal(attrNames, storedAttrNames)
     expect_known_value(attributes[storedAttrNames], "attributes.rds", update=FALSE)
     
