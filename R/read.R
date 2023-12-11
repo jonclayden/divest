@@ -83,13 +83,22 @@
     {
         addAttributes <- function (im)
         {
-            jsonPath <- file.path(outputDir, paste(as.character(im),"json",sep="."))
-            if (file.exists(jsonPath))
+            if (!is.null(attr(im, ".bidsJson")))
             {
-                # attribs <- jsonlite::read_json(jsonPath, simplifyVector=TRUE)
-                attributes(im) <- c(attributes(im), bidsToDivest(jsonPath))
+                attributes(im) <- c(attributes(im), bidsToDivest(attr(im,".bidsJson")))
+                # attr(im, ".bidsJson") <- NULL
+                return (im)
             }
-            return (im)
+            else
+            {
+                jsonPath <- file.path(outputDir, paste(as.character(im),"json",sep="."))
+                if (file.exists(jsonPath))
+                {
+                    # attribs <- jsonlite::read_json(jsonPath, simplifyVector=TRUE)
+                    attributes(im) <- c(attributes(im), bidsToDivest(jsonPath))
+                }
+                return (im)
+            }
         }
         results <- lapply(results, addAttributes)
     }
