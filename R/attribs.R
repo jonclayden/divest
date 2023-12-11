@@ -50,8 +50,10 @@ bidsToDivest <- function (x)
         # A few exceptions are mapped explicitly
         if (bidsName %in% names(.Bids$mappingFromJson))
             name <- .Bids$mappingFromJson[[bidsName]]
-        else
+        else if (grepl("^[A-Z][a-z]", bidsName, perl=TRUE))
             name <- paste0(tolower(substring(bidsName,1,1)), substring(bidsName,2))
+        else
+            name <- bidsName
         
         # BIDS always uses seconds for time fields, but we use milliseconds in some places
         if (grepl(.Bids$toScale, bidsName, perl=TRUE))
@@ -81,8 +83,10 @@ divestToBids <- function (x)
         
         if (name %in% names(.Bids$mappingToJson))
             bidsName <- .Bids$mappingToJson[[name]]
-        else
+        else if (grepl("^[a-z]", bidsName, perl=TRUE))
             bidsName <- paste0(toupper(substring(name,1,1)), substring(name,2))
+        else
+            bidsName <- name
         
         if (grepl(.Bids$toScale, bidsName, perl=TRUE))
             value <- value / 1e3
