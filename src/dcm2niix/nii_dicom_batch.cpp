@@ -8125,13 +8125,15 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 		if (iVaries)
 			printMessage("Saving as 32-bit float (slope, intercept or bits allocated varies).\n");
 #ifndef USING_R
+		// divest does not support non-NIfTI formats, and requires only one
+		// image per series, so skip this to avoid double-saving
 		if (opts.saveFormat != kSaveFormatNIfTI)
 			returnCode = nii_saveForeign(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx], dti4D, dcmList[indx0].CSA.numDti);
 		else if (opts.isSave3D)
 			returnCode = nii_saveNII3D(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
 		else
-#endif
 			returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
+#endif
 	}
 #endif
 	if (dcmList[indx0].gantryTilt != 0.0) {
@@ -8155,13 +8157,11 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 	//3D-EPI vs 3D SPACE/MPRAGE/ETC
 	if ((opts.isRotate3DAcq) && (opts.isCrop) && (dcmList[indx0].is3DAcq) && (!dcmList[indx0].isEPI) && (hdr0.dim[3] > 1) && (hdr0.dim[0] < 4)) //for T1 scan: && (dcmList[indx0].TE < 25)
 		returnCode = nii_saveCrop(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);														//n.b. must be run AFTER nii_setOrtho()!
-#if 0
+#ifdef USING_R
 	// Note that for R, only one image should be created per series
 	// Hence this extra test
 	if (returnCode != EXIT_SUCCESS)
 		returnCode = nii_saveNII(pathoutname, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
-	if (returnCode == EXIT_SUCCESS)
-		nii_saveAttributes(dcmList[dcmSort[0].indx], hdr0, opts, nameList->str[dcmSort[0].indx]);
 #endif
 
 #ifdef USING_DCM2NIIXFSWRAPPER
