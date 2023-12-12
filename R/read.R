@@ -86,7 +86,7 @@
             if (!is.null(attr(im, ".bidsJson")))
             {
                 attributes(im) <- c(attributes(im), bidsToDivest(attr(im,".bidsJson")))
-                # attr(im, ".bidsJson") <- NULL
+                attr(im, ".bidsJson") <- NULL
                 return (im)
             }
             else
