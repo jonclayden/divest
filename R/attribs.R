@@ -14,6 +14,7 @@
     # toIgnore="^[iI]mageType$",
     toScale="^(Echo|Repetition|Inversion)Time$")
 
+#' @export
 imageAttributes <- function (x)
 {
     attribs <- attributes(x)
@@ -26,6 +27,7 @@ imageAttributes <- function (x)
         return (attribs)
 }
 
+#' @export
 bidsToDivest <- function (x)
 {
     bids <- jsonlite::fromJSON(x, simplifyVector=TRUE)
@@ -64,6 +66,7 @@ bidsToDivest <- function (x)
     return (divest)
 }
 
+#' @export
 divestToBids <- function (x)
 {
     bids <- list()
