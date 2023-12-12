@@ -11,7 +11,6 @@
                     effectiveReadoutTime="TotalReadoutTime",
                     multibandFactor="MultibandAccelerationFactor",
                     comments="ImageComments"),
-    # toIgnore="^[iI]mageType$",
     toScale="^(Echo|Repetition|Inversion)Time$")
 
 #' @export
@@ -20,7 +19,8 @@ imageAttributes <- function (x)
     attribs <- attributes(x)
     if (length(attribs) == 0L)
         return (NULL)
-    attribs <- attribs[!grepl("^\\.|^(image|pix)dim$|^pixunits$|^class$", names(attribs), perl=TRUE) & names(attribs) != ""]
+    attribsToDrop <- grepl("^\\.|^(image|pix)dim$|^pixunits$|^class$", names(attribs), perl=TRUE)
+    attribs <- attribs[!attribsToDrop & names(attribs) != ""]
     if (length(attribs) == 0L)
         return (NULL)
     else
@@ -30,13 +30,16 @@ imageAttributes <- function (x)
 #' @export
 bidsToDivest <- function (x)
 {
-    bids <- jsonlite::fromJSON(x, simplifyVector=TRUE)
+    UseMethod("bidsToDivest")
+}
+
+#' @export
+bidsToDivest.list <- function (x)
+{
+    bids <- x
     divest <- list()
     for (bidsName in names(bids))
     {
-        # if (grepl(.Bids$toIgnore, bidsName, perl=TRUE))
-        #     next
-        
         value <- bids[[bidsName]]
         if (is.character(value) && all(grepl("^\\s*$", value, perl=TRUE)))
             next
@@ -64,6 +67,18 @@ bidsToDivest <- function (x)
     }
     
     return (divest)
+}
+
+#' @export
+bidsToDivest.character <- function (x)
+{
+    return (bidsToDivest(jsonlite::fromJSON(x, simplifyVector=TRUE)))
+}
+
+#' @export
+bidsToDivest.default <- function (x)
+{
+    return (bidsToDivest.list(imageAttributes(x)))
 }
 
 #' @export
