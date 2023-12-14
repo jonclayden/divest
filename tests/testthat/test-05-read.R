@@ -1,5 +1,7 @@
 context("Reading from DICOM files")
 
+options(divest.bidsAttributes=FALSE)
+
 test_that("DICOM-reading code works", {
     # Read all
     path <- system.file("extdata", "raw", package="divest")
