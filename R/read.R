@@ -81,24 +81,27 @@
     
     if (task == "read")
     {
+        convertAttributes <- !isTRUE(getOption("divest.bidsAttributes"))
         addAttributes <- function (im)
         {
+            attribs <- attributes(im)
             if (!is.null(attr(im, ".bidsJson")))
             {
-                attributes(im) <- c(attributes(im), bidsToDivest(attr(im,".bidsJson")))
+                attribs <- c(attribs, jsonlite::fromJSON(attr(im,".bidsJson"),simplifyVector=TRUE))
                 attr(im, ".bidsJson") <- NULL
-                return (im)
             }
             else
             {
                 jsonPath <- file.path(outputDir, paste(as.character(im),"json",sep="."))
                 if (file.exists(jsonPath))
-                {
-                    # attribs <- jsonlite::read_json(jsonPath, simplifyVector=TRUE)
-                    attributes(im) <- c(attributes(im), bidsToDivest(jsonPath))
-                }
-                return (im)
+                    attribs <- c(attribs, jsonlite::read_json(jsonPath,simplifyVector=TRUE))
             }
+            
+            if (convertAttributes)
+                attribs <- bidsToDivest(attribs)
+            
+            attributes(im) <- attribs
+            return (im)
         }
         results <- lapply(results, addAttributes)
     }
