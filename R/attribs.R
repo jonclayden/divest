@@ -1,3 +1,5 @@
+.RNiftiAttribs <- "^\\.|^(image|pix)dim$|^pixunits$|^class$"
+
 .Bids <- list(
     mappingFromJson=c(MagneticFieldStrength="fieldStrength",
                       ManufacturersModelName="scannerModelName",
@@ -17,10 +19,9 @@
 imageAttributes <- function (x)
 {
     attribs <- attributes(x)
-    if (length(attribs) == 0L)
+    if (length(attribs) == 0L || is.null(names(attribs)))
         return (NULL)
-    attribsToDrop <- grepl("^\\.|^(image|pix)dim$|^pixunits$|^class$", names(attribs), perl=TRUE)
-    attribs <- attribs[!attribsToDrop & names(attribs) != ""]
+    attribs <- attribs[!grepl(.RNiftiAttribs,names(attribs),perl=TRUE) & names(attribs) != ""]
     if (length(attribs) == 0L)
         return (NULL)
     else
@@ -38,7 +39,12 @@ bidsToDivest.list <- function (x)
 {
     bids <- x
     divest <- list()
-    for (bidsName in names(bids))
+    
+    passthrough <- grepl(.RNiftiAttribs, names(bids), perl=TRUE)
+    if (any(passthrough))
+        divest <- bids[passthrough]
+    
+    for (bidsName in names(bids)[!passthrough])
     {
         value <- bids[[bidsName]]
         if (is.character(value) && all(grepl("^\\s*$", value, perl=TRUE)))
