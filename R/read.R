@@ -160,7 +160,9 @@
 #' returns information about the acquisition series they contain.
 #' \code{readDicom} reads these files and converts them to (internal) NIfTI
 #' images (whose pixel data can be extracted using \code{as.array}).
-#' \code{sortDicom} renames the files, but does not convert them.
+#' \code{convertDicom} performs the same conversion but writes to NIfTI files
+#' by default, instead of retaining the images in memory. \code{sortDicom}
+#' renames the files, but does not convert them.
 #' 
 #' The \code{labelFormat} argument describes the string format used for image
 #' labels and sorted files. Valid codes, each escaped with a percentage sign,
@@ -210,9 +212,13 @@
 #' @param interactive If \code{TRUE}, the default in interactive sessions, the
 #'   requested paths will first be scanned and a list of DICOM series will be
 #'   presented. You may then choose which series to convert.
+#' @param output The directory to write converted or copied NIfTI files to, or
+#'   \code{NULL}. In the latter case, which isn't valid for \code{sortDicom},
+#'   images are converted in memory and returned as R objects.
 #' @param nested For \code{sortDicom}, should the sorted files be created
-#'   within the source directory (\code{TRUE}, the default), or in the current
-#'   working directory (\code{FALSE})?
+#'   within the source directory (\code{TRUE}), or in the current working
+#'   directory (\code{FALSE})? Now soft-deprecated in favour of \code{output},
+#'   which is more flexible.
 #' @param keepUnsorted For \code{sortDicom}, should the unsorted files be left
 #'   in place, or removed after they are copied into their new locations? The
 #'   default, \code{FALSE}, corresponds to a move rather than a copy. If
