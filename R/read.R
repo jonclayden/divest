@@ -63,7 +63,7 @@
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
 }
 
-.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","convert","scan","sort"), outputDir = .tempDirectory())
+.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","convert","scan","sort"), outputDir = NULL)
 {
     task <- match.arg(task)
     if (verbosity < 0L)
@@ -77,6 +77,8 @@
         })
     }
     
+    if (is.null(outputDir))
+        outputDir <- .tempDirectory()
     results <- .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
     
     if (task == "read")
@@ -111,6 +113,40 @@
 
 # Wrapper function to allow mocking in tests
 .readline <- function (...) base::readline(...)
+
+# Similar to utils::menu(), but defaults to selecting everything, and allows
+# comma separation and ranges (using colons or hyphens)
+.menu <- function (choices)
+{
+    choices <- as.character(choices)
+    nChoices <- length(choices)
+    
+    if (nChoices < 1L)
+        return (integer(0))
+    
+    digits <- as.integer(floor(log10(nChoices)) + 1)
+    numbers <- sprintf(paste0("%",digits,"d: "), seq_len(nChoices))
+    
+    cat(paste0("\n", numbers, attr(info,"descriptions")))
+    cat("\n\nType <Enter> to select everything, 0 for nothing, or indices separated by spaces or commas")
+    selection <- .readline("\nSelection: ")
+    
+    if (selection == "")
+        selection <- seq_len(nChoices)
+    else if (selection == "0")
+        selection <- integer(0)
+    else
+    {
+        # Split into elements separated by commas or spaces, and resolve ranges
+        parts <- unlist(strsplit(selection, "[, ]+", perl=TRUE))
+        selection <- as.integer(unlist(lapply(parts, function (str) {
+            str <- sub("(\\d)-(\\d)", "\\1:\\2", str, perl=TRUE)
+            eval(parse(text=str))
+        })))
+    }
+    
+    return (selection)
+}
 
 #' Read one or more DICOM directories
 #' 
@@ -193,8 +229,8 @@
 #' scanDicom(path)
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
-#' @export
-readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive())
+#' @export readDicom convertDicom
+readDicom <- convertDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = NULL)
 {
     if (!is.data.frame(path) && !missing(subset))
         path <- scanDicom(path, forceStack, verbosity, labelFormat)
@@ -202,52 +238,35 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
         subset <- eval(substitute(subset), path)
     
     path <- .resolvePaths(path, subset)
+    task <- ifelse(is.null(output), "read", "convert")
     
     if (any(attr(path, "temporary")))
         on.exit(unlink(path[attr(path,"temporary")], recursive=TRUE))
     
     results <- lapply(path, function(p) {
         if (!file.info(p)$isdir)
-            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, "read")
+            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, task, output)
         else if (interactive && is.null(subset))
         {
             info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan"))
             
-            nSeries <- nrow(info)
-            if (nSeries < 1)
-                return (NULL)
-            
-            digits <- floor(log10(nSeries)) + 1
-            seriesNumbers <- sprintf(paste0("%",digits,"d: "), seq_len(nSeries))
-            cat(paste0("\n", seriesNumbers, attr(info,"descriptions")))
-            cat("\n\nType <Enter> for all series, 0 for none, or indices separated by spaces or commas")
-            selection <- .readline("\nSelected series: ")
-            if (selection == "")
+            selection <- .menu(attr(info,"descriptions"))
+            if (identical(selection, seq_len(nrow(info))))
             {
-                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
+                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
                 return (allResults[attr(info,"ordering")])
             }
-            else if (selection == "0")
-                return (list())
             else
             {
-                selection <- as.integer(unlist(strsplit(selection, "[, ]+", perl=TRUE)))
-                selectedResults <- lapply(.resolvePaths(info,selection), .readPath, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
+                selectedResults <- lapply(.resolvePaths(info,selection), .readPath, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
                 return (do.call(c, selectedResults))
             }
         }
         else
-            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "read")
+            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
     })
     
     return (do.call(c, results))
-}
-
-#' @rdname readDicom
-#' @export
-convertDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = path)
-{
-    .readPath(path, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, "convert", output)
 }
 
 #' @rdname readDicom
