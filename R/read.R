@@ -230,8 +230,8 @@
 #' scanDicom(path)
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
-#' @export readDicom convertDicom
-readDicom <- convertDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = NULL)
+#' @export readDicom
+readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = NULL)
 {
     if (!is.data.frame(path) && !missing(subset))
         path <- scanDicom(path, forceStack, verbosity, labelFormat)
@@ -270,14 +270,21 @@ readDicom <- convertDicom <- function (path = ".", subset = NULL, flipY = TRUE, 
     return (do.call(c, results))
 }
 
+# Create and then monkey-patch convertDicom() so that it differs from
+# readDicom() only in the default "output" parameter
+
 #' @rdname readDicom
 #' @export
-sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", depth = 5L, nested = TRUE, keepUnsorted = FALSE)
+convertDicom <- readDicom
+formals(convertDicom)$output <- as.symbol("path")
+
+#' @rdname readDicom
+#' @export
+sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", depth = 5L, nested = NA, keepUnsorted = FALSE, output = path)
 {
-    if (nested)
-        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", path)
-    else
-        info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", ".")
+    if (isFALSE(nested))
+        output <- "."
+    info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", output)
     
     if (!keepUnsorted && length(info$source) == length(info$target))
     {
