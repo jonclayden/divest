@@ -116,6 +116,7 @@
 
 # Similar to utils::menu(), but defaults to selecting everything, and allows
 # comma separation and ranges (using colons or hyphens)
+# Currently lacks column formatting, since strings are generally quite long
 .menu <- function (choices)
 {
     choices <- as.character(choices)
@@ -127,7 +128,7 @@
     digits <- as.integer(floor(log10(nChoices)) + 1)
     numbers <- sprintf(paste0("%",digits,"d: "), seq_len(nChoices))
     
-    cat(paste0("\n", numbers, attr(info,"descriptions")))
+    cat(paste0("\n", numbers, choices))
     cat("\n\nType <Enter> to select everything, 0 for nothing, or indices separated by spaces or commas")
     selection <- .readline("\nSelection: ")
     
