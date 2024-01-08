@@ -94,15 +94,12 @@ divestToBids <- function (x)
     
     if (all(c("phaseEncodingDirection","phaseEncodingSign") %in% names(x)))
     {
-        bids$PhaseEncodingDirection <- es("#{x$phaseEncodingDirection}#{ifelse(x$phaseEncodingSign < 0,'-','')}")
+        bids$PhaseEncodingDirection <- paste0(x$phaseEncodingDirection, ifelse(x$phaseEncodingSign < 0,"-",""))
         x <- x[setdiff(names(x), c("phaseEncodingDirection","phaseEncodingSign"))]
     }
     
     for (name in names(x))
     {
-        # if (grepl(.Bids$toIgnore, name, perl=TRUE))
-        #     next
-        
         value <- x[[name]]
         
         if (name %in% names(.Bids$mappingToJson))
