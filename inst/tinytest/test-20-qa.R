@@ -1,5 +1,3 @@
-context("Running over QA test batteries")
-
 options(divest.bidsAttributes=TRUE)
 
 ignoreFields <- c("PulseSequenceName", "ConversionSoftwareVersion")
@@ -48,18 +46,14 @@ test_battery <- function (root, labelFormat = "%p_%s")
     }
 }
 
-test_that("main QA battery passes", {
-    test_battery("../dcm_qa")
-})
+# Main QA test battery
+test_battery("../../tests/dcm_qa")
 
-test_that("NIH QA battery passes", {
-    test_battery("../dcm_qa_nih")
-})
+# NIH QA battery
+test_battery("../../tests/dcm_qa_nih")
 
-test_that("UIH QA battery passes", {
-    test_battery("../dcm_qa_uih", "%p_%s_%t")
-})
+# UIH QA battery
+test_battery("../../tests/dcm_qa_uih", "%p_%s_%t")
 
-test_that("slice timing QA battery passes", {
-    test_battery("../dcm_qa_stc", "%v_%p_%s")
-})
+# Slice timing QA battery
+test_battery("../../tests/dcm_qa_stc", "%v_%p_%s")

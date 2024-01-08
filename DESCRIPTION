@@ -10,7 +10,7 @@ Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cr
 Maintainer: Jon Clayden <code@clayden.org>
 Imports: Rcpp, RNifti
 LinkingTo: Rcpp, RNifti
-Suggests: jsonlite, testthat, covr
+Suggests: jsonlite, tinytest, covr
 Description: Provides tools to sort DICOM-format medical image files, and
     convert them to NIfTI-1 format.
 License: BSD_3_clause + file LICENCE
