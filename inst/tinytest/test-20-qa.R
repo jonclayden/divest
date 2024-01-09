@@ -47,13 +47,13 @@ test_battery <- function (root, labelFormat = "%p_%s")
 }
 
 # Main QA test battery
-test_battery("../../tests/dcm_qa")
+test_battery("dcm_qa")
 
 # NIH QA battery
-test_battery("../../tests/dcm_qa_nih")
+test_battery("dcm_qa_nih")
 
 # UIH QA battery
-test_battery("../../tests/dcm_qa_uih", "%p_%s_%t")
+test_battery("dcm_qa_uih", "%p_%s_%t")
 
 # Slice timing QA battery
-test_battery("../../tests/dcm_qa_stc", "%v_%p_%s")
+test_battery("dcm_qa_stc", "%v_%p_%s")
