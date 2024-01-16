@@ -42,10 +42,14 @@ expect_warning(readDicom(file.path(path,"nonsense"),interactive=FALSE), "does no
 expect_stdout(d <- readDicom(file.path(path,".."),depth=0L,interactive=FALSE), "No valid DICOM files")
 expect_length(d, 0L)
 
-#skip_on_cran()
-
-# (Pseudo-)interactivity
-# with_mock(`divest:::.readline`=function(...) "1",
-#     expect_stdout(d <- readDicom(path,interactive=TRUE), "Found 2 DICOM"),
-#     expect_equal(unlist(d), "T0_N_S8")
-# )
+if (at_home())
+{
+    # Monkey-patch the .readline function to simulate interactivity
+    ns <- getNamespace("divest")
+    unlockBinding(".readline", ns)
+    assign(".readline", function(...) "1", envir=ns)
+    
+    # (Pseudo-)interactivity
+    expect_stdout(d <- readDicom(path,interactive=TRUE), "Found 2 DICOM")
+    expect_equal(unlist(d), "T0_N_S8")
+}

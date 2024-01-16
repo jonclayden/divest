@@ -5,7 +5,7 @@ ignoreFields <- c("PulseSequenceName", "ConversionSoftwareVersion")
 test_battery <- function (root, labelFormat = "%p_%s")
 {
     if (!file.exists(root))
-        skip(paste0("QA battery \"", basename(root), "\" not available"))
+        return (invisible(NULL))
     
     images <- readDicom(file.path(root,"In"), interactive=FALSE, labelFormat=labelFormat, verbosity=-2)
     labels <- unlist(images)
