@@ -250,7 +250,8 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     if (any(attr(path, "temporary")))
         on.exit(unlink(path[attr(path,"temporary")], recursive=TRUE))
     
-    results <- lapply(path, function(p) {
+    processPath <- function(p)
+    {
         if (!file.info(p)$isdir)
             .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, task, output)
         else if (interactive && is.null(subset))
@@ -271,9 +272,9 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
         }
         else
             .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
-    })
+    }
     
-    return (do.call(c, results))
+    return (do.call(c, lapply(path,processPath)))
 }
 
 # Create and then monkey-patch convertDicom() so that it differs from
