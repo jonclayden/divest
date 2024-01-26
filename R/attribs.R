@@ -15,6 +15,35 @@
                     comments="ImageComments"),
     toScale="^(Echo|Repetition|Inversion)Time$")
 
+#' Extended image attributes
+#' 
+#' These functions extract and manipulate medical image attributes that go
+#' beyond the core metadata associated with the NIfTI-1 file format. The
+#' \code{imageAttributes} function
+#' 
+#' The DICOM format can encapsulate copious amounts of metadata about the scan
+#' and the patient, which can be useful for more advanced or research-focussed
+#' post-processing methods. This information is extracted during the DICOM to
+#' NIfTI conversion process
+#' 
+#' @param x An R object. For \code{imageAttributes} this would usually be an
+#'   image object, like those returned by \code{\link{readDicom}}.
+#'   \code{bidsToDivest} is S3 generic, with methods for lists (of named
+#'   attributes) and character strings (giving the path to a BIDS JSON file),
+#'   as well as a default method that handles image objects.
+#' @return A list of image attributes, possibly with its naming convention
+#'   changed relative to the input.
+#' 
+#' @note Attributes may include sensitive or identifiable information such as
+#'   a patient's name, sex, date of birth, etc., if this was included in the
+#'   original DICOM files. These functions make no attempt to anonymise this
+#'   metadata, and so this must be handled by the user if necessary.
+#' 
+#' @examples
+#' path <- system.file("extdata", "raw", package="divest")
+#' scanDicom(path)
+#' readDicom(path, interactive=FALSE)
+#' @author Jon Clayden <code@@clayden.org>
 #' @export
 imageAttributes <- function (x)
 {
@@ -28,12 +57,14 @@ imageAttributes <- function (x)
         return (attribs)
 }
 
+#' @rdname imageAttributes
 #' @export
 bidsToDivest <- function (x)
 {
     UseMethod("bidsToDivest")
 }
 
+#' @rdname imageAttributes
 #' @export
 bidsToDivest.list <- function (x)
 {
@@ -75,18 +106,21 @@ bidsToDivest.list <- function (x)
     return (divest)
 }
 
+#' @rdname imageAttributes
 #' @export
 bidsToDivest.character <- function (x)
 {
     return (bidsToDivest(jsonlite::fromJSON(x, simplifyVector=TRUE)))
 }
 
+#' @rdname imageAttributes
 #' @export
 bidsToDivest.default <- function (x)
 {
     return (bidsToDivest.list(imageAttributes(x)))
 }
 
+#' @rdname imageAttributes
 #' @export
 divestToBids <- function (x)
 {
