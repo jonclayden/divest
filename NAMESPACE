@@ -3,6 +3,7 @@
 S3method(bidsToDivest,character)
 S3method(bidsToDivest,default)
 S3method(bidsToDivest,list)
+S3method(divestToBids,list)
 export(bidsToDivest)
 export(convertDicom)
 export(divestToBids)

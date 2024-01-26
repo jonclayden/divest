@@ -18,19 +18,23 @@
 #' Extended image attributes
 #' 
 #' These functions extract and manipulate medical image attributes that go
-#' beyond the core metadata associated with the NIfTI-1 file format. The
-#' \code{imageAttributes} function
+#' beyond the core metadata associated with the NIfTI-1 file format.
 #' 
 #' The DICOM format can encapsulate copious amounts of metadata about the scan
 #' and the patient, which can be useful for more advanced or research-focussed
-#' post-processing methods. This information is extracted during the DICOM to
-#' NIfTI conversion process
+#' post-processing methods. Some of this information is extracted during the
+#' DICOM-to-NIfTI conversion process and stored in additional named attributes;
+#' the \code{imageAttributes} function returns a list of just these extended
+#' attributes. The other two functions convert between \code{divest}'s own
+#' naming convention and that used by the BIDS standard.
 #' 
 #' @param x An R object. For \code{imageAttributes} this would usually be an
 #'   image object, like those returned by \code{\link{readDicom}}.
 #'   \code{bidsToDivest} is S3 generic, with methods for lists (of named
 #'   attributes) and character strings (giving the path to a BIDS JSON file),
 #'   as well as a default method that handles image objects.
+#'   \code{divestToBids} is also S3 generic, but does not offer a method for
+#'   file names, since file storage is not standardised in this case.
 #' @return A list of image attributes, possibly with its naming convention
 #'   changed relative to the input.
 #' 
@@ -41,8 +45,15 @@
 #' 
 #' @examples
 #' path <- system.file("extdata", "raw", package="divest")
-#' scanDicom(path)
-#' readDicom(path, interactive=FALSE)
+#' images <- readDicom(path, interactive=FALSE)
+#' imageAttributes(images[[1]])
+#' @references More information about metadata captured in within the BIDS
+#'   format can be found at \url{https://bids.neuroimaging.io} or in the paper
+#'   cited below.
+#' 
+#' K.J. Gorgolewski, T. Auer, V.D. Calhoun, et al. The brain imaging data
+#' structure, a format for organizing and describing outputs of neuroimaging
+#' experiments (2016). Scientific Data 3:160044. \doi{10.1038/sdata.2016.44}.
 #' @author Jon Clayden <code@@clayden.org>
 #' @export
 imageAttributes <- function (x)
@@ -124,6 +135,13 @@ bidsToDivest.default <- function (x)
 #' @export
 divestToBids <- function (x)
 {
+    UseMethod("divestToBids")
+}
+
+#' @rdname imageAttributes
+#' @export
+divestToBids.list <- function (x)
+{
     bids <- list()
     
     if (all(c("phaseEncodingDirection","phaseEncodingSign") %in% names(x)))
@@ -149,4 +167,11 @@ divestToBids <- function (x)
     }
     
     return (jsonlite::toJSON(bids, auto_unbox=TRUE, digits=NA, pretty=TRUE))
+}
+
+#' @rdname imageAttributes
+#' @export
+bidsToDivest.default <- function (x)
+{
+    return (divestToBids.list(imageAttributes(x)))
 }
