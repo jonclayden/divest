@@ -47,9 +47,9 @@
 #' path <- system.file("extdata", "raw", package="divest")
 #' images <- readDicom(path, interactive=FALSE)
 #' imageAttributes(images[[1]])
-#' @references More information about metadata captured in within the BIDS
-#'   format can be found at \url{https://bids.neuroimaging.io} or in the paper
-#'   cited below.
+#' @references More information about metadata captured by the BIDS format can
+#'   be found at \url{https://bids.neuroimaging.io} or in the paper cited
+#'   below.
 #' 
 #' K.J. Gorgolewski, T. Auer, V.D. Calhoun, et al. The brain imaging data
 #' structure, a format for organizing and describing outputs of neuroimaging
@@ -70,16 +70,8 @@ imageAttributes <- function (x)
 
 #' @rdname imageAttributes
 #' @export
-bidsToDivest <- function (x)
+bidsToDivest <- function (bids)
 {
-    UseMethod("bidsToDivest")
-}
-
-#' @rdname imageAttributes
-#' @export
-bidsToDivest.list <- function (x)
-{
-    bids <- x
     divest <- list()
     
     passthrough <- grepl(.RNiftiAttribs, names(bids), perl=TRUE)
@@ -119,44 +111,29 @@ bidsToDivest.list <- function (x)
 
 #' @rdname imageAttributes
 #' @export
-bidsToDivest.character <- function (x)
-{
-    return (bidsToDivest(jsonlite::fromJSON(x, simplifyVector=TRUE)))
-}
-
-#' @rdname imageAttributes
-#' @export
-bidsToDivest.default <- function (x)
-{
-    return (bidsToDivest.list(imageAttributes(x)))
-}
-
-#' @rdname imageAttributes
-#' @export
-divestToBids <- function (x)
-{
-    UseMethod("divestToBids")
-}
-
-#' @rdname imageAttributes
-#' @export
-divestToBids.list <- function (x)
+divestToBids <- function (divest)
 {
     bids <- list()
     
-    if (all(c("phaseEncodingDirection","phaseEncodingSign") %in% names(x)))
+    passthrough <- grepl(.RNiftiAttribs, names(divest), perl=TRUE)
+    if (any(passthrough))
+        bids <- divest[passthrough]
+    
+    if (all(c("phaseEncodingDirection","phaseEncodingSign") %in% names(divest)))
     {
-        bids$PhaseEncodingDirection <- paste0(x$phaseEncodingDirection, ifelse(x$phaseEncodingSign < 0,"-",""))
-        x <- x[setdiff(names(x), c("phaseEncodingDirection","phaseEncodingSign"))]
+        bids$PhaseEncodingDirection <- paste0(divest$phaseEncodingDirection, ifelse(divest$phaseEncodingSign < 0,"-",""))
+        divest <- divest[setdiff(names(divest), c("phaseEncodingDirection","phaseEncodingSign"))]
     }
     
-    for (name in names(x))
+    for (name in names(divest)[!passthrough])
     {
-        value <- x[[name]]
+        value <- divest[[name]]
+        if (is.character(value) && all(grepl("^\\s*$", value, perl=TRUE)))
+            next
         
         if (name %in% names(.Bids$mappingToJson))
             bidsName <- .Bids$mappingToJson[[name]]
-        else if (grepl("^[a-z]", bidsName, perl=TRUE))
+        else if (grepl("^[a-z]", name, perl=TRUE))
             bidsName <- paste0(toupper(substring(name,1,1)), substring(name,2))
         else
             bidsName <- name
@@ -166,12 +143,23 @@ divestToBids.list <- function (x)
         bids[[bidsName]] <- value
     }
     
-    return (jsonlite::toJSON(bids, auto_unbox=TRUE, digits=NA, pretty=TRUE))
+    return (bids)
 }
 
-#' @rdname imageAttributes
-#' @export
-bidsToDivest.default <- function (x)
+fromBidsJson <- function (source, rename = FALSE)
 {
-    return (divestToBids.list(imageAttributes(x)))
+    result <- jsonlite::fromJSON(source, simplifyVector=TRUE)
+    if (rename)
+        result <- bidsToDivest(result)
+    return (result)
+}
+
+toBidsJson <- function (source, path = NULL, rename = FALSE)
+{
+    if (is.list(source) && rename)
+        source <- divestToBids(source)
+    if (is.null(path))
+        return (jsonlite::toJSON(source, auto_unbox=TRUE, digits=NA, pretty=TRUE))
+    else
+        jsonlite::write_json(source, path, auto_unbox=TRUE, digits=NA, pretty=TRUE)
 }
