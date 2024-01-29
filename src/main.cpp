@@ -130,7 +130,7 @@ BEGIN_RCPP
             DataFrame info = DataFrame::create(Named("label")=label, Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
             info.attr("descriptions") = descriptions;
             info.attr("paths") = paths;
-            info.attr("class") = CharacterVector::create("divest","data.frame");
+            info.attr("class") = CharacterVector::create("divestListing","data.frame");
             return info;
         }
         else if (options.isRenameNotConvert)

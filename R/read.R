@@ -60,7 +60,7 @@
 .sortInfoTable <- function (table)
 {
     ordering <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
-    return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divest","data.frame")))
+    return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divestListing","data.frame")))
 }
 
 .readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","convert","scan","sort"), outputDir = NULL)

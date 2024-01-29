@@ -59,7 +59,7 @@ public:
         RNifti::NiftiImage wrapper(image, true);
         Rcpp::RObject pointer = wrapper.toPointer(name);
         std::vector<std::string> classStrings = pointer.attr("class");
-        classStrings.insert(classStrings.begin(), "divest");
+        classStrings.insert(classStrings.begin(), "divestImage");
         pointer.attr("class") = classStrings;
         
         if (deferredAttributes.size() > 0)
