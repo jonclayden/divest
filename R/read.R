@@ -1,4 +1,4 @@
-.tempDirectory <- function ()
+tempDirectory <- function ()
 {
     # Don't overwrite an existing temporary directory
     originalTempDirectory <- tempDirectory <- file.path(tempdir(), paste("divest",Sys.getpid(),sep="_"))
@@ -13,7 +13,7 @@
     return (tempDirectory)
 }
 
-.resolvePaths <- function (path, subset = NULL, dirsOnly = FALSE)
+resolvePaths <- function (path, subset = NULL, dirsOnly = FALSE)
 {
     # Data frame case (caller should handle subsets with character path)
     if (is.data.frame(path))
@@ -23,7 +23,7 @@
         else
             paths <- unlist(attr(path,"paths"))
         
-        tempDirectory <- .tempDirectory()
+        tempDirectory <- tempDirectory()
         success <- file.symlink(paths, tempDirectory)
         if (!all(success))
         {
@@ -57,13 +57,13 @@
     return (path)
 }
 
-.sortInfoTable <- function (table)
+sortInfoTable <- function (table)
 {
     ordering <- with(table, order(patientName,studyDate,seriesNumber,echoNumber,phase))
     return (structure(table[ordering,], descriptions=attr(table,"descriptions")[ordering], paths=attr(table,"paths")[ordering], ordering=ordering, class=c("divestListing","data.frame")))
 }
 
-.readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","convert","scan","sort"), outputDir = NULL)
+readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task = c("read","convert","scan","sort"), outputDir = NULL)
 {
     task <- match.arg(task)
     if (verbosity < 0L)
@@ -78,7 +78,7 @@
     }
     
     if (is.null(outputDir))
-        outputDir <- .tempDirectory()
+        outputDir <- tempDirectory()
     results <- .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
     
     if (task == "read")
@@ -206,7 +206,7 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     if (is.data.frame(path))
         subset <- eval(substitute(subset), path)
     
-    path <- .resolvePaths(path, subset)
+    path <- resolvePaths(path, subset)
     task <- ifelse(is.null(output), "read", "convert")
     
     if (any(attr(path, "temporary")))
@@ -215,25 +215,25 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
     processPath <- function(p)
     {
         if (!file.info(p)$isdir)
-            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, task, output)
+            readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, task, output)
         else if (interactive && is.null(subset))
         {
-            info <- .sortInfoTable(.readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan"))
+            info <- sortInfoTable(readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan"))
             
             selection <- .menu(attr(info,"descriptions"))
             if (identical(selection, seq_len(nrow(info))))
             {
-                allResults <- .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
+                allResults <- readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
                 return (allResults[attr(info,"ordering")])
             }
             else
             {
-                selectedResults <- lapply(.resolvePaths(info,selection), .readPath, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
+                selectedResults <- lapply(resolvePaths(info,selection), readPath, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
                 return (do.call(c, selectedResults))
             }
         }
         else
-            .readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
+            readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
     }
     
     return (do.call(c, lapply(path,processPath)))
@@ -253,7 +253,7 @@ sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
 {
     if (isFALSE(nested))
         output <- "."
-    info <- .readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", output)
+    info <- readPath(path, FALSE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "sort", output)
     
     if (!keepUnsorted && length(info$source) == length(info$target))
     {
@@ -270,10 +270,10 @@ scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
 {
     results <- lapply(path, function(p) {
         if (file.info(p)$isdir)
-            .readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "scan")
+            readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "scan")
         else
             warning(paste0("Path \"", p, "\" does not point to a directory"))
     })
     
-    .sortInfoTable(Reduce(function(x,y) structure(rbind(x,y), descriptions=c(attr(x,"descriptions"),attr(y,"descriptions")), paths=c(attr(x,"paths"),attr(y,"paths"))), results))
+    sortInfoTable(Reduce(function(x,y) structure(rbind(x,y), descriptions=c(attr(x,"descriptions"),attr(y,"descriptions")), paths=c(attr(x,"paths"),attr(y,"paths"))), results))
 }
