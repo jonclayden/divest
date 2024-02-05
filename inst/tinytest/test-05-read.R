@@ -19,7 +19,9 @@ storedAttrNames <- readRDS("attrib_names.rds")
 expect_true(setequal(attrNames, storedAttrNames))
 expect_equivalent_to_reference(attributes[storedAttrNames], "attributes.rds")
 
-convertedAttributes <- bidsToDivest(divestToBids(attributes))
+jsonAttributes <- fromBidsJson("attributes.json", rename=TRUE)
+expect_equivalent(attributes[storedAttrNames], jsonAttributes[storedAttrNames])
+convertedAttributes <- divest:::bidsToDivest(divest:::divestToBids(attributes))
 expect_equal(attributes, convertedAttributes)
 
 origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
