@@ -2,46 +2,27 @@
 % Please edit documentation in R/attribs.R
 \name{imageAttributes}
 \alias{imageAttributes}
-\alias{bidsToDivest}
-\alias{bidsToDivest.list}
-\alias{bidsToDivest.character}
-\alias{bidsToDivest.default}
-\alias{divestToBids}
-\alias{divestToBids.list}
+\alias{imageAttributes<-}
 \title{Extended image attributes}
 \usage{
 imageAttributes(x)
 
-bidsToDivest(x)
-
-\method{bidsToDivest}{list}(x)
-
-\method{bidsToDivest}{character}(x)
-
-\method{bidsToDivest}{default}(x)
-
-divestToBids(x)
-
-\method{divestToBids}{list}(x)
-
-\method{bidsToDivest}{default}(x)
+imageAttributes(x) <- value
 }
 \arguments{
-\item{x}{An R object. For \code{imageAttributes} this would usually be an
-image object, like those returned by \code{\link{readDicom}}.
-\code{bidsToDivest} is S3 generic, with methods for lists (of named
-attributes) and character strings (giving the path to a BIDS JSON file),
-as well as a default method that handles image objects.
-\code{divestToBids} is also S3 generic, but does not offer a method for
-file names, since file storage is not standardised in this case.}
+\item{x}{An R object, generally an image object like those returned by
+\code{\link{readDicom}}.}
+
+\item{value}{A list of new image attributes to replace any existing ones.}
 }
 \value{
-A list of image attributes, possibly with its naming convention
-  changed relative to the input.
+A list of image attributes, or a modified object with these changed.
+  These are essentially all attributes except those used for basic
+  \code{niftiImage} objects by the \code{RNifti} package.
 }
 \description{
-These functions extract and manipulate medical image attributes that go
-beyond the core metadata associated with the NIfTI-1 file format.
+These functions extract and replace medical image attributes that go beyond
+the core metadata associated with the NIfTI-1 file format.
 }
 \details{
 The DICOM format can encapsulate copious amounts of metadata about the scan
@@ -49,14 +30,16 @@ and the patient, which can be useful for more advanced or research-focussed
 post-processing methods. Some of this information is extracted during the
 DICOM-to-NIfTI conversion process and stored in additional named attributes;
 the \code{imageAttributes} function returns a list of just these extended
-attributes. The other two functions convert between \code{divest}'s own
-naming convention and that used by the BIDS standard.
+attributes. The replacement form allows this metadata to be modified or
+removed. These functions currently only act on objects inheriting from the
+\code{niftiImage} class.
 }
 \note{
 Attributes may include sensitive or identifiable information such as
   a patient's name, sex, date of birth, etc., if this was included in the
-  original DICOM files. These functions make no attempt to anonymise this
-  metadata, and so this must be handled by the user if necessary.
+  original DICOM files. These functions make no attempt to identify or
+  anonymise this metadata, and so this must be handled by the user if
+  necessary.
 }
 \examples{
 path <- system.file("extdata", "raw", package="divest")
@@ -64,9 +47,9 @@ images <- readDicom(path, interactive=FALSE)
 imageAttributes(images[[1]])
 }
 \references{
-More information about metadata captured in within the BIDS
-  format can be found at \url{https://bids.neuroimaging.io} or in the paper
-  cited below.
+More information about metadata captured by the BIDS format can
+  be found at \url{https://bids.neuroimaging.io} or in the paper cited
+  below.
 
 K.J. Gorgolewski, T. Auer, V.D. Calhoun, et al. The brain imaging data
 structure, a format for organizing and describing outputs of neuroimaging
