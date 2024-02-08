@@ -8,6 +8,7 @@ Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cr
              person("Cong", "Xu", role="cph"),
              person("Pascal", "Gloor", role="cph"))
 Maintainer: Jon Clayden <code@clayden.org>
+Depends: R (>= 3.5.0)
 Imports: Rcpp, RNifti
 LinkingTo: Rcpp, RNifti
 Suggests: jsonlite, tinytest, covr
