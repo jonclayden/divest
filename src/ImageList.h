@@ -8,19 +8,6 @@
 
 #include "RNifti.h"
 
-namespace internal {
-
-template <class Type>
-inline bool validAttribute (const Type &value)    { return true; }
-
-template <>
-inline bool validAttribute (const float &value)   { return value > 0.0; }
-
-template <>
-inline bool validAttribute (const double &value)  { return value > 0.0; }
-
-}
-
 class ImageList
 {
 private:
@@ -78,57 +65,6 @@ public:
         }
         
         list.push_back(pointer);
-    }
-    
-    template <typename ValueType>
-    void addAttribute (const std::string &name, const ValueType &value)
-    {
-        if (internal::validAttribute(value))
-        {
-            Rcpp::RObject element = list[list.length()-1];
-            element.attr(name) = value;
-        }
-    }
-    
-    void addAttribute (const std::string &name, char *value)
-    {
-        char *ptr = value;
-        bool empty = true;
-        while (*ptr != '\0')
-        {
-            // Strings composed entirely of spaces are considered empty and not stored
-            if (*ptr != ' ')
-            {
-                empty = false;
-                break;
-            }
-            ptr++;
-        }
-        if (!empty)
-        {
-            Rcpp::RObject element = list[list.length()-1];
-            element.attr(name) = const_cast<const char *>(value);
-        }
-    }
-    
-    void addDateAttribute (const std::string &name, const char *value)
-    {
-        // DICOM data format is YYYYMMDD; empty values are zero-filled
-        if (strlen(value) == 8 && strcmp(value,"00000000") != 0)
-        {
-            Rcpp::RObject element = list[list.length()-1];
-            element.attr(name) = Rcpp::Date(value, "%Y%m%d");
-        }
-    }
-    
-    void addTimeAttribute (const std::string &name, const char *value)
-    {
-        // DICOM time format is HHMMSS.FFFFFF; empty values are zero-filled
-        if (strlen(value) == 13 && strcmp(value,"000000.000000") != 0)
-        {
-            Rcpp::RObject element = list[list.length()-1];
-            element.attr(name) = value;
-        }
     }
     
     template <typename ValueType>

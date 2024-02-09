@@ -9,6 +9,22 @@
 
 using namespace Rcpp;
 
+bool isEmptyString (const char *str)
+{
+    if (strlen(str) == 0)
+        return true;
+    
+    const char *ptr = str;
+    while (*ptr != '\0')
+    {
+        // Strings composed entirely of spaces are considered empty
+        if (*ptr != ' ')
+            return false;
+        ptr++;
+    }
+    return true;
+}
+
 RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP depth_, SEXP task_, SEXP outputDir_)
 {
 BEGIN_RCPP
@@ -67,21 +83,21 @@ BEGIN_RCPP
                 std::ostringstream description;
                 description << "Series " << data.seriesNum;
                 seriesNumber[i] = data.seriesNum;
-                if (strlen(data.seriesDescription) > 0)
+                if (!isEmptyString(data.seriesDescription))
                 {
                     description << " \"" << data.seriesDescription << "\"";
                     seriesDescription[i] = data.seriesDescription;
                 }
-                else if (strlen(data.sequenceName) > 0)
+                else if (!isEmptyString(data.sequenceName))
                     description << " \"" << data.sequenceName << "\"";
-                else if (strlen(data.protocolName) > 0)
+                else if (!isEmptyString(data.protocolName))
                     description << " \"" << data.protocolName << "\"";
-                if (strlen(data.patientName) > 0)
+                if (!isEmptyString(data.patientName))
                 {
                     description << ", patient \"" << data.patientName << "\"";
                     patientName[i] = data.patientName;
                 }
-                if (strlen(data.studyDate) >= 8 && strcmp(data.studyDate,"00000000") != 0)
+                if (strlen(data.studyDate) >= 8 && strncmp(data.studyDate,"00000000",8) != 0)
                 {
                     description << ", acquired on " << std::string(data.studyDate,4) << "-" << std::string(data.studyDate+4,2) << "-" << std::string(data.studyDate+6,2);
                     studyDate[i] = Date(data.studyDate, "%Y%m%d");
