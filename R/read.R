@@ -182,9 +182,9 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
 #'   in place, or removed after they are copied into their new locations? The
 #'   default, \code{FALSE}, corresponds to a move rather than a copy. If
 #'   creating new files fails then the old ones will not be deleted.
-#' @return The \code{readDicom} function returns a list of \code{niftiImage}
-#'   objects, which can be easily converted to standard R arrays or written to
-#'   NIfTI-1 format using functions from the \code{RNifti} package. The
+#' @return \code{readDicom} and \code{convertDicom} return a list of
+#'   \code{niftiImage} objects if \code{output} is \code{NULL}; otherwise a
+#'   vector of paths to NIfTI-1 files created in the target directory. The
 #'   \code{scanDicom} function returns a data frame containing information
 #'   about each DICOM series found. \code{sortDicom} is mostly called for its
 #'   side-effect, but also (invisibly) returns a list detailing source and

@@ -47,54 +47,59 @@ Additional properties of the scanning sequence, such as the magnetic field stren
 
 
 ```r
-attributes(images[[i]])
-## $imagedim
-## [1] 96 96  1  2
+imageAttributes(images[[i]])
+## $bValues
+## [1] 2000 2000
 ## 
-## $pixdim
-## [1] 2.5 2.5 5.0 4.1
-## 
-## $pixunits
-## [1] "mm" "s" 
-## 
-## $.nifti_image_ptr
-## <pointer: 0x125ea32b0>
-## 
-## $.nifti_image_ver
-## [1] 1
-## 
-## $class
-## [1] "internalImage" "niftiImage"   
+## $bVectors
+##        [,1]   [,2]   [,3]
+## [1,] 0.5508 0.4258 0.7177
+## [2,] 0.1110 0.2640 0.9581
 ## 
 ## $modality
 ## [1] "MR"
 ## 
-## $imageType
-## [1] "ORIGINAL_PRIMARY_M_ND_NORM"
+## $fieldStrength
+## [1] 1.494
 ## 
-## $seriesNumber
-## [1] 8
+## $imagingFrequency
+## [1] 63.68285
+## 
+## $patientPosition
+## [1] "HFS"
+## 
+## $MRAcquisitionType
+## [1] "2D"
 ## 
 ## $seriesDescription
 ## [1] "DTIb3000s5"
 ## 
-## $sequenceName
-## [1] "ep_b2000#16"
-## 
 ## $protocolName
 ## [1] "DTIb3000s5"
 ## 
-## $fieldStrength
-## [1] 1.494
+## $scanningSequence
+## [1] "SE\\EP"
 ## 
-## $flipAngle
-## [1] 90
+## $sequenceVariant
+## [1] "SK\\SP"
 ## 
-## $echoTime
-## [1] 112
+## $scanOptions
+## [1] "FS"
 ## 
-## $repetitionTime
-## [1] 4100
+## $sequenceName
+## [1] "ep_b2000#16"
+## 
+## $imageType
+## [1] "ORIGINAL" "PRIMARY"  "M"        "ND"       "NORM"    
+## 
+## $nonlinearGradientCorrection
+## [1] FALSE
+## 
+## $seriesNumber
+## [1] 8
+## 
+## $acquisitionNumber
+## [1] 1
 ## 
 ## $sliceThickness
 ## [1] 5
@@ -102,10 +107,37 @@ attributes(images[[i]])
 ## $sliceSpacing
 ## [1] 5
 ## 
+## $SAR
+## [1] 0.0973325
+## 
+## $numberOfAverages
+## [1] 2
+## 
+## $echoTime
+## [1] 112
+## 
+## $repetitionTime
+## [1] 4100
+## 
+## $spoilingState
+## [1] TRUE
+## 
+## $flipAngle
+## [1] 90
+## 
+## $percentPhaseFOV
+## [1] 100
+## 
+## $percentSampling
+## [1] 100
+## 
 ## $phaseEncodingSteps
 ## [1] 72
 ## 
-## $phaseEncodingLines
+## $acquisitionMatrixPE
+## [1] 96
+## 
+## $reconMatrixPE
 ## [1] 96
 ## 
 ## $pixelBandwidth
@@ -116,6 +148,18 @@ attributes(images[[i]])
 ## 
 ## $phaseEncodingSign
 ## [1] -1
+## 
+## $imageOrientationPatientDICOM
+## [1] 1 0 0 0 1 0
+## 
+## $inPlanePhaseEncodingDirectionDICOM
+## [1] "COL"
+## 
+## $conversionSoftware
+## [1] "dcm2niix"
+## 
+## $conversionSoftwareVersion
+## [1] "v1.0.20230904"
 ```
 
 If desired, functions from the `RNifti` package can be used to inspect and modify the details of the converted NIfTI image, or to write it to file.
@@ -173,10 +217,6 @@ It is also possible to obtain information about the available DICOM series witho
 ```r
 names(scanDicom(path))
 ## [dcm2niix info] Found 4 DICOM file(s)
-## [dcm2niix WARNING] Unknown manufacturer         
-## [dcm2niix WARNING] Unknown manufacturer         
-## [dcm2niix WARNING] Unknown manufacturer         
-## [dcm2niix WARNING] Unknown manufacturer
 ##  [1] "label"             "rootPath"          "files"            
 ##  [4] "seriesNumber"      "seriesDescription" "patientName"      
 ##  [7] "studyDate"         "echoTime"          "repetitionTime"   
@@ -184,3 +224,15 @@ names(scanDicom(path))
 ```
 
 Elements of this data frame which can't be determined from the DICOM metadata, for example due to anonymisation, will take the conventional `NA` value to indicate missing data.
+
+DICOM files can be converted to NIfTI files on disk, rather than in memory, by using `convertDicom` rather than `readDicom` (or just setting the `output` option):
+
+
+```r
+paths <- convertDicom(path, output=".", interactive=FALSE, verbosity=-1)
+```
+
+```r
+list.files(pattern="\\.nii")
+## [1] "T0_N_S8.nii.gz" "T0_N_S9.nii.gz"
+```

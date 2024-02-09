@@ -42,7 +42,7 @@ images[[i]]
 Additional properties of the scanning sequence, such as the magnetic field strength used, are stored in attributes if they can be deduced from the DICOM files.
 
 ```{r}
-attributes(images[[i]])
+imageAttributes(images[[i]])
 ```
 
 If desired, functions from the `RNifti` package can be used to inspect and modify the details of the converted NIfTI image, or to write it to file.
@@ -62,3 +62,12 @@ names(scanDicom(path))
 ```
 
 Elements of this data frame which can't be determined from the DICOM metadata, for example due to anonymisation, will take the conventional `NA` value to indicate missing data.
+
+DICOM files can be converted to NIfTI files on disk, rather than in memory, by using `convertDicom` rather than `readDicom` (or just setting the `output` option):
+
+```{r, results="hide"}
+paths <- convertDicom(path, output=".", interactive=FALSE, verbosity=-1)
+```
+```{r}
+list.files(pattern="\\.nii")
+```
