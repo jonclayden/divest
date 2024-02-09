@@ -70,14 +70,14 @@ BEGIN_RCPP
         {
             // Construct a data frame containing information about each series
             // A vector of descriptive strings is also built, and attached as an attribute
-            const int n = options.series.size();
+            const size_t n = options.series.size();
             CharacterVector label(n,NA_STRING), seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
             DateVector studyDate(n);
             NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
             IntegerVector files(n,NA_INTEGER), seriesNumber(n,NA_INTEGER), echoNumber(n,NA_INTEGER);
             LogicalVector phase(n,NA_LOGICAL), diffusion(n,false);
             List paths(n);
-            for (int i = 0; i < n; i++)
+            for (size_t i = 0; i < n; i++)
             {
                 const TDICOMdata &data = options.series[i].representativeData;
                 std::ostringstream description;
@@ -151,6 +151,8 @@ BEGIN_RCPP
         }
         else if (options.isRenameNotConvert)
             return List::create(Named("source")=options.sourcePaths, Named("target")=options.targetPaths, Named("ignored")=options.ignoredPaths);
+        else if (!options.isImageInMemory)
+            return images.pathVector();
         else
             return images;
     }

@@ -5048,6 +5048,7 @@ void removeSclSlopeInter(struct nifti_1_header *hdr, unsigned char *img) {
 
 int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts, struct TDICOMdata d) {
 #ifdef USING_R
+	ImageList *images = (ImageList *)opts.imageList;
     if (opts.isImageInMemory) {
         hdr.vox_offset = 352;
         // Extract the basename from the full file path
@@ -5059,7 +5060,6 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
         if (image == NULL)
             return EXIT_FAILURE;
         image->data = (void *)im;
-        ImageList *images = (ImageList *)opts.imageList;
         images->append(image, name);
         free(image);
         return EXIT_SUCCESS;
@@ -5102,6 +5102,9 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 		if (!opts.isSaveNativeEndian)
 			swapEndian(&hdr, im, true); //byte-swap endian (e.g. little->big)
 		writeNiiGz(niiFilename, hdr, im, imgsz, opts.gzLevel, false);
+#ifdef USING_R
+		images->appendPath(std::string(niiFilename) + ".nii.gz");
+#endif
 		if (!opts.isSaveNativeEndian)
 			swapEndian(&hdr, im, false); //unbyte-swap endian (e.g. big->little)
 		return EXIT_SUCCESS;
@@ -5170,7 +5173,9 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 		swapEndian(&hdr, im, false); //unbyte-swap endian (e.g. big->little)
 #endif
 
-#ifndef USING_R
+#ifdef USING_R
+	images->appendPath(fname);
+#else
 	if ((opts.isGz) && (strlen(opts.pigzname) > 0)) {
 #ifndef myDisableGzSizeLimits
 		if ((imgsz + hdr.vox_offset) > kMaxPigz) {
@@ -9187,7 +9192,7 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 		for (size_t i = 1; i < nDcm; i++) {
 			bool matched = false;
 			// If the file matches an existing series, add it to the corresponding file list
-			for (int j = 0; j < opts->series.size(); j++) {
+			for (size_t j = 0; j < opts->series.size(); j++) {
 				bool isMultiEcho = false, isNonParallelSlices = false, isCoilVaries = false;
 				if (isSameSet(opts->series[j].representativeData, dcmList[i], opts, &warnings, &isMultiEcho, &isNonParallelSlices, &isCoilVaries)) {
 					opts->series[j].files.push_back(nameList.str[i]);

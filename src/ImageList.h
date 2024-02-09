@@ -16,6 +16,8 @@ private:
     char *jsonBuffer;
     FILE *jsonHandle_;
     
+    std::vector<std::string> paths_;
+    
     Rcpp::List list;
     Rcpp::List deferredAttributes;
     
@@ -25,6 +27,11 @@ public:
     operator SEXP ()
     {
         return list;
+    }
+    
+    Rcpp::CharacterVector pathVector ()
+    {
+        return Rcpp::wrap(paths_);
     }
     
     FILE * jsonHandle ()
@@ -79,6 +86,11 @@ public:
         Rcpp::RObject wrappedValue = Rcpp::wrap(value);
         wrappedValue.attr("dim") = Rcpp::Dimension(nRows, nCols);
         deferredAttributes[name] = wrappedValue;
+    }
+    
+    void appendPath (const std::string &path)
+    {
+        paths_.push_back(path);
     }
 };
 
