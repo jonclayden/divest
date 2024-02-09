@@ -6514,7 +6514,7 @@ void setBidsSiemens(struct TDICOMdata *d, int nConvert, int isVerbose, const cha
 		for (int i = 0; i < len; i++) {
 			char ch = seqName[i];
 			if (ch == '*') continue;
-			if ((ch >= '0' & ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+			if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
 				strncat(acqStr, &ch, 1);
 			if (isdigit(ch)) break;
 		}
@@ -6676,7 +6676,7 @@ void setBidsPhilips(struct TDICOMdata *d, int nConvert, int isVerbose) {
 	if (len > 0) {
 		for (int i = 0; i < len; i++) {
 			char ch = seqName[i];
-			if ((ch >= '0' & ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+			if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
 				strncat(acqStr, &ch, 1);
 		}
 	} //len > 0
@@ -6684,7 +6684,7 @@ void setBidsPhilips(struct TDICOMdata *d, int nConvert, int isVerbose) {
 	if (len > 0) {
 		for (int i = 0; i < len; i++) {
 			char ch = d->scanningSequence[i];
-			if ((ch >= '0' & ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+			if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
 				strncat(acqStr, &ch, 1);
 		}
 	} //len > 0
@@ -6692,7 +6692,7 @@ void setBidsPhilips(struct TDICOMdata *d, int nConvert, int isVerbose) {
 	if (len > 0) {
 		for (int i = 0; i < len; i++) {
 			char ch = d->pulseSequenceName[i];
-			if ((ch >= '0' & ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+			if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
 				strncat(acqStr, &ch, 1);
 		}
 	} //len > 0
@@ -6852,7 +6852,7 @@ void setBidsGE(struct TDICOMdata *d, int nConvert, int isVerbose, const char *fi
 	if (len > 0) {
 		for (int i = 0; i < len; i++) {
 			char ch = seqName[i];
-			if ((ch >= '0' & ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+			if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
 				strncat(acqStr, &ch, 1);
 			//if (isdigit(ch)) break; // do not use, unlike Siemens digit can come at start 3DFSE or end EFGRE3D
 		}
