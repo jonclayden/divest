@@ -6,7 +6,7 @@ expect_stdout(d <- readDicom(path,interactive=FALSE), "Found 4 DICOM")
 expect_stdout(readDicom(path,interactive=FALSE,verbosity=-1), "WARNING")
 
 # Check results
-expect_identical(length(d), 2L)
+expect_length(d, 2L)
 i <- which(sapply(d,RNifti::ndim) == 3L)
 expect_equal(dim(d[[i]]), c(2,224,256))
 expect_equal(attr(d[[i]],"flipAngle"), 15)
@@ -34,6 +34,13 @@ expect_null(attr(copy, "echoTime"))
 
 origin <- RNifti::worldToVoxel(c(0,0,0), d[[i]])
 expect_equal(round(origin), c(-16,95,135))
+
+# Straight to file conversion
+tempDir <- tempdir()
+expect_stdout(d <- readDicom(path,output=tempDir), "Found 4 DICOM")
+expect_length(d, 2L)
+expect_inherits(d, "character")
+expect_equal(list.files(tempDir, "\\.nii"), c("T0_N_S8.nii.gz","T0_N_S9.nii.gz"))
 
 # Cropping
 expect_stdout(d <- readDicom(path,interactive=FALSE,crop=TRUE), "Cropping")
