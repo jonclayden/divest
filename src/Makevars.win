@@ -1,4 +1,4 @@
-PKG_CPPFLAGS = -DUSING_R -DmyDisableMiniZ -DmyDisableZLib -DmyDisableOpenJPEG -I. -Idcm2niix -Iujpeg
+PKG_CPPFLAGS = -DUSING_R -DmyDisableOpenJPEG -I. -Idcm2niix -Iujpeg
 
 OBJECTS_LIBS = ujpeg/ujpeg.o
 
