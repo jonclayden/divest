@@ -2,6 +2,25 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.0.0
+
+- It is now possible to use divest more analogously to dcm2niix, as a purely
+  on-disk file-format converter, although the option to convert in memory is
+  still available. The new convertDicom() function is a variant of readDicom()
+  that defaults to this behaviour. In this case BIDS JSON sidecar files are
+  written alongside the NIfTI image files.
+- There is now less duplicated logic in divest's codepaths, relative to the
+  mainline dcm2niix binary, improving consistency with dcm2niix's BIDS output.
+- There are now helper functions to extract and replace extended image
+  attributes, and for converting to and from BIDS JSON.
+- The BIDS naming convention, rather than divest's own, can be used for image
+  attributes by setting the "divest.bidsAttributes" option to TRUE.
+- The "nested" argument to sortDicom() has been soft-deprecated in favour of
+  the more flexible "output", which is also more consistent with readDicom().
+- R version 3.5.0 or later is now explicitly required.
+
+===============================================================================
+
 VERSION 0.10.3
 
 - Uses of the deprecated C function sprintf() have now been circumvented.
