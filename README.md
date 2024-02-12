@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![CI Status](https://github.com/jonclayden/divest/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/divest/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/divest/graph/badge.svg?token=515zW7eMSl)](https://codecov.io/gh/jonclayden/divest) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
+[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![CI Status](https://github.com/jonclayden/divest/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/divest/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/divest/graph/badge.svg?token=515zW7eMSl)](https://app.codecov.io/gh/jonclayden/divest) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
 
 # An R interface to dcm2niix
 
