@@ -7163,7 +7163,8 @@ void setBidsPhilips(struct TDICOMdata *d, int nConvert, int isVerbose) {
 		printWarning("Unable to distinguish Philips fieldmaps: phase difference, two phase/magnitude, direct fieldmapping.");
 		isReportEcho = false;
 		strcpy(dataTypeBIDS, "fmap");
-		strcpy(modalityBIDS, "phasediff");
+		if (d->isHasPhase)
+			strcpy(modalityBIDS, "phasediff");
 		else if (d->echoTrainLength < 2)
 			snprintf(modalityBIDS, kDICOMStrLarge - strlen(modalityBIDS), "magnitude%d", d->echoNum);
 
