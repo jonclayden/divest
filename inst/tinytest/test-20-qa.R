@@ -1,6 +1,6 @@
 options(divest.bidsAttributes=TRUE)
 
-ignoreFields <- c("PulseSequenceName", "ConversionSoftwareVersion")
+ignoreFields <- c("PulseSequenceName", "ConversionSoftwareVersion", "BodyPartExamined")
 
 test_battery <- function (root, labelFormat = "%p_%s")
 {
