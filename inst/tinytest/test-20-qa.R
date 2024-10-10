@@ -34,7 +34,8 @@ test_battery <- function (root, labelFormat = "%p_%s")
             fields <- setdiff(names(refMetadata), ignoreFields)
             # Check we have all the metadata we expect
             # If not, this test will fail but we remove the names to avoid a subsequent error
-            expect_true(all(fields %in% names(metadata)))
+            missingFields <- setdiff(fields, names(metadata))
+            expect_length(missingFields, 0L, info=missingFields)
             fields <- intersect(fields, names(metadata))
             expect_equal(refMetadata[fields], metadata[fields], tolerance=1e-4)
         }
