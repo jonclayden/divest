@@ -26,9 +26,9 @@
 #else
 #undef MiniZ
 #endif
+#include "tinydir.h"
 #include "nifti1_io_core.h"
 #include "print.h"
-#include "tinydir.h"
 #ifndef USING_R
 #include "nifti1.h"
 #endif
