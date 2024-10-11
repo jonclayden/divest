@@ -2,6 +2,7 @@
 
 export("imageAttributes<-")
 export(convertDicom)
+export(divest.capabilities)
 export(fromBidsJson)
 export(imageAttributes)
 export(readDicom)

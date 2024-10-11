@@ -17,8 +17,8 @@ imageAttributes(x) <- value
 }
 \value{
 A list of image attributes, or a modified object with these changed.
-  These are essentially all attributes except those used for basic
-  \code{niftiImage} objects by the \code{RNifti} package.
+These are essentially all attributes except those used for basic
+\code{niftiImage} objects by the \code{RNifti} package.
 }
 \description{
 These functions extract and replace medical image attributes that go beyond
@@ -36,10 +36,10 @@ removed. These functions currently only act on objects inheriting from the
 }
 \note{
 Attributes may include sensitive or identifiable information such as
-  a patient's name, sex, date of birth, etc., if this was included in the
-  original DICOM files. These functions make no attempt to identify or
-  anonymise this metadata, and so this must be handled by the user if
-  necessary.
+a patient's name, sex, date of birth, etc., if this was included in the
+original DICOM files. These functions make no attempt to identify or
+anonymise this metadata, and so this must be handled by the user if
+necessary.
 }
 \examples{
 path <- system.file("extdata", "raw", package="divest")
@@ -48,13 +48,13 @@ imageAttributes(images[[1]])
 }
 \references{
 More information about metadata captured by the BIDS format can
-  be found at \url{https://bids.neuroimaging.io} or in the paper cited
-  below.
+be found at \url{https://bids.neuroimaging.io} or in the paper cited
+below.
 
 K.J. Gorgolewski, T. Auer, V.D. Calhoun, et al. The brain imaging data
 structure, a format for organizing and describing outputs of neuroimaging
 experiments (2016). Scientific Data 3:160044. \doi{10.1038/sdata.2016.44}.
 }
 \author{
-Jon Clayden <code@clayden.org>
+Jon Clayden \href{mailto:code@clayden.org}{code@clayden.org}
 }

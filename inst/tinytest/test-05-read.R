@@ -1,5 +1,8 @@
 options(divest.bidsAttributes=FALSE)
 
+caps <- divest.capabilities()
+expect_equal(names(caps), c("jpeg","jpegLS","jpeg2000","zlib"))
+
 # Read all
 path <- system.file("extdata", "raw", package="divest")
 expect_stdout(d <- readDicom(path,interactive=FALSE), "Found 4 DICOM")

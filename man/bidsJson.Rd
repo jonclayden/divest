@@ -23,8 +23,8 @@ conversion between an R list and a JSON string.}
 }
 \value{
 \code{fromBidsJson} returns a list of image attributes.
-  \code{toBidsJson} returns a character vector if \code{path} is
-  \code{NULL}, otherwise nothing.
+\code{toBidsJson} returns a character vector if \code{path} is
+\code{NULL}, otherwise nothing.
 }
 \description{
 Functions to convert to and from BIDS JSON format for image metadata. They
@@ -35,13 +35,13 @@ the units used for magnetic resonance echo, repetition and inversion times.
 }
 \references{
 More information about metadata captured by the BIDS format can
-  be found at \url{https://bids.neuroimaging.io} or in the paper cited
-  below.
+be found at \url{https://bids.neuroimaging.io} or in the paper cited
+below.
 
 K.J. Gorgolewski, T. Auer, V.D. Calhoun, et al. The brain imaging data
 structure, a format for organizing and describing outputs of neuroimaging
 experiments (2016). Scientific Data 3:160044. \doi{10.1038/sdata.2016.44}.
 }
 \author{
-Jon Clayden <code@clayden.org>
+Jon Clayden \href{mailto:code@clayden.org}{code@clayden.org}
 }

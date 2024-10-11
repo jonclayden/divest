@@ -163,9 +163,31 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP getCapabilities ()
+{
+BEGIN_RCPP
+    bool jpeg = false, jpegLS = false, jpeg2000 = false;
+    
+#ifndef myDisableClassicJPEG
+    jpeg = true;
+#endif
+    
+#if defined(myEnableJPEGLS) || defined(myEnableJPEGLS1)
+    jpegLS = true;
+#endif
+    
+#if !defined(myDisableOpenJPEG) || defined(myEnableJasper)
+    jpeg2000 = true;
+#endif
+    
+    return LogicalVector::create(Named("jpeg")=jpeg, Named("jpegLS")=jpegLS, Named("jpeg2000")=jpeg2000, Named("zlib")=nifti_compiled_with_zlib());
+END_RCPP
+}
+
 static const R_CallMethodDef callMethods[] = {
-  { "readDirectory", (DL_FUNC) &readDirectory, 10 },
-  { NULL, NULL, 0 }
+    { "readDirectory",      (DL_FUNC) &readDirectory,   10 },
+    { "getCapabilities",    (DL_FUNC) &getCapabilities,  0 },
+    { NULL, NULL, 0 }
 };
 
 extern "C" {
