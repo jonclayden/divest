@@ -37,7 +37,7 @@ test_battery <- function (root, labelFormat = "%p_%s")
             missingFields <- setdiff(fields, names(metadata))
             expect_length(missingFields, 0L, info=missingFields)
             fields <- intersect(fields, names(metadata))
-            expect_equal(refMetadata[fields], metadata[fields], tolerance=1e-4)
+            expect_equal(refMetadata[fields], metadata[fields], info=labels[i], tolerance=1e-4)
         }
         
         # These files only apply to diffusion sequences
@@ -45,8 +45,8 @@ test_battery <- function (root, labelFormat = "%p_%s")
         {
             bValues <- drop(as.matrix(read.table(refFiles$bval[i])))
             bVectors <- t(as.matrix(read.table(refFiles$bvec[i])))
-            expect_equivalent(metadata$bValues, bValues, tolerance=1e-4)
-            expect_equivalent(metadata$bVectors, bVectors, tolerance=1e-4)
+            expect_equivalent(metadata$bValues, bValues, info=labels[i], tolerance=1e-4)
+            expect_equivalent(metadata$bVectors, bVectors, info=labels[i], tolerance=1e-4)
         }
     }
 }
