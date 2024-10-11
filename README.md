@@ -1,6 +1,6 @@
 
 
-[![CRAN version](http://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![CI Status](https://github.com/jonclayden/divest/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/divest/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/divest/graph/badge.svg?token=515zW7eMSl)](https://app.codecov.io/gh/jonclayden/divest) [![Dependencies](https://tinyverse.netlify.com/badge/divest)](https://tinyverse.netlify.app)
+[![CRAN version](https://www.r-pkg.org/badges/version/divest)](https://cran.r-project.org/package=divest) [![CI Status](https://github.com/jonclayden/divest/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonclayden/divest/actions/workflows/ci.yaml) [![codecov](https://codecov.io/gh/jonclayden/divest/graph/badge.svg?token=515zW7eMSl)](https://app.codecov.io/gh/jonclayden/divest) [![Dependencies](https://tinyverse.netlify.app/badge/divest)](https://tinyverse.netlify.app)
 
 # An R interface to dcm2niix
 
@@ -13,7 +13,7 @@ The `divest` package is an alternative interface to [Chris Rorden's](http://www.
 The package is [on CRAN](https://cran.r-project.org/package=divest), and the latest development version of the package can always be installed from GitHub using the `remotes` package.
 
 
-```r
+``` r
 # install.packages("remotes")
 remotes::install_github("jonclayden/divest")
 ```
@@ -25,7 +25,7 @@ remotes::install_github("jonclayden/divest")
 The package's key function is `readDicom`, which scans a directory containing DICOM files, stacks related data into merged 3D or 4D images where appropriate, and returns a list of `niftiImage` objects. For example,
 
 
-```r
+``` r
 library(divest)
 path <- system.file("extdata", "raw", package="divest")
 images <- readDicom(path, interactive=FALSE, verbosity=-1)
@@ -34,7 +34,7 @@ images <- readDicom(path, interactive=FALSE, verbosity=-1)
 The conversion is interactive by default, prompting the user to select which series to convert, but here we simply convert everything non-interactively. The minimal test dataset provided with the package contains two images from each of two acquisitions. (It is incomplete, hence the warnings.) We can see the basic properties of a converted composite image by printing it.
 
 
-```r
+``` r
 # Extract the image with a fourth dimension
 i <- which(sapply(images, RNifti::ndim) == 4)
 images[[i]]
@@ -46,7 +46,7 @@ images[[i]]
 Additional properties of the scanning sequence, such as the magnetic field strength used, are stored in attributes if they can be deduced from the DICOM files.
 
 
-```r
+``` r
 imageAttributes(images[[i]])
 ## $bValues
 ## [1] 2000 2000
@@ -159,13 +159,13 @@ imageAttributes(images[[i]])
 ## [1] "dcm2niix"
 ## 
 ## $conversionSoftwareVersion
-## [1] "v1.0.20230904"
+## [1] "v1.0.20241001"
 ```
 
 If desired, functions from the `RNifti` package can be used to inspect and modify the details of the converted NIfTI image, or to write it to file.
 
 
-```r
+``` r
 library(RNifti)
 niftiHeader(images[[i]])
 ## NIfTI-1 header
@@ -207,14 +207,14 @@ niftiHeader(images[[i]])
 ##          magic: n+1
 ```
 
-```r
+``` r
 writeNifti(images[[i]], "stack")
 ```
 
 It is also possible to obtain information about the available DICOM series without actually performing the conversion. The `scanDicom` function returns a data frame containing certain information about each series.
 
 
-```r
+``` r
 names(scanDicom(path))
 ## [dcm2niix info] Found 4 DICOM file(s)
 ##  [1] "label"             "rootPath"          "files"            
@@ -228,11 +228,11 @@ Elements of this data frame which can't be determined from the DICOM metadata, f
 DICOM files can be converted to NIfTI files on disk, rather than in memory, by using `convertDicom` rather than `readDicom` (or just setting the `output` option):
 
 
-```r
+``` r
 paths <- convertDicom(path, output=".", interactive=FALSE, verbosity=-1)
 ```
 
-```r
+``` r
 list.files(pattern="\\.nii")
 ## [1] "T0_N_S8.nii.gz" "T0_N_S9.nii.gz"
 ```
