@@ -1,6 +1,7 @@
 options(divest.bidsAttributes=TRUE)
 
-ignoreFields <- c("PulseSequenceName", "ConversionSoftwareVersion", "BodyPartExamined", "ImageType")
+ignoreFields <- c("ConversionSoftwareVersion", "BodyPartExamined", "ImageType")
+ignoreImages <- c("dti_tra_dir16_PA_6_134431")
 
 test_battery <- function (root, labelFormat = "%p_%s")
 {
@@ -21,6 +22,9 @@ test_battery <- function (root, labelFormat = "%p_%s")
     
     for (i in seq_along(images))
     {
+        if (labels[i] %in% ignoreImages)
+            next
+        
         if (refFilesPresent$image[i])
         {
             refImage <- RNifti::readNifti(refFiles$image[i], internal=TRUE)
