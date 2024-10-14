@@ -10,7 +10,7 @@ knitr::opts_chunk$set(collapse = TRUE)
 
 > *divest*, **v.**: rid oneself of something that one no longer wants or requires
 
-The `divest` package is an alternative interface to [Chris Rorden's](http://www.mccauslandcenter.sc.edu/crnl/) excellent [`dcm2niix` DICOM-to-NIfTI conversion tool](https://github.com/rordenlab/dcm2niix). Code has been contributed to `dcm2niix` to support an in-memory interface that links that tool's speed and reliability to the R-native NIfTI tools provided by the [`RNifti` package](https://github.com/jonclayden/RNifti).
+The `divest` package is an alternative interface to Chris Rorden's excellent [`dcm2niix` DICOM-to-NIfTI conversion tool](https://github.com/rordenlab/dcm2niix). Code has been contributed to `dcm2niix` to support an in-memory interface that links that tool's speed and reliability to the R-native NIfTI tools provided by the [`RNifti` package](https://github.com/jonclayden/RNifti).
 
 The package is [on CRAN](https://cran.r-project.org/package=divest), and the latest development version of the package can always be installed from GitHub using the `remotes` package.
 
