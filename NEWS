@@ -2,6 +2,17 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.1.0
+
+- The new `divest.capabilities()` function reports on the package build's
+  input/output capabilities, by analogy with `capabilities()` from base R.
+- The package's configuration script now uses `pkg-config` (if available) to
+  find the correct flags for the OpenJPEG library. This should improve the
+  range of systems where it is properly detected.
+- Upstream improvements to v1.0.20241001, including reductions to stack usage.
+
+===============================================================================
+
 VERSION 1.0.0
 
 - It is now possible to use divest more analogously to dcm2niix, as a purely
