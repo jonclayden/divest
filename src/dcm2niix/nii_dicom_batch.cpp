@@ -1609,7 +1609,7 @@ tse3d: T2*/
 	int iterations = 0;
 	// note, some vendors write 'OSEM3D-OP-PSFi10s16' others 'OP-OSEM4i21s'
 	//  order matters `OP-OSEM4i21s` should have i=4 NOT i=21
-	bool sEnd = d.reconstructionMethod[strlen(d.reconstructionMethod) - 1] == 's';
+	bool sEnd = strlen(d.reconstructionMethod) == 0 ? false : (d.reconstructionMethod[strlen(d.reconstructionMethod) - 1] == 's');
 	for (int i = 1; i < 33; i++) {
 		char stri[12];
 		if (sEnd)
