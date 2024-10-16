@@ -3963,7 +3963,7 @@ void clear_volume(struct TVolumeDiffusion *ptvd) {
 	ptvd->_dtiV[0] = -1;
 	for (int i = 1; i < 4; ++i)
 		ptvd->_dtiV[i] = 2;
-	for (int i = 1; i < 6; ++i)
+	for (int i = 0; i < 6; ++i)
 		ptvd->_symBMatrix[i] = NAN;
 	// numDti = 0;
 } // clear_volume()
