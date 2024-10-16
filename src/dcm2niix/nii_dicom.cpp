@@ -4845,8 +4845,13 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	//	philDTI[i].V[0] = -1;
 	// array for storing DimensionIndexValues
 	int numDimensionIndexValues = 0;
+#ifdef USING_R
+	// Allocating a large array on the stack, as below, vexes valgrind and may cause overflow
+	std::vector<TDCMdim> dcmDim(kMaxSlice2D);
+#else
 	//don't use stack! TDCMdim dcmDim[kMaxSlice2D];
 	TDCMdim *dcmDim = (TDCMdim *)malloc(kMaxSlice2D * sizeof(TDCMdim));
+#endif
 	for (int i = 0; i < kMaxSlice2D; i++) {
 		dcmDim[i].diskPos = i;
 		for (int j = 0; j < MAX_NUMBER_OF_DIMENSIONS; j++)
