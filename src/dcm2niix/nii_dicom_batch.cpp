@@ -6729,10 +6729,14 @@ void readSoftwareVersionsGE(char softwareVersionsGE[], int verbose, char geVersi
 			sepStart += 1;
 		}
 	}
-	len = 11; // RX27.0_R02_
+	// Default: start from the beginning
+	if (ismatched == false) {
+		sepStart = softwareVersionsGE;
+	}
+	len = 12; // RX27.0_R02_, plus nul terminator
 	char *versionString = (char *)malloc(sizeof(char) * len);
 	versionString[len - 1] = 0;
-	memcpy(versionString, sepStart, len);
+	memcpy(versionString, sepStart, len-1);
 	char c1, c2, c3, c4;
 	// RX27.0_R02_ or MR29.1_EA_2
 	sscanf(versionString, "%c%c%d.%d_%c%c%d", &c1, &c2, geMajorVersionInt, geMinorVersionInt, &c3, &c4, geReleaseVersionInt);
