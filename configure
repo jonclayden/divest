@@ -2948,7 +2948,7 @@ fi
 JPEG2K_FLAGS="-DmyDisableOpenJPEG"
 JPEG2K_LIBS=""
 
-if test -z "${PKGCONFIG}"; then
+if test -z "${PKGCONFIG}" -o "${PKGCONFIG}" == "none"; then
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for library containing opj_version" >&5
 printf %s "checking for library containing opj_version... " >&6; }
 if test ${ac_cv_search_opj_version+y}

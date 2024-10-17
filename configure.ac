@@ -30,7 +30,7 @@ AC_CHECK_FUNC([fmemopen], [FUNCDEFS="-DHAVE_FMEMOPEN"])
 JPEG2K_FLAGS="-DmyDisableOpenJPEG"
 JPEG2K_LIBS=""
 
-if test -z "${PKGCONFIG}"; then
+if test -z "${PKGCONFIG}" -o "${PKGCONFIG}" == "none"; then
     AC_SEARCH_LIBS([opj_version], [openjp2], [
         AC_CHECK_HEADER([openjpeg.h], [
             JPEG2K_FLAGS=""
