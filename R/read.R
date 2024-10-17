@@ -185,12 +185,12 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
 #'   default, \code{FALSE}, corresponds to a move rather than a copy. If
 #'   creating new files fails then the old ones will not be deleted.
 #' @return \code{readDicom} and \code{convertDicom} return a list of
-#'   \code{niftiImage} objects if \code{output} is \code{NULL}; otherwise a
-#'   vector of paths to NIfTI-1 files created in the target directory. The
-#'   \code{scanDicom} function returns a data frame containing information
-#'   about each DICOM series found. \code{sortDicom} is mostly called for its
-#'   side-effect, but also (invisibly) returns a list detailing source and
-#'   target paths.
+#'   \code{niftiImage} objects if \code{output} is \code{NULL}; otherwise
+#'   (invisibly) a vector of paths to NIfTI-1 files created in the target
+#'   directory. The \code{scanDicom} function returns a data frame containing
+#'   information about each DICOM series found. \code{sortDicom} is mostly
+#'   called for its side-effect, but also (invisibly) returns a list detailing
+#'   source and target paths.
 #' 
 #' @examples
 #' path <- system.file("extdata", "raw", package="divest")
@@ -235,7 +235,11 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             readPath(p, flipY, crop, forceStack, verbosity, labelFormat, FALSE, depth, task, output)
     }
     
-    return (do.call(c, lapply(path,processPath)))
+    result <- do.call(c, lapply(path,processPath))
+    if (is.character(result))
+        return (invisible(result))
+    else
+        return (result)
 }
 
 # Create and then monkey-patch convertDicom() so that it differs from

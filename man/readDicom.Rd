@@ -81,12 +81,12 @@ creating new files fails then the old ones will not be deleted.}
 }
 \value{
 \code{readDicom} and \code{convertDicom} return a list of
-\code{niftiImage} objects if \code{output} is \code{NULL}; otherwise a
-vector of paths to NIfTI-1 files created in the target directory. The
-\code{scanDicom} function returns a data frame containing information
-about each DICOM series found. \code{sortDicom} is mostly called for its
-side-effect, but also (invisibly) returns a list detailing source and
-target paths.
+\code{niftiImage} objects if \code{output} is \code{NULL}; otherwise
+(invisibly) a vector of paths to NIfTI-1 files created in the target
+directory. The \code{scanDicom} function returns a data frame containing
+information about each DICOM series found. \code{sortDicom} is mostly
+called for its side-effect, but also (invisibly) returns a list detailing
+source and target paths.
 }
 \description{
 These functions are R wrappers around the DICOM-to-NIfTI conversion routines
