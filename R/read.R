@@ -79,6 +79,8 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
     
     if (is.null(outputDir))
         outputDir <- tempDirectory()
+    else if (!file.exists(outputDir))
+        dir.create(outputDir)
     results <- .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
     
     if (task == "read")
