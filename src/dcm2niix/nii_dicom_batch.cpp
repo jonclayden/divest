@@ -6739,10 +6739,10 @@ void readSoftwareVersionsGE(char softwareVersionsGE[], int verbose, char geVersi
 	memcpy(versionString, sepStart, len-1);
 	char c1, c2, c3, c4;
 	// RX27.0_R02_ or MR29.1_EA_2
-	sscanf(versionString, "%c%c%d.%d_%c%c%d", &c1, &c2, geMajorVersionInt, geMinorVersionInt, &c3, &c4, geReleaseVersionInt);
+	int fields = sscanf(versionString, "%c%c%d.%d_%c%c%d", &c1, &c2, geMajorVersionInt, geMinorVersionInt, &c3, &c4, geReleaseVersionInt);
 	memcpy(geVersionPrefix, &c1, 1);
 	memcpy(geVersionPrefix + 1, &c2, 1);
-	if ((c3 == 'E') && (c4 == 'A')) {
+	if ((fields >= 6) && (c3 == 'E') && (c4 == 'A')) {
 		*geReleaseVersionInt = 0;
 	}
 	free(versionString);
