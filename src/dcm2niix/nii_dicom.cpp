@@ -4281,6 +4281,13 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	dti4D->frameReferenceTime[0] = -1;
 	// dti4D->fragmentOffset[0] = -1;
 	dti4D->intenScale[0] = 0.0;
+#ifdef USING_R
+	// Ensure dti4D fields are initialised, as in nii_readParRec()
+	for (int i = 0; i < kMaxDTI4D; i++) {
+		dti4D->S[i].V[0] = -1.0;
+		dti4D->TE[i] = -1.0;
+	}
+#endif
 	d.deID_CS_n = 0;
 	struct TVolumeDiffusion volDiffusion = initTVolumeDiffusion(&d, dti4D);
 	struct stat s;
