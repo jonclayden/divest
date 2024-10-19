@@ -8438,9 +8438,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 	// printf("%g\t%g\t%s\n", d.intenIntercept, d.intenScale, fname);
 	if ((d.isLocalizer) && (strstr(d.seriesDescription, "b1map"))) // issue751 b1map uses same base as scout
 		d.isLocalizer = false;
-	#ifndef USING_R
 	free(dcmDim);
-	#endif
 	return d;
 } // readDICOMx()
 
