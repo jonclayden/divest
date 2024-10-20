@@ -1055,13 +1055,17 @@ int geProtocolBlock(const char *filename, int geOffset, int geLength, int isVerb
 #ifdef myDisableMiniZ
 	ret = inflate(&s, Z_SYNC_FLUSH);
 	if (ret != Z_STREAM_END) {
+		free(pCmp);
 		free(pUnCmp);
+		inflateEnd(&s);
 		return EXIT_FAILURE;
 	}
 #else
 	ret = mz_inflate(&s, MZ_SYNC_FLUSH);
 	if (ret != MZ_STREAM_END) {
+		free(pCmp);
 		free(pUnCmp);
+		inflateEnd(&s);
 		return EXIT_FAILURE;
 	}
 #endif
@@ -1108,7 +1112,9 @@ int geProtocolBlock(const char *filename, int geOffset, int geLength, int isVerb
 		printMessage(" ViewOrder %d SliceOrder %d\n", *viewOrder, *sliceOrder);
 		printMessage("%s\n", pUnCmp);
 	}
+	free(pCmp);
 	free(pUnCmp);
+	inflateEnd(&s);
 	return EXIT_SUCCESS;
 }
 #endif // myReadGeProtocolBlock()
