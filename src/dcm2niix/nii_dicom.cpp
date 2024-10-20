@@ -7439,7 +7439,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 			// LO array of floats stored in LONG STRING!
 			//  [960.5\400\17.9108\0\-9999\-9999]
 			// we want 3rd value, e.g. 17.9:
-			float v[5];
+			float v[6];
 			dcmMultiFloat(lLength, (char *)&buffer[lPos], 5, v);
 			d.CSA.tablePos[3] = v[3] - tableDeltaGE;
 			d.CSA.tablePos[0] = 1.0;
