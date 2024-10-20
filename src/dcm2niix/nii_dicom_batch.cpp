@@ -5544,6 +5544,10 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 			return EXIT_FAILURE;
 		image->data = (void *)im;
 		images->append(image, name);
+		// A copy of "image" has been made, so free all aspects of it except the data (which is owned by the caller)
+		free(image->fname);
+		free(image->iname);
+		nifti_free_extensions(image);
 		free(image);
 		return EXIT_SUCCESS;
 	}
@@ -6416,6 +6420,7 @@ int nii_saveCrop(char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 	strcat(niiFilenameCrop, "_Crop");
 	const int returnCode = nii_saveNII3D(niiFilenameCrop, hdrX, imX, opts, d);
 	free(imX);
+	free(sliceSums);
 	return returnCode;
 } // nii_saveCrop()
 
@@ -9474,6 +9479,7 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *o
 			}
 		}
 	}
+	tinydir_close(&dir);
 	return count;
 }
 
