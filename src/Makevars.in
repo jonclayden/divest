@@ -1,4 +1,4 @@
-PKG_CPPFLAGS = -DUSING_R @JPEG2K_FLAGS@ @FUNCDEFS@ -I. -Idcm2niix -Iujpeg
+PKG_CPPFLAGS = -DUSING_R -DmyDisableMiniZ @JPEG2K_FLAGS@ @FUNCDEFS@ -I. -Idcm2niix -Iujpeg
 PKG_LIBS = @JPEG2K_LIBS@
 
 OBJECTS_LIBS = ujpeg/ujpeg.o
