@@ -2,6 +2,21 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.1.1
+
+- If an output directory is specified to `readDicom()` or `convertDicom()`, it
+  will now be created if it doesn't already exist. (Previously `dcm2niix` would
+  emit warnings about file permissions and nothing would be written.) The
+  vector of files written will also be returned invisibly.
+- The `miniz` library included with `dcm2niix` is no longer used except on
+  Windows, as `zlib` should otherwise be available.
+- The package configuration script will no longer try to interpret "none" as a
+  path to `pkg-config`.
+- Several small issues identified by compiler sanitisers and `valgrind` have
+  been resolved.
+
+===============================================================================
+
 VERSION 1.1.0
 
 - The new `divest.capabilities()` function reports on the package build's
