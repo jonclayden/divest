@@ -9,7 +9,7 @@ Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cr
              person("Pascal", "Gloor", role="cph"))
 Maintainer: Jon Clayden <code@clayden.org>
 Depends: R (>= 3.5.0)
-Imports: Rcpp, RNifti
+Imports: Rcpp, RNifti (>= 1.8.0)
 LinkingTo: Rcpp, RNifti
 Suggests: jsonlite, tinytest, covr
 Description: Provides tools to sort DICOM-format medical image files, and

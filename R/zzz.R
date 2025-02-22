@@ -28,3 +28,12 @@ divest.capabilities <- function (what = NULL)
         caps <- caps[charmatch(what, names(caps), 0L)]
     return (caps)
 }
+
+#' @export
+RNifti::imageAttributes
+#' @export
+RNifti::`imageAttributes<-`
+#' @export
+RNifti::fromBidsJson
+#' @export
+RNifti::toBidsJson
