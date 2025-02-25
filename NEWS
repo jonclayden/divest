@@ -2,6 +2,19 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.2.0
+
+- `imageAttributes()`, and other functions for extracting and manipulating
+  extended image attributes, have now been moved to the `RNifti` package. They
+  are still exported by `divest` for convenience.
+- Success in converting some DICOM files but not others now produces a warning
+  rather than an error from `dcm2niix`. This allows the successfully converted
+  images to be recovered.
+- Some `bash`-specific syntax has been removed from the package's `configure`
+  script.
+
+===============================================================================
+
 VERSION 1.1.1
 
 - If an output directory is specified to `readDicom()` or `convertDicom()`, it
