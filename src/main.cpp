@@ -64,7 +64,7 @@ BEGIN_RCPP
     
     // Scan the directory of interest, and create NiftiImage objects if required
     int returnValue = nii_loadDir(&options);
-    if (returnValue == EXIT_SUCCESS)
+    if (returnValue == EXIT_SUCCESS || returnValue == kEXIT_SOME_OK_SOME_BAD)
     {
         if (options.isScanOnly)
         {

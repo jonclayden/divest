@@ -9959,7 +9959,7 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 	if (convertError) {
 		if (nConvertTotal == 0)
 			return EXIT_FAILURE; // nothing converted
-		printError("Converted %d of %zu files\n", nConvertTotal, nDcm);
+		printWarning("Converted %d of %zu files\n", nConvertTotal, nDcm);
 		// printError("Converted %d of %lu files\n", nConvertTotal, nDcm);
 		return kEXIT_SOME_OK_SOME_BAD; // partial failure
 	}
