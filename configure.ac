@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([divest], [1.1.0], [code@clayden.org])
+AC_INIT([divest], [1.2.0], [code@clayden.org])
 # AC_CONFIG_SRCDIR([ImageList.h])
 
 # Get compiler flags from R
@@ -30,7 +30,7 @@ AC_CHECK_FUNC([fmemopen], [FUNCDEFS="-DHAVE_FMEMOPEN"])
 JPEG2K_FLAGS="-DmyDisableOpenJPEG"
 JPEG2K_LIBS=""
 
-if test -z "${PKGCONFIG}" -o "${PKGCONFIG}" == "none"; then
+if ( test -z "${PKGCONFIG}" || test "${PKGCONFIG}" = "none" ); then
     AC_SEARCH_LIBS([opj_version], [openjp2], [
         AC_CHECK_HEADER([openjpeg.h], [
             JPEG2K_FLAGS=""
