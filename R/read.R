@@ -89,22 +89,22 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
         addAttributes <- function (im)
         {
             attribs <- attributes(im)
+            jsonPath <- file.path(outputDir, paste(as.character(im),"json",sep="."))
+            
+            if (is.null(attribs$.bidsJson) && file.exists(jsonPath))
+                attribs$.bidsJson <- paste(readLines(jsonPath, encoding="UTF-8"), collapse="\n")
+            
             if (!is.null(attribs$.bidsJson))
             {
                 attribs <- c(attribs, fromBidsJson(attribs$.bidsJson, rename=convertAttributes))
                 attribs$.bidsJson <- NULL
-            }
-            else
-            {
-                jsonPath <- file.path(outputDir, paste(as.character(im),"json",sep="."))
-                if (file.exists(jsonPath))
-                    attribs <- c(attribs, fromBidsJson(jsonPath, rename=convertAttributes))
+                attributes(im) <- attribs
             }
             
-            attributes(im) <- attribs
             return (im)
         }
-        results <- lapply(results, addAttributes)
+        if (requireNamespace("jsonlite", quietly=TRUE))
+            results <- lapply(results, addAttributes)
     }
     
     return (results)
