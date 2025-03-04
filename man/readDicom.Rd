@@ -83,7 +83,10 @@ creating new files fails then the old ones will not be deleted.}
 \code{readDicom} and \code{convertDicom} return a list of
 \code{niftiImage} objects if \code{output} is \code{NULL}; otherwise
 (invisibly) a vector of paths to NIfTI-1 files created in the target
-directory. The \code{scanDicom} function returns a data frame containing
+directory. Returned images typically have attributes containing additional
+metadata extracted from the DICOM headers, either in a JSON string or (if
+the \code{jsonlite} package is available), in individually parsed
+elements. The \code{scanDicom} function returns a data frame containing
 information about each DICOM series found. \code{sortDicom} is mostly
 called for its side-effect, but also (invisibly) returns a list detailing
 source and target paths.
