@@ -7,6 +7,9 @@ VERSION 1.2.0
 - `imageAttributes()`, and other functions for extracting and manipulating
   extended image attributes, have now been moved to the `RNifti` package. They
   are still exported by `divest` for convenience.
+- If the `jsonlite` package is not available then `readDicom()` will not
+  attempt to convert JSON to separate image attributes. Instead the `.bidsJson`
+  attribute will be retained as a JSON string.
 - Success in converting some DICOM files but not others now produces a warning
   rather than an error from `dcm2niix`. This allows the successfully converted
   images to be recovered.
