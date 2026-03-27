@@ -159,7 +159,7 @@ BEGIN_RCPP
     else if (returnValue == kEXIT_NO_VALID_FILES_FOUND)
         Rprintf("No valid DICOM files found\n");
     else
-        Rf_error("DICOM scan failed");
+        stop("DICOM scan failed");
 END_RCPP
 }
 

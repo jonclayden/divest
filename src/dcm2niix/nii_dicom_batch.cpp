@@ -8824,7 +8824,7 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmLi
 	TDTI4D *dti4Ds = (TDTI4D *)malloc(sizeof(TDTI4D));
 	if (dti4Ds == NULL) {
 #ifdef USING_R
-		Rf_error("Failed to allocate memory for dti4Ds");
+		Rcpp::stop("Failed to allocate memory for dti4Ds");
 #else
 		perror("Failed to allocate memory for dti4Ds");
 		exit(EXIT_FAILURE);

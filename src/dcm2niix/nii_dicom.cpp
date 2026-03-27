@@ -7925,7 +7925,7 @@ struct TDICOMdata readDICOMx(char *fname, struct TDCMprefs *prefs, struct TDTI4D
 		// see https://neurostars.org/t/dcm2niix-error-from-philips-dicom-qsm-data-can-this-be-skipped/4883
 		printError("Conversion aborted due to corrupt file: %s %dx%d %d\n", fname, d.xyzDim[1], d.xyzDim[2], d.imageStart);
 #ifdef USING_R
-		Rf_error("Irrecoverable error during conversion");
+		Rcpp::stop("Irrecoverable error during conversion");
 #else
 		exit(kEXIT_CORRUPT_FILE_FOUND);
 #endif
