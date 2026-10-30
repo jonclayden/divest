@@ -50,7 +50,7 @@ BEGIN_RCPP
     options.isRenameNotConvert = (task == "sort");
     options.isVerbose = as<int>(verbosity_);
     options.dirSearchDepth = as<int>(depth_);
-    options.compressFlag = kCompressYes;
+    options.compressFlag = kCompressJP2K;
     strcpy(options.indir, path.c_str());
     strcpy(options.filename, labelFormat.c_str());
     if (!Rf_isNull(outputDir_))
