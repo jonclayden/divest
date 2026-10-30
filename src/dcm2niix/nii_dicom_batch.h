@@ -27,6 +27,8 @@ struct MRIFSSTRUCT {
 	int numDti;
 };
 
+std::vector<std::vector<float>> *nii_getAutoScaleFactorVector();
+
 MRIFSSTRUCT *nii_getMrifsStruct();
 void nii_clrMrifsStruct();
 
@@ -39,6 +41,8 @@ void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmL
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define kSeriesListJSON (-2) // opts.numSeries: write <outdir>/dcm2niix_series.json, convert none
 
 #include <stdbool.h> //requires VS 2015 or later
 #include <string.h>
@@ -69,16 +73,29 @@ struct TDicomSeries {
 #define kSaveFormatJNII 3
 #define kSaveFormatBNII 4
 
+// kMRWeighting* enum moved to nii_dicom.h so TDICOMdata.acquisitionContrast
+// (parsed from DICOM (0008,9209)) and MRWeightingGuess() share the same value
+// space.
+int MRWeightingGuess(struct TDICOMdata *d, bool isSpinEcho, bool isVariableFlipAngle);
+
 #define MAX_NUM_SERIES 16
 #define kOptsStr 512
 
 struct TDCMopts {
 	bool isDumpNotConvert;
-	bool isIgnoreTriggerTimes, isTestx0021x105E, isAddNamePostFixes, isSaveNativeEndian, isOneDirAtATime, isRenameNotConvert, isSave3D, isGz, isPipedGz, isFlipY, isCreateBIDS, isSortDTIbyBVal, isAnonymizeBIDS, isOnlyBIDS, isCreateText, isForceOnsetTimes, isIgnoreDerivedAnd2D, isPhilipsFloatNotDisplayScaling, isTiltCorrect, isRGBplanar, isOnlySingleFile, isForceStackDCE, isIgnoreSeriesInstanceUID, isRotate3DAcq, isCrop, isGuessBidsFilename;
+	// isAnonymizeBIDS (`-ba y/n/o`): true => strip BOTH dates and patient PII
+	// (heavy anonymisation, default). isOmitPiiBIDS: set by `-ba o`; strips
+	// patient PII (PatientName/ID/BirthDate/Sex/Age/Size/Weight,
+	// AccessionNumber, ReferringPhysicianName) but keeps
+	// AcquisitionDateTime/Time so downstream tools (e.g. reproinx.py's
+	// scans.tsv) can still aggregate timestamps. The two flags are
+	// independent — `o` sets isAnonymizeBIDS=false, isOmitPiiBIDS=true.
+	bool isKeepDirectionVaries, isIgnoreTriggerTimes, isTestx0021x105E, isAddNamePostFixes, isSaveNativeEndian, isOneDirAtATime, isRenameNotConvert, isSave3D, isZStd, isGz, isPipedGz, isFlipY, isCreateBIDS, isSortDTIbyBVal, isAnonymizeBIDS, isOmitPiiBIDS, isOnlyBIDS, isCreateText, isForceOnsetTimes, isIgnoreDerivedAnd2D, isPhilipsFloatNotDisplayScaling, isIgnoreIntensityScaling, isTiltCorrect, isRGBplanar, isOnlySingleFile, isForceStackDCE, isIgnoreSeriesInstanceUID, isRotate3DAcq, isCrop, isGuessBidsFilename, isBidsRoot;
 	int saveFormat, isMaximize16BitRange, isForceStackSameSeries, nameConflictBehavior, isVerbose, isProgress, compressFlag, dirSearchDepth, onlySearchDirForDICOM, gzLevel, diffCyclingModeGE; // support for compressed data 0=none,
-	char filename[kOptsStr], outdir[kOptsStr], indir[kOptsStr], pigzname[kOptsStr], optsname[kOptsStr], indirParent[kOptsStr], imageComments[24], bidsSubject[kOptsStr], bidsSession[kOptsStr];
+	int numRenameSkip, numRenameConflict; // -r rename mode: byte-identical duplicates skipped, distinct-file naming conflicts
+	char filename[kOptsStr], outdir[kOptsStr], indir[kOptsStr], pigzname[kOptsStr], optsname[kOptsStr], indirParent[kOptsStr], imageComments[24], bidsSubject[kOptsStr], bidsSession[kOptsStr], bidsRoot[kOptsStr];
 	double seriesNumber[MAX_NUM_SERIES]; // requires double must store -1 (report but do not convert) as well as seriesUidCrc (uint32)
-	long numSeries;
+	long numSeries; // -1: report series, -2 (kSeriesListJSON): list series as JSON
 #ifdef USING_R
 	bool isScanOnly, isImageInMemory;
 	void *imageList;
@@ -96,6 +113,7 @@ void readIniFile(struct TDCMopts *opts, const char *argv[]);
 int nii_saveNIIx(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts);
 int nii_loadDir(struct TDCMopts *opts);
 int nii_loadDirCore(char *indir, struct TDCMopts *opts);
+int singleDICOM(struct TDCMopts *opts, char *fname);
 void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts, struct nifti_1_header *h, const char *filename);
 int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts opts);
 void nii_createDummyFilename(char *niiFilename, struct TDCMopts opts);
