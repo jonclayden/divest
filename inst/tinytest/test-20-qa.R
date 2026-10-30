@@ -1,7 +1,7 @@
 options(divest.bidsAttributes=TRUE)
 
 ignoreFields <- c("ConversionSoftwareVersion", "BodyPartExamined", "ImageType")
-ignoreImages <- c("dti_tra_dir16_PA_6_134431")
+ignoreImages <- character(0)
 
 test_battery <- function (root, labelFormat = "%p_%s")
 {
@@ -58,11 +58,12 @@ test_battery <- function (root, labelFormat = "%p_%s")
 # Main QA test battery
 test_battery("dcm_qa")
 
-# NIH QA battery
-test_battery("dcm_qa_nih")
-
-# UIH QA battery
-test_battery("dcm_qa_uih", "%p_%s_%t")
-
 # Slice timing QA battery
 test_battery("dcm_qa_stc", "%v_%p_%s")
+
+# CT QA battery
+test_battery("dcm_qa_ct")
+
+# Enhanced DICOM batteries
+test_battery("dcm_qa_enh", "%v_%p_%s")
+test_battery("dcm_qa_enh_compressed", "%s_%p")
