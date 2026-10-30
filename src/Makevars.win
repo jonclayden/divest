@@ -2,6 +2,6 @@ PKG_CPPFLAGS = -DUSING_R -DmyDisableOpenJPEG -I. -Idcm2niix -Iujpeg
 
 OBJECTS_LIBS = ujpeg/ujpeg.o
 
-OBJECTS_DCM2NIIX = dcm2niix/jpg_0XC3.o dcm2niix/nifti1_io_core.o dcm2niix/nii_dicom.o dcm2niix/nii_dicom_batch.o dcm2niix/nii_ortho.o
+OBJECTS_DCM2NIIX = dcm2niix/cJSON.o dcm2niix/dicom_fragments.o dcm2niix/jpg_0XC3.o dcm2niix/nifti1_io_core.o dcm2niix/nii_dicom.o dcm2niix/nii_dicom_batch.o dcm2niix/nii_ortho.o dcm2niix/reproin.o
 
 OBJECTS = main.o $(OBJECTS_DCM2NIIX) $(OBJECTS_LIBS)

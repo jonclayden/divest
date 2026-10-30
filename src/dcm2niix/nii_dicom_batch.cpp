@@ -5081,31 +5081,6 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 					printWarning("hazardous (%%h) or reproin (%%H) bids naming experimental\n");
 					warnedHazardousBids = true;
 				}
-<<<<<<< HEAD:src/dcm2niix/nii_dicom_batch.cpp
-				char bidsSubject[kOptsStr] = "sub-";
-				if (strlen(opts.bidsSubject) <= 0)
-					strcat(bidsSubject, "1");
-				else
-					strcat(bidsSubject, opts.bidsSubject);
-#ifndef USING_R
-				printf("%s<<<:::\n", bidsSubject);
-#endif
-				char bidsSession[kOptsStr] = "ses-";
-				if (strlen(opts.bidsSession) <= 0)
-					strcat(bidsSession, "1");
-				else
-					strcat(bidsSession, opts.bidsSession);
-				createDummyBidsBoilerplate(pth, (strstr(dcm.CSA.bidsDataType, "func") != NULL));
-				if (strlen(dcm.CSA.bidsDataType) < 1) {
-					strcat(outname, "Unknown");
-					snprintf(newstr, PATH_MAX, "%c", kTempPathSeparator);
-					strcat(outname, newstr);
-					snprintf(newstr, PATH_MAX, "%ld", dcm.seriesNum);
-					strcat(outname, newstr);
-					strcat(outname, "_");
-					strcat(outname, dcm.protocolName);
-
-=======
 				bool isReproin = (inname[pos] == 'H');
 				if (isReproin) {
 					// One-pass ReproIn emulation. See REPROIN.md and console/reproin.cpp
@@ -5206,7 +5181,6 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 						strcat(outname, "_");
 						strcat(outname, dcm.protocolName);
 					}
->>>>>>> upstream:console/nii_dicom_batch.cpp
 				} else {
 					// Legacy hazardous (%h) path.
 					// Subject: -bi when set, else heudiconv-style PatientID
@@ -8278,7 +8252,7 @@ int nii_saveNII3Deq(char *niiFilename, struct nifti_1_header hdr, unsigned char 
 			hiWt = frac;
 		}
 		if (opts.isVerbose > 0)
-			printf("out %d @ %.3f mm: %.1f%% slice %d, %.1f%% slice %d\n", s, out_mm, lowWt * 100.0f, lowIdx, hiWt * 100.0f, hiIdx);
+			printMessage("out %d @ %.3f mm: %.1f%% slice %d, %.1f%% slice %d\n", s, out_mm, lowWt * 100.0f, lowIdx, hiWt * 100.0f, hiIdx);
 		int lowVox = lowIdx * nVox2D;
 		int hiVox = hiIdx * nVox2D;
 		int outVox = s * nVox2D;
@@ -9327,16 +9301,10 @@ void setBidsSiemens(struct TDICOMdata *d, int nConvert, int isVerbose, const cha
 	}
 	if ((isVerbose > 0) || (strlen(dataTypeBIDS) < 1))
 		printMessage("::autoBids:Siemens CSAseqFname:'%s' pulseSeq:'%s' seqName:'%s'\n",
-<<<<<<< HEAD:src/dcm2niix/nii_dicom_batch.cpp
-			   seqDetails, d->pulseSequenceName, d->sequenceName);
-	if (isDerived)
-		strcpy(dataTypeBIDS, "derived");
-=======
 					 seqDetails, d->pulseSequenceName, d->sequenceName);
 	if (isDerived && (strstr(dataTypeBIDS, "discard") == NULL))
 		strcpy(dataTypeBIDS, "derived"); // do not clobber an explicit discard
 	// (e.g. nonspatial color-FA, classified discard/nonspatial above)
->>>>>>> upstream:console/nii_dicom_batch.cpp
 	// bork - ARC data follows
 	/*
 	if (strstr(dataTypeBIDS, "dwi")) {
