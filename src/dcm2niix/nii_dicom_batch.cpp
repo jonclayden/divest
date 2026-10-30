@@ -5336,6 +5336,12 @@ int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts
 				if (ss == 60) {
 					ss = 59;
 				}
+#ifdef USING_R
+				// Retain the short form for an all-zero (typically missing) time
+				if ((hh == 0) && (mm == 0) && (ss == 0))
+					snprintf(newstr, PATH_MAX, "0");
+				else
+#endif
 				snprintf(newstr, PATH_MAX, "%02d%02d%02d", hh, mm, ss);
 				strcat(outname, newstr);
 			}
