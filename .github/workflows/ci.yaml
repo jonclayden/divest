@@ -25,7 +25,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Check out the repository under $GITHUB_WORKSPACE
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     
@@ -54,7 +54,7 @@ jobs:
     # Upload the check directory as an artefact on failure
     - name: Upload check results
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.os }}-results
         path: Rcheck
