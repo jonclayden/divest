@@ -38,23 +38,20 @@ resolvePaths <- function (path, subset = NULL, dirsOnly = FALSE)
             stop("Cannot symlink or copy files into temporary directory")
     }
     
-    # Path should now only be a character vector
-    for (i in seq_along(path))
+    # Path should now only be a character vector (possibly empty)
+    # Check all elements first, rather than dropping them while iterating
+    path <- as.character(path)
+    valid <- file.exists(path)
+    for (p in path[!valid])
+        warning(paste0("Path \"", p, "\" does not exist"))
+    if (dirsOnly)
     {
-        if (!file.exists(path[i]))
-        {
-            warning(paste0("Path \"", path[i], "\" does not exist"))
-            path <- path[-i]
-        }
-        else if (dirsOnly && !file.info(path[i])$isdir)
-        {
-            warning(paste0("Path \"", path[i], "\" does not point to a directory"))
-            path <- path[-i]
-        }
-        else
-            path[i] <- path.expand(path[i])
+        isDir <- dir.exists(path)
+        for (p in path[valid & !isDir])
+            warning(paste0("Path \"", p, "\" does not point to a directory"))
+        valid <- valid & isDir
     }
-    return (path)
+    return (path.expand(path[valid]))
 }
 
 sortInfoTable <- function (table)
@@ -220,7 +217,10 @@ readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, fo
             readPath(p, flipY, crop, forceStack, verbosity, labelFormat, TRUE, depth, task, output)
         else if (interactive && is.null(subset))
         {
-            info <- sortInfoTable(readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan"))
+            info <- readPath(p, flipY, crop, forceStack, min(0L,verbosity), labelFormat, FALSE, depth, "scan")
+            if (is.null(info))
+                return (NULL)
+            info <- sortInfoTable(info)
             
             selection <- .menu(attr(info,"descriptions"))
             if (identical(selection, seq_len(nrow(info))))
@@ -274,12 +274,13 @@ sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
 #' @export
 scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L)
 {
-    results <- lapply(path, function(p) {
-        if (file.info(p)$isdir)
-            readPath(path.expand(p), TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "scan")
-        else
-            warning(paste0("Path \"", p, "\" does not point to a directory"))
-    })
+    path <- resolvePaths(path, dirsOnly=TRUE)
+    results <- lapply(path, readPath, TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "scan")
+    
+    # Drop paths without any DICOM files
+    results <- Filter(Negate(is.null), results)
+    if (length(results) == 0)
+        return (invisible(NULL))
     
     sortInfoTable(Reduce(function(x,y) structure(rbind(x,y), descriptions=c(attr(x,"descriptions"),attr(y,"descriptions")), paths=c(attr(x,"paths"),attr(y,"paths"))), results))
 }
