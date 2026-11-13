@@ -14944,8 +14944,8 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *o
 						printWarning("Unable to copy to path %s\n", targetPath.c_str());
 					}
 				}
-				free_TDICOMdata_deID_CS(&dcm); // dcm goes out of scope; release its heap deID_CS[]
 			}
+			free_TDICOMdata_deID_CS(&dcm); // dcm goes out of scope; release its heap deID_CS[]
 		}
 	}
 	tinydir_close(&dir);
