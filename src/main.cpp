@@ -25,6 +25,15 @@ bool isEmptyString (const char *str)
     return true;
 }
 
+// Copy a string into one of the fixed-size TDCMopts buffers, which are all of
+// length kOptsStr, or stop if it doesn't fit
+void copyOption (char *target, const std::string &value, const char *description)
+{
+    if (value.length() >= kOptsStr)
+        stop("%s is too long (maximum %d characters)", description, kOptsStr - 1);
+    strcpy(target, value.c_str());
+}
+
 RcppExport SEXP readDirectory (SEXP path_, SEXP flipY_, SEXP crop_, SEXP forceStack_, SEXP verbosity_, SEXP labelFormat_, SEXP singleFile_, SEXP depth_, SEXP task_, SEXP outputDir_)
 {
 BEGIN_RCPP
@@ -51,12 +60,12 @@ BEGIN_RCPP
     options.isVerbose = as<int>(verbosity_);
     options.dirSearchDepth = as<int>(depth_);
     options.compressFlag = kCompressJP2K;
-    strcpy(options.indir, path.c_str());
-    strcpy(options.filename, labelFormat.c_str());
+    copyOption(options.indir, path, "Path");
+    copyOption(options.filename, labelFormat, "Label format");
     if (!Rf_isNull(outputDir_))
     {
         const std::string outputDir = as<std::string>(outputDir_);
-        strcpy(options.outdir, outputDir.c_str());
+        copyOption(options.outdir, outputDir, "Output directory");
     }
     
     ImageList images;
