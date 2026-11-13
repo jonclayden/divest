@@ -2,6 +2,17 @@ Significant changes to the divest package are laid out below for each release.
 
 ===============================================================================
 
+VERSION 1.3.0
+
+- The default value of the `forceStack` argument to `readDicom()` and related
+  functions is now `NA`, which corresponds to the default behaviour of
+  `dcm2niix`: CT and other X-ray images are stacked irrespective of exposure,
+  which often varies between slices, but MR images are stacked only if they
+  are compatible. Previously CT series could be split into many images by
+  default.
+
+===============================================================================
+
 VERSION 1.2.0
 
 - `imageAttributes()`, and other functions for extracting and manipulating

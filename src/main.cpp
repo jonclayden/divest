@@ -52,7 +52,9 @@ BEGIN_RCPP
     options.isImageInMemory = (task == "read");
     options.isCreateText = false;
     options.isSortDTIbyBVal = false;
-    options.isForceStackSameSeries = as<bool>(forceStack_);
+    // NA corresponds to dcm2niix's automatic mode, which stacks CT but not MR
+    const LogicalVector forceStack(forceStack_);
+    options.isForceStackSameSeries = (forceStack[0] == NA_LOGICAL ? 2 : (forceStack[0] ? 1 : 0));
     options.isCrop = as<bool>(crop_);
     options.isOnlySingleFile = as<bool>(singleFile_);
     options.isScanOnly = (task == "scan");

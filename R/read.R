@@ -157,8 +157,11 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
 #'   neck slices from brain images.
 #' @param forceStack If \code{TRUE}, images with the same series number will
 #'   always be stacked together as long as their dimensions are compatible. If
-#'   \code{FALSE}, the default, images will be separated if they differ in
-#'   echo, coil or exposure number, echo time, protocol name or orientation.
+#'   \code{FALSE}, images will be separated if they differ in echo, coil or
+#'   exposure number, echo time, protocol name or orientation. If \code{NA},
+#'   the default, CT and other X-ray images are stacked as for \code{TRUE},
+#'   since their exposure often varies between slices, but others are treated
+#'   as for \code{FALSE}.
 #' @param verbosity Integer value between -2 and 3, controlling the amount of
 #'   output generated during the conversion. A value of -1 will suppress all
 #'   output from \code{dcm2niix} except warnings and errors; -2 also suppresses
@@ -198,7 +201,7 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
 #' readDicom(path, interactive=FALSE)
 #' @author Jon Clayden <code@@clayden.org>
 #' @export readDicom
-readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = NULL)
+readDicom <- function (path = ".", subset = NULL, flipY = TRUE, crop = FALSE, forceStack = NA, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L, interactive = base::interactive(), output = NULL)
 {
     if (!is.data.frame(path) && !missing(subset))
         path <- scanDicom(path, forceStack, verbosity, labelFormat)
@@ -255,7 +258,7 @@ formals(convertDicom)$output <- as.symbol("path")
 
 #' @rdname readDicom
 #' @export
-sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", depth = 5L, nested = NA, keepUnsorted = FALSE, output = path)
+sortDicom <- function (path = ".", forceStack = NA, verbosity = 0L, labelFormat = "T%t_N%n_S%s/%b", depth = 5L, nested = NA, keepUnsorted = FALSE, output = path)
 {
     if (isFALSE(nested))
         output <- "."
@@ -272,7 +275,7 @@ sortDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelForm
 
 #' @rdname readDicom
 #' @export
-scanDicom <- function (path = ".", forceStack = FALSE, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L)
+scanDicom <- function (path = ".", forceStack = NA, verbosity = 0L, labelFormat = "T%t_N%n_S%s", depth = 5L)
 {
     path <- resolvePaths(path, dirsOnly=TRUE)
     results <- lapply(path, readPath, TRUE, FALSE, forceStack, verbosity, labelFormat, FALSE, depth, "scan")

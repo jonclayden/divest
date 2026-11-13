@@ -8,18 +8,18 @@
 \title{Read one or more DICOM directories}
 \usage{
 readDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
-  forceStack = FALSE, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
+  forceStack = NA, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
   depth = 5L, interactive = base::interactive(), output = NULL)
 
 convertDicom(path = ".", subset = NULL, flipY = TRUE, crop = FALSE,
-  forceStack = FALSE, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
+  forceStack = NA, verbosity = 0L, labelFormat = "T\%t_N\%n_S\%s",
   depth = 5L, interactive = base::interactive(), output = path)
 
-sortDicom(path = ".", forceStack = FALSE, verbosity = 0L,
+sortDicom(path = ".", forceStack = NA, verbosity = 0L,
   labelFormat = "T\%t_N\%n_S\%s/\%b", depth = 5L, nested = NA,
   keepUnsorted = FALSE, output = path)
 
-scanDicom(path = ".", forceStack = FALSE, verbosity = 0L,
+scanDicom(path = ".", forceStack = NA, verbosity = 0L,
   labelFormat = "T\%t_N\%n_S\%s", depth = 5L)
 }
 \arguments{
@@ -47,8 +47,11 @@ neck slices from brain images.}
 
 \item{forceStack}{If \code{TRUE}, images with the same series number will
 always be stacked together as long as their dimensions are compatible. If
-\code{FALSE}, the default, images will be separated if they differ in
-echo, coil or exposure number, echo time, protocol name or orientation.}
+\code{FALSE}, images will be separated if they differ in echo, coil or
+exposure number, echo time, protocol name or orientation. If \code{NA},
+the default, CT and other X-ray images are stacked as for \code{TRUE},
+since their exposure often varies between slices, but others are treated
+as for \code{FALSE}.}
 
 \item{verbosity}{Integer value between -2 and 3, controlling the amount of
 output generated during the conversion. A value of -1 will suppress all
