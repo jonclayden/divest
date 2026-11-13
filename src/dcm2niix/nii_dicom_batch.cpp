@@ -12568,14 +12568,11 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 			imgM = reorderVolumes(&hdr0, imgM, volOrderIndex);
 		if ((opts.isIgnoreDerivedAnd2D) && (numADC > 0))
 			printMessage("Ignoring derived diffusion image(s). Better isotropic and ADC maps can be generated later processing.\n");
-#ifdef USING_R
-		// In memory, divest keeps only the main image of each series, which
-		// is saved last; saving extra images first would give them its
-		// sidecar and diffusion metadata
-		if ((!opts.isIgnoreDerivedAnd2D) && (numADC > 0) && (!opts.isImageInMemory)) {
-#else
+#ifndef USING_R
+		// divest saves only one image per series, which is saved last, so skip
+		// ADC maps and overlays; saving extra images first would also give
+		// them the main image's sidecar and diffusion metadata
 		if ((!opts.isIgnoreDerivedAnd2D) && (numADC > 0)) { // ADC maps can disrupt analysis: save a copy with the ADC map, and another without
-#endif
 			char pathoutnameADC[2048] = {""};
 			strcat(pathoutnameADC, pathoutname);
 			strcat(pathoutnameADC, "_ADC");
@@ -12585,12 +12582,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				nii_saveNII(pathoutnameADC, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
 		}
 #ifndef myNoRois
-#ifdef USING_R
-		// As above, skip extra images when working in memory
-		if (isHasOverlay && (!opts.isImageInMemory)) {
-#else
 		if (isHasOverlay) { // each series can have up to 16 overlays, overlays may not be on all slices
-#endif
 			for (int j = 0; j < kMaxOverlay; j++) {
 				bool isOverlay = false;
 				for (int i = 0; i < nConvert; i++)
@@ -12642,6 +12634,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 			}
 		}
 #endif // myNoRois
+#endif // USING_R
 		imgM = removeADC(&hdr0, imgM, numADC);
 		if (bppVaries)
 			printMessage("Saving as 32-bit float (bits allocated varies).\n");
