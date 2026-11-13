@@ -3,7 +3,10 @@ options(divest.bidsAttributes=TRUE)
 ignoreFields <- c("ConversionSoftwareVersion", "BodyPartExamined", "ImageType")
 ignoreImages <- character(0)
 
-test_battery <- function (root, labelFormat = "%p_%s")
+# The refLabels argument maps image labels to reference file stems, for cases
+# where they differ from dcm2niix's own file names; it is called with the
+# labels and the file type (e.g. "image" or "metadata")
+test_battery <- function (root, labelFormat = "%p_%s", refLabels = function(labels,type) labels)
 {
     if (!file.exists(root))
         return (invisible(NULL))
@@ -11,11 +14,11 @@ test_battery <- function (root, labelFormat = "%p_%s")
     images <- readDicom(file.path(root,"In"), interactive=FALSE, labelFormat=labelFormat, verbosity=-2)
     labels <- unlist(images)
     
-    refStems <- file.path(root, "Ref", labels)
-    refFiles <- list(image=paste(refStems,"nii",sep="."),
-                     metadata=paste(refStems,"json",sep="."),
-                     bval=paste(refStems,"bval",sep="."),
-                     bvec=paste(refStems,"bvec",sep="."))
+    extensions <- c(image="nii", metadata="json", bval="bval", bvec="bvec")
+    refFiles <- lapply(names(extensions), function(type) {
+        file.path(root, "Ref", paste(refLabels(labels,type), extensions[[type]], sep="."))
+    })
+    names(refFiles) <- names(extensions)
     refFilesPresent <- lapply(refFiles, file.exists)
     
     # expect_setequal(list.files(file.path(root,"Ref"), "\\.nii$"), basename(refFiles$image))
@@ -62,7 +65,11 @@ test_battery("dcm_qa")
 test_battery("dcm_qa_stc", "%v_%p_%s")
 
 # CT QA battery
-test_battery("dcm_qa_ct")
+# dcm2niix saves tilt-corrected images as "_Tilt_1", alongside the uncorrected
+# image and its sidecar, but divest saves only the corrected image, as "_Tilt"
+test_battery("dcm_qa_ct", refLabels=function(labels, type) {
+    sub("_Tilt$", ifelse(type == "image", "_Tilt_1", ""), labels)
+})
 
 # Enhanced DICOM batteries
 test_battery("dcm_qa_enh", "%v_%p_%s")
