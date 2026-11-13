@@ -8020,7 +8020,11 @@ unsigned char *nii_saveNII3DtiltFloat32(char *niiFilename, struct nifti_1_header
 	strcat(niiFilenameTilt, niiFilename);
 	strcat(niiFilenameTilt, "_Tilt");
 	deshear_sform(hdr);
+#ifndef USING_R
+	// divest saves only once per series, at the end of saveDcm2NiiCore(), so
+	// skip this to avoid a duplicate image that would take the series metadata
 	nii_saveNII3D(niiFilenameTilt, *hdr, imOut, opts, d);
+#endif
 	return imOut;
 } // nii_saveNII3DtiltFloat32()
 
@@ -8132,7 +8136,11 @@ unsigned char *nii_saveNII3Dtilt(char *niiFilename, struct nifti_1_header *hdr, 
 	strcat(niiFilenameTilt, niiFilename);
 	strcat(niiFilenameTilt, "_Tilt");
 	deshear_sform(hdr);
+#ifndef USING_R
+	// divest saves only once per series, at the end of saveDcm2NiiCore(), so
+	// skip this to avoid a duplicate image that would take the series metadata
 	nii_saveNII3D(niiFilenameTilt, *hdr, imOut, opts, d);
+#endif
 	return imOut;
 } // nii_saveNII3Dtilt()
 
@@ -12560,7 +12568,14 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 			imgM = reorderVolumes(&hdr0, imgM, volOrderIndex);
 		if ((opts.isIgnoreDerivedAnd2D) && (numADC > 0))
 			printMessage("Ignoring derived diffusion image(s). Better isotropic and ADC maps can be generated later processing.\n");
+#ifdef USING_R
+		// In memory, divest keeps only the main image of each series, which
+		// is saved last; saving extra images first would give them its
+		// sidecar and diffusion metadata
+		if ((!opts.isIgnoreDerivedAnd2D) && (numADC > 0) && (!opts.isImageInMemory)) {
+#else
 		if ((!opts.isIgnoreDerivedAnd2D) && (numADC > 0)) { // ADC maps can disrupt analysis: save a copy with the ADC map, and another without
+#endif
 			char pathoutnameADC[2048] = {""};
 			strcat(pathoutnameADC, pathoutname);
 			strcat(pathoutnameADC, "_ADC");
@@ -12570,7 +12585,12 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 				nii_saveNII(pathoutnameADC, hdr0, imgM, opts, dcmList[dcmSort[0].indx]);
 		}
 #ifndef myNoRois
+#ifdef USING_R
+		// As above, skip extra images when working in memory
+		if (isHasOverlay && (!opts.isImageInMemory)) {
+#else
 		if (isHasOverlay) { // each series can have up to 16 overlays, overlays may not be on all slices
+#endif
 			for (int j = 0; j < kMaxOverlay; j++) {
 				bool isOverlay = false;
 				for (int i = 0; i < nConvert; i++)
@@ -12964,6 +12984,11 @@ static void mrsSaveBIDS(char pathoutname[], const struct TDICOMdata *d, const st
 	}
 	initTDTI4D(dti4D);
 	nii_SaveBIDSX(pathoutname, *d, *opts, h, filename, dti4D);
+#ifdef USING_R
+	// The image has already been appended, so attach its sidecar retrospectively
+	if (opts->isImageInMemory)
+		((ImageList *) opts->imageList)->attachJson();
+#endif
 	free(dti4D);
 }
 
