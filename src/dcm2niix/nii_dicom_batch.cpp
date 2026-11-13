@@ -14838,6 +14838,33 @@ int copyFile(char *src_path, char *dst_path, struct TDCMopts *opts) {
 
 #ifdef USING_R
 
+// True if the two paths refer to the same existing file
+static bool isSameFile(const char *path1, const char *path2) {
+	if (strcmp(path1, path2) == 0)
+		return true;
+#if defined(_WIN64) || defined(_WIN32)
+	// Inode numbers are not meaningful here, so compare volume serial numbers
+	// and file indices instead
+	BY_HANDLE_FILE_INFORMATION info[2];
+	const char *paths[2] = {path1, path2};
+	for (int i = 0; i < 2; i++) {
+		HANDLE handle = CreateFileA(paths[i], 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (handle == INVALID_HANDLE_VALUE)
+			return false;
+		const BOOL success = GetFileInformationByHandle(handle, &info[i]);
+		CloseHandle(handle);
+		if (!success)
+			return false;
+	}
+	return (info[0].dwVolumeSerialNumber == info[1].dwVolumeSerialNumber) && (info[0].nFileIndexHigh == info[1].nFileIndexHigh) && (info[0].nFileIndexLow == info[1].nFileIndexLow);
+#else
+	struct stat s1, s2;
+	if ((stat(path1, &s1) != 0) || (stat(path2, &s2) != 0))
+		return false;
+	return (s1.st_dev == s2.st_dev) && (s1.st_ino == s2.st_ino);
+#endif
+}
+
 // This implementation differs enough from the mainline one to be separated
 int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *opts) {
 	// The tinydir_open_sorted function reads the whole directory at once,
@@ -14888,18 +14915,23 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *o
 						targetStem = targetPath.substr(0, periodLoc);
 						targetExtension = targetPath.substr(periodLoc);
 					}
-					// Deduplicate the target path to avoid overwriting existing files
 					targetPath = targetStem + targetExtension;
-					GetRNGstate();
-					while (is_fileexists(targetPath.c_str())) {
-						std::ostringstream suffix;
-						unsigned suffixValue = static_cast<unsigned>(round(R::unif_rand() * (R_pow_di(2.0, 24) - 1.0)));
-						suffix << std::hex << std::setfill('0') << std::setw(6) << suffixValue;
-						targetPath = targetStem + "_" + suffix.str() + targetExtension;
+					// Check for the source already being in place first, since
+					// deduplication would otherwise always rename it
+					const bool isInPlace = isSameFile(sourcePathPtr, targetPath.c_str());
+					if (!isInPlace) {
+						// Deduplicate the target path to avoid overwriting existing files
+						GetRNGstate();
+						while (is_fileexists(targetPath.c_str())) {
+							std::ostringstream suffix;
+							unsigned suffixValue = static_cast<unsigned>(round(R::unif_rand() * (R_pow_di(2.0, 24) - 1.0)));
+							suffix << std::hex << std::setfill('0') << std::setw(6) << suffixValue;
+							targetPath = targetStem + "_" + suffix.str() + targetExtension;
+						}
+						PutRNGstate();
 					}
-					PutRNGstate();
 					// Copy the file, unless the source and target paths are the same
-					if (targetPath.compare(sourcePath) == 0) {
+					if (isInPlace) {
 						if (opts->isVerbose > 1)
 							printMessage("Skipping %s, which would be copied onto itself\n", sourcePathPtr);
 					} else if (copyFile(sourcePathPtr, const_cast<char *>(targetPath.c_str()), opts) == EXIT_SUCCESS) {
