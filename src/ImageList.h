@@ -37,15 +37,27 @@ public:
     FILE * jsonHandle ()
     {
 #ifdef HAVE_FMEMOPEN
-        if (jsonHandle_ == NULL)
-        {
-            // If the system supports it, use fmemopen to stream into a string buffer
-            // This is C style, but dcm2niix expects a FILE*
-            jsonBuffer = R_alloc(jsonBufferSize, 1);
-            jsonHandle_ = fmemopen(jsonBuffer, jsonBufferSize, "w");
-        }
+        // If the system supports it, use fmemopen to stream into a string buffer
+        // This is C style, but dcm2niix expects a FILE*
+        // Each sidecar gets a fresh buffer: any existing handle belongs to a
+        // sidecar that was never attached to an image, and dcm2niix will
+        // already have closed it, so it must not be reused
+        jsonBuffer = R_alloc(jsonBufferSize, 1);
+        jsonHandle_ = fmemopen(jsonBuffer, jsonBufferSize, "w");
 #endif
         return jsonHandle_;
+    }
+
+    // Attach a pending sidecar to the most recently appended image, for cases
+    // (such as MR spectroscopy) where dcm2niix writes the sidecar afterwards
+    void attachJson ()
+    {
+        if (jsonHandle_ != NULL && list.size() > 0)
+        {
+            Rcpp::RObject pointer = list[list.size() - 1];
+            pointer.attr(".bidsJson") = const_cast<const char *>(jsonBuffer);
+        }
+        jsonHandle_ = NULL;
     }
     
     void append (nifti_image * const image, const std::string &name)
