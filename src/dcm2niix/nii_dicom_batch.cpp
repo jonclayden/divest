@@ -7282,6 +7282,16 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 		if (image == NULL)
 			return EXIT_FAILURE;
 		image->data = (void *)im;
+		// Attach the NIfTI-MRS JSON header extension (ecode 44), if there is
+		// one, along with the intent name the standard requires, as for files
+		// below; append() copies the image's extensions, and they are freed after
+		if (hdrExt != NULL) {
+			const size_t extLength = strlen(hdrExt);
+			if (extLength > (size_t)(INT_MAX - 16))
+				printWarning("MRS header extension too large (%zu bytes); omitting it\n", extLength);
+			else if (nifti_add_extension(image, hdrExt, (int) extLength, 44) == 0)
+				strcpy(image->intent_name, "mrs_v0_11");
+		}
 		images->append(image, name);
 		// A copy of "image" has been made, so free all aspects of it except the data (which is owned by the caller)
 		free(image->fname);
