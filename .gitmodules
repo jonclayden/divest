@@ -13,3 +13,6 @@
 [submodule "inst/tinytest/dcm_qa_enh_compressed"]
 	path = inst/tinytest/dcm_qa_enh_compressed
 	url = https://github.com/neurolabusc/dcm_qa_enh_compressed.git
+[submodule "inst/tinytest/dcm_qa_spec"]
+	path = inst/tinytest/dcm_qa_spec
+	url = https://github.com/neurolabusc/dcm_qa_spec.git
