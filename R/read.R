@@ -75,7 +75,12 @@ readPath <- function (path, flipY, crop, forceStack, verbosity, labelFormat, sin
     }
     
     if (is.null(outputDir))
+    {
+        # Any files written here (e.g. JSON sidecars, if they can't be written
+        # to memory) are read before returning, so the directory can go
         outputDir <- tempDirectory()
+        on.exit(unlink(outputDir, recursive=TRUE), add=TRUE)
+    }
     else if (!file.exists(outputDir))
         dir.create(outputDir)
     results <- .Call(C_readDirectory, path, flipY, crop, forceStack, verbosity, labelFormat, singleFile, depth, task, outputDir)
