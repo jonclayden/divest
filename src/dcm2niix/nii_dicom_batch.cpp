@@ -7274,10 +7274,10 @@ int nii_saveNII(char *niiFilename, struct nifti_1_header hdr, unsigned char *im,
 	if (opts.isImageInMemory) {
 		hdr.vox_offset = 352;
 		// Extract the basename from the full file path
-		char *start = niiFilename + strlen(niiFilename);
-		while (start >= niiFilename && *start != '/' && *start != kPathSeparator)
+		const char *start = niiFilename + strlen(niiFilename);
+		while (start > niiFilename && start[-1] != '/' && start[-1] != kPathSeparator)
 			start--;
-		std::string name(++start);
+		std::string name(start);
 		nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
 		if (image == NULL)
 			return EXIT_FAILURE;
