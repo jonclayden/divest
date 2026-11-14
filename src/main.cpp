@@ -5,7 +5,6 @@
 
 #include "ImageList.h"
 #include "nii_dicom_batch.h"
-#include "nii_dicom.h"
 
 using namespace Rcpp;
 
@@ -81,7 +80,7 @@ BEGIN_RCPP
         {
             // Construct a data frame containing information about each series
             // A vector of descriptive strings is also built, and attached as an attribute
-            const size_t n = options.series.size();
+            const size_t n = images.series.size();
             CharacterVector label(n,NA_STRING), seriesDescription(n,NA_STRING), patientName(n,NA_STRING), descriptions(n);
             DateVector studyDate(n);
             NumericVector echoTime(n,NA_REAL), repetitionTime(n,NA_REAL);
@@ -90,7 +89,7 @@ BEGIN_RCPP
             List paths(n);
             for (size_t i = 0; i < n; i++)
             {
-                const TDICOMdata &data = options.series[i].representativeData;
+                const TDICOMdata &data = images.series[i].representativeData;
                 std::ostringstream description;
                 description << "Series " << data.seriesNum;
                 seriesNumber[i] = data.seriesNum;
@@ -135,23 +134,23 @@ BEGIN_RCPP
                     diffusion[i] = true;
                 
                 // The name is stored with leading path components, which we remove here
-                if (options.series[i].name.length() > 0)
+                if (images.series[i].name.length() > 0)
                 {
 #if defined(_WIN32) || defined(_WIN64)
-                    size_t pathSeparator = options.series[i].name.find_last_of("\\/");
+                    size_t pathSeparator = images.series[i].name.find_last_of("\\/");
 #else
-                    size_t pathSeparator = options.series[i].name.find_last_of('/');
+                    size_t pathSeparator = images.series[i].name.find_last_of('/');
 #endif
                     if (pathSeparator == std::string::npos)
-                        label[i] = options.series[i].name;
+                        label[i] = images.series[i].name;
                     else
-                        label[i] = options.series[i].name.substr(pathSeparator+1);
+                        label[i] = images.series[i].name.substr(pathSeparator+1);
                 }
                 
                 phase[i] = data.isHasPhase;
                 descriptions[i] = description.str();
-                files[i] = options.series[i].files.size();
-                paths[i] = wrap(options.series[i].files);
+                files[i] = images.series[i].files.size();
+                paths[i] = wrap(images.series[i].files);
             }
             
             DataFrame info = DataFrame::create(Named("label")=label, Named("rootPath")=path, Named("files")=files, Named("seriesNumber")=seriesNumber, Named("seriesDescription")=seriesDescription, Named("patientName")=patientName, Named("studyDate")=studyDate, Named("echoTime")=echoTime, Named("repetitionTime")=repetitionTime, Named("echoNumber")=echoNumber, Named("phase")=phase, Named("diffusion")=diffusion, Named("stringsAsFactors")=false);
@@ -161,7 +160,7 @@ BEGIN_RCPP
             return info;
         }
         else if (options.isRenameNotConvert)
-            return List::create(Named("source")=options.sourcePaths, Named("target")=options.targetPaths, Named("ignored")=options.ignoredPaths);
+            return List::create(Named("source")=images.sourcePaths, Named("target")=images.targetPaths, Named("ignored")=images.ignoredPaths);
         else if (!options.isImageInMemory)
             return images.pathVector();
         else

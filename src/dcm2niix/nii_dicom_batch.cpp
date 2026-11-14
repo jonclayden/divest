@@ -14865,6 +14865,7 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *o
 	// files in the same directory, which we don't want to further examine
 	tinydir_dir dir;
 	int count = 0;
+	ImageList *images = (ImageList *) opts->imageList;
 	if (tinydir_open_sorted(&dir, path) != 0)
 		return -1;
 	for (size_t i = 0; i < dir.n_files; i++) {
@@ -14884,10 +14885,10 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *o
 			if (dcm.imageNum > 0) {
 				if ((opts->isIgnoreDerivedAnd2D) && ((dcm.isLocalizer) || (strcmp(dcm.sequenceName, "_tfl2d1") == 0) || (strcmp(dcm.sequenceName, "_fl3d1_ns") == 0) || (strcmp(dcm.sequenceName, "_fl2d1") == 0))) {
 					printMessage("Ignoring localizer %s\n", sourcePathPtr);
-					opts->ignoredPaths.push_back(sourcePath);
+					images->ignoredPaths.push_back(sourcePath);
 				} else if ((opts->isIgnoreDerivedAnd2D && dcm.isDerived)) {
 					printMessage("Ignoring derived %s\n", sourcePathPtr);
-					opts->ignoredPaths.push_back(sourcePath);
+					images->ignoredPaths.push_back(sourcePath);
 				} else {
 					// Create an initial file name
 					char outname[PATH_MAX] = {""};
@@ -14928,8 +14929,8 @@ int searchDirRenameDICOM(char *path, int maxDepth, int depth, struct TDCMopts *o
 						if (opts->isVerbose > 1)
 							printMessage("Skipping %s, which would be copied onto itself\n", sourcePathPtr);
 					} else if (copyFile(sourcePathPtr, const_cast<char *>(targetPath.c_str()), opts) == EXIT_SUCCESS) {
-						opts->sourcePaths.push_back(sourcePath);
-						opts->targetPaths.push_back(targetPath);
+						images->sourcePaths.push_back(sourcePath);
+						images->targetPaths.push_back(targetPath);
 						count++;
 						if (opts->isVerbose > 0)
 							printMessage("Copying %s -> %s\n", sourcePathPtr, targetPath.c_str());
@@ -15219,6 +15220,7 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 	}
 #ifdef USING_R
 	if (opts->isScanOnly) {
+		std::vector<TDicomSeries> &series = ((ImageList *) opts->imageList)->series;
 		TWarnings warnings = setWarnings();
 		// Create the first series from the first DICOM file
 		TDicomSeries firstSeries;
@@ -15231,15 +15233,15 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 		firstSeries.representativeData.deID_CS_n = 0;
 		firstSeries.representativeData.isMrsRef = false; // audit H2 follow-up; see ~line 10567
 		firstSeries.files.push_back(nameList.str[0]);
-		opts->series.push_back(firstSeries);
+		series.push_back(firstSeries);
 		// Iterate over the remaining files
 		for (size_t i = 1; i < nDcm; i++) {
 			bool matched = false;
 			// If the file matches an existing series, add it to the corresponding file list
-			for (size_t j = 0; j < opts->series.size(); j++) {
+			for (size_t j = 0; j < series.size(); j++) {
 				bool isMultiEcho = false, isNonParallelSlices = false, isCoilVaries = false;
-				if (isSameSet(opts->series[j].representativeData, dcmList[i], opts, &warnings, &isMultiEcho, &isNonParallelSlices, &isCoilVaries)) {
-					opts->series[j].files.push_back(nameList.str[i]);
+				if (isSameSet(series[j].representativeData, dcmList[i], opts, &warnings, &isMultiEcho, &isNonParallelSlices, &isCoilVaries)) {
+					series[j].files.push_back(nameList.str[i]);
 					matched = true;
 					break;
 				}
@@ -15256,7 +15258,7 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 				nextSeries.representativeData.deID_CS_n = 0;
 				nextSeries.representativeData.isMrsRef = false; // audit H2 follow-up; see ~line 10567
 				nextSeries.files.push_back(nameList.str[i]);
-				opts->series.push_back(nextSeries);
+				series.push_back(nextSeries);
 			}
 		}
 		// To avoid a spurious warning below

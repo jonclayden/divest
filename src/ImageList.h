@@ -7,6 +7,13 @@
 #include <Rcpp.h>
 
 #include "RNifti.h"
+#include "nii_dicom.h"
+
+struct TDicomSeries {
+    std::string name;
+    TDICOMdata representativeData;
+    std::vector<std::string> files;
+};
 
 class ImageList
 {
@@ -22,6 +29,11 @@ private:
     Rcpp::List deferredAttributes;
     
 public:
+    // Results of scanning or sorting a directory, which are kept here rather
+    // than in TDCMopts, since dcm2niix often copies the latter
+    std::vector<TDicomSeries> series;
+    std::vector<std::string> sourcePaths, targetPaths, ignoredPaths;
+    
     ImageList () : jsonBuffer(NULL), jsonHandle_(NULL) {}
     
     operator SEXP ()

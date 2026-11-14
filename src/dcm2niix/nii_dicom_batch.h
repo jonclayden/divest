@@ -51,14 +51,6 @@ extern "C" {
 #endif
 #include "nii_dicom.h"
 
-#ifdef USING_R
-struct TDicomSeries {
-	std::string name;
-	TDICOMdata representativeData;
-	std::vector<std::string> files;
-};
-#endif
-
 #define kNAME_CONFLICT_SKIP 0		// 0 = write nothing for a file that exists with desired name
 #define kNAME_CONFLICT_OVERWRITE 1	// 1 = overwrite existing file with same name
 #define kNAME_CONFLICT_ADD_SUFFIX 2 // default 2 = write with new suffix as a new file
@@ -99,12 +91,6 @@ struct TDCMopts {
 #ifdef USING_R
 	bool isScanOnly, isImageInMemory;
 	void *imageList;
-	std::vector<TDicomSeries> series;
-
-	// Used when sorting a directory
-	std::vector<std::string> sourcePaths;
-	std::vector<std::string> targetPaths;
-	std::vector<std::string> ignoredPaths;
 #endif
 };
 void saveIniFile(struct TDCMopts opts);
