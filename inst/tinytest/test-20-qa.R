@@ -31,7 +31,24 @@ test_battery <- function (root, labelFormat = "%p_%s", refLabels = function(labe
         if (refFilesPresent$image[i])
         {
             refImage <- RNifti::readNifti(refFiles$image[i], internal=TRUE)
-            expect_equal(RNifti::niftiHeader(refImage), RNifti::niftiHeader(images[[i]]), info=labels[i], tolerance=1e-5)
+            # The voxel offset in a file depends on the size of any header
+            # extensions, but is always 352 in memory
+            refHeader <- unclass(RNifti::niftiHeader(refImage))
+            header <- unclass(RNifti::niftiHeader(images[[i]]))
+            refHeader$vox_offset <- header$vox_offset <- NULL
+            expect_equal(refHeader, header, info=labels[i], tolerance=1e-5)
+            
+            # Check the NIfTI-MRS JSON extension (ecode 44), if any
+            refExtension <- RNifti::extension(refImage, 44, "character")
+            extension <- RNifti::extension(images[[i]], 44, "character")
+            expect_identical(is.null(refExtension), is.null(extension), info=labels[i])
+            if (!is.null(refExtension) && !is.null(extension))
+            {
+                refExtension <- jsonlite::parse_json(refExtension, simplifyVector=TRUE)
+                extension <- jsonlite::parse_json(extension, simplifyVector=TRUE)
+                fields <- setdiff(names(refExtension), ignoreFields)
+                expect_equal(refExtension[fields], extension[fields], info=labels[i], tolerance=1e-4)
+            }
         }
         
         if (refFilesPresent$metadata[i])
@@ -74,3 +91,6 @@ test_battery("dcm_qa_ct", refLabels=function(labels, type) {
 # Enhanced DICOM batteries
 test_battery("dcm_qa_enh", "%v_%p_%s")
 test_battery("dcm_qa_enh_compressed", "%s_%p")
+
+# MRS battery
+test_battery("dcm_qa_spec")
