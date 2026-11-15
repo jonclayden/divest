@@ -25,7 +25,9 @@ private:
     
     std::vector<std::string> paths_;
     
-    Rcpp::List list;
+    // Images are collected in a vector, since Rcpp::List::push_back() copies
+    // the whole list each time; the RObject wrappers protect them from R's GC
+    std::vector<Rcpp::RObject> images_;
     Rcpp::List deferredAttributes;
     
 public:
@@ -38,7 +40,7 @@ public:
     
     operator SEXP ()
     {
-        return list;
+        return Rcpp::List(images_.begin(), images_.end());
     }
     
     Rcpp::CharacterVector pathVector ()
@@ -64,11 +66,8 @@ public:
     // (such as MR spectroscopy) where dcm2niix writes the sidecar afterwards
     void attachJson ()
     {
-        if (jsonHandle_ != NULL && list.size() > 0)
-        {
-            Rcpp::RObject pointer = list[list.size() - 1];
-            pointer.attr(".bidsJson") = const_cast<const char *>(jsonBuffer);
-        }
+        if (jsonHandle_ != NULL && !images_.empty())
+            images_.back().attr(".bidsJson") = const_cast<const char *>(jsonBuffer);
         jsonHandle_ = NULL;
     }
     
@@ -95,7 +94,7 @@ public:
             jsonHandle_ = NULL;
         }
         
-        list.push_back(pointer);
+        images_.push_back(pointer);
     }
     
     template <typename ValueType>
