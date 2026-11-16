@@ -58,6 +58,8 @@
 #include "cJSON.h"
 
 /* define our own boolean type */
+/* (not in C++, where true and false are keywords, and convert as required) */
+#ifndef __cplusplus
 #ifdef true
 #undef true
 #endif
@@ -67,6 +69,7 @@
 #undef false
 #endif
 #define false ((cJSON_bool)0)
+#endif
 
 typedef struct {
 	const unsigned char *json;
