@@ -643,22 +643,25 @@ bool reproinBuildFilename(const struct TReproinSpec *spec,
 
 	// <subDir>[/ses-Y]/<datatype>/<sub>[_<ses>]...
 	char head[PATH_MAX];
+	int headLen;
 	if (spec->isDerived) {
 		if (hasSes)
-			snprintf(head, sizeof(head), "derivatives%sscanner%s%s%s%s%s%s%s%s_%s",
-					 sep, sep, subSeg, sep, sesSeg, sep, spec->datatype, sep,
-					 subSeg, sesSeg);
+			headLen = snprintf(head, sizeof(head), "derivatives%sscanner%s%s%s%s%s%s%s%s_%s",
+							   sep, sep, subSeg, sep, sesSeg, sep, spec->datatype, sep,
+							   subSeg, sesSeg);
 		else
-			snprintf(head, sizeof(head), "derivatives%sscanner%s%s%s%s%s%s",
-					 sep, sep, subSeg, sep, spec->datatype, sep, subSeg);
+			headLen = snprintf(head, sizeof(head), "derivatives%sscanner%s%s%s%s%s%s",
+							   sep, sep, subSeg, sep, spec->datatype, sep, subSeg);
 	} else {
 		if (hasSes)
-			snprintf(head, sizeof(head), "%s%s%s%s%s%s%s_%s",
-					 subSeg, sep, sesSeg, sep, spec->datatype, sep, subSeg, sesSeg);
+			headLen = snprintf(head, sizeof(head), "%s%s%s%s%s%s%s_%s",
+							   subSeg, sep, sesSeg, sep, spec->datatype, sep, subSeg, sesSeg);
 		else
-			snprintf(head, sizeof(head), "%s%s%s%s%s",
-					 subSeg, sep, spec->datatype, sep, subSeg);
+			headLen = snprintf(head, sizeof(head), "%s%s%s%s%s",
+							   subSeg, sep, spec->datatype, sep, subSeg);
 	}
+	if (headLen < 0 || headLen >= (int)sizeof(head))
+		return false; // path too long (PATH_MAX is small on Windows)
 
 	char tail[PATH_MAX] = {""};
 	// BIDS only allows _task- on func/sbref. Order: task, acq, rec, dir, bids, run, echo, suffix.
