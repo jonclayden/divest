@@ -288,7 +288,10 @@ static bool reproinParseString(const char *text, struct TReproinSpec *spec) {
 	}
 	reproinSanitizeLabel(spec->suffix); // no "/" or ".." into the output path
 	reproinSanitizeLabel(bareBuf);
-	strncat(spec->acq, bareBuf, sizeof(spec->acq) - strlen(spec->acq) - 1);
+	size_t acqLen = strlen(spec->acq);
+	size_t n = strnlen(bareBuf, sizeof(spec->acq) - acqLen - 1);
+	memcpy(spec->acq + acqLen, bareBuf, n);
+	spec->acq[acqLen + n] = '\0';
 	spec->valid = true;
 	return true;
 }
@@ -662,7 +665,7 @@ bool reproinBuildFilename(const struct TReproinSpec *spec,
 	bool isFunc = (strcmp(spec->datatype, "func") == 0);
 	if (isFunc || spec->isSbref) {
 		if (spec->task[0] != '\0') {
-			char buf[kReproinStr];
+			char buf[kReproinStr + 8];
 			snprintf(buf, sizeof(buf), "_task-%s", spec->task);
 			strncat(tail, buf, sizeof(tail) - strlen(tail) - 1);
 		} else if (isFunc) {
@@ -671,7 +674,7 @@ bool reproinBuildFilename(const struct TReproinSpec *spec,
 		}
 	}
 	if (spec->acq[0] != '\0') {
-		char buf[kReproinStr];
+		char buf[kReproinStr + 8];
 		snprintf(buf, sizeof(buf), "_acq-%s", spec->acq);
 		strncat(tail, buf, sizeof(tail) - strlen(tail) - 1);
 	}
@@ -707,7 +710,7 @@ bool reproinBuildFilename(const struct TReproinSpec *spec,
 	// emitting a separate _echo-N entity.
 	bool foldEchoIntoSuffix = (strcmp(spec->datatype, "fmap") == 0);
 	if (isMultiEcho && echoNum >= 1 && !foldEchoIntoSuffix) {
-		char buf[16];
+		char buf[32];
 		snprintf(buf, sizeof(buf), "_echo-%d", echoNum);
 		strncat(tail, buf, sizeof(tail) - strlen(tail) - 1);
 	}

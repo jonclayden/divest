@@ -1477,13 +1477,15 @@ static void bidsInsertEntity(char *suffix, const char *entity, const char *value
 	if (insertAt == NULL) {
 		// No underscore at all (very short suffix); prepend.
 		snprintf(tail, sizeof(tail), "%s", suffix);
-		snprintf(suffix, cap, "_%s-%s%s", entity, value, tail);
+		if (snprintf(suffix, cap, "_%s-%s%s", entity, value, tail) >= (int)cap)
+			printWarning("BIDS suffix truncated when adding _%s- entity\n", entity);
 		return;
 	}
 	snprintf(tail, sizeof(tail), "%s", insertAt);
 	*insertAt = '\0';
 	char tmp[kDICOMStrLarge];
-	snprintf(tmp, sizeof(tmp), "%s_%s-%s%s", suffix, entity, value, tail);
+	if (snprintf(tmp, sizeof(tmp), "%s_%s-%s%s", suffix, entity, value, tail) >= (int)sizeof(tmp))
+		printWarning("BIDS suffix truncated when adding _%s- entity\n", entity);
 	snprintf(suffix, cap, "%s", tmp);
 }
 
@@ -1815,7 +1817,7 @@ static void reproinAppendProvenance(const char *pathoutname, struct TDICOMdata d
 	}
 	char tsvPath[PATH_MAX];
 	snprintf(tsvPath, sizeof(tsvPath), "%s%c.reproin_provenance.tsv", studyRoot, kPathSeparator);
-	char bakPath[PATH_MAX];
+	char bakPath[sizeof(tsvPath) + 4];
 	snprintf(bakPath, sizeof(bakPath), "%s.bak", tsvPath);
 	if (opts.isAnonymizeBIDS)
 		remove(bakPath);
@@ -8949,8 +8951,12 @@ void reportProtocolBlockGE(struct TDICOMdata *d, const char *filename, int isVer
 	char ioptGE[3000] = "";
 	char seqName[kDICOMStrLarge] = "";
 	geProtocolBlock(filename, d->protocolBlockStartGE, d->protocolBlockLengthGE, isVerbose, &sliceOrderGE, &viewOrderGE, &mbAccel, &nSlices, &groupDelay, ioptGE, seqName);
-	size_t remaining_space = kDICOMStr - strlen(d->procedureStepDescription) - 1; // issue883
-	strncat(d->procedureStepDescription, seqName, remaining_space);				  // issue790
+	size_t len = strlen(d->procedureStepDescription); // issue883
+	if (len < kDICOMStr - 1) {
+		size_t n = strnlen(seqName, kDICOMStr - 1 - len);
+		memcpy(d->procedureStepDescription + len, seqName, n); // issue790
+		d->procedureStepDescription[len + n] = '\0';
+	}
 #endif
 } // bidsGE
 
@@ -10698,9 +10704,9 @@ static bool xaPhysioWriteStreamFiles(const char *baseName, const char *label,
 									 double startTimeSec, int gzLevel, const char *cmrrMeasurementUuid) {
 	char outBase[PATH_MAX];
 	snprintf(outBase, sizeof(outBase), "%s_recording-%s_physio", baseName, label);
-	char jsonPath[PATH_MAX];
+	char jsonPath[sizeof(outBase) + 5];
 	snprintf(jsonPath, sizeof(jsonPath), "%s.json", outBase);
-	char tsvPath[PATH_MAX];
+	char tsvPath[sizeof(outBase) + 7];
 	snprintf(tsvPath, sizeof(tsvPath), "%s.tsv.gz", outBase);
 	// JSON sidecar via cJSON. Audit 2026-06-11 M1: every allocator can return
 	// NULL under memory pressure; previously these were unchecked and the
@@ -13632,8 +13638,7 @@ static int saveDcm2NiiMRS(int nConvert, struct TDCMsort dcmSort[],
 	// false (d.isMrsRef gates the emission in nii_SaveBIDSX).
 	if (ret == EXIT_SUCCESS && emitMrsref && fidRef != NULL) {
 		char refPath[2048] = "";
-		strncpy(refPath, pathoutname, sizeof(refPath) - 1);
-		refPath[sizeof(refPath) - 1] = '\0';
+		snprintf(refPath, sizeof(refPath), "%s", pathoutname);
 		// Replace the last occurrence of "_svs" with "_mrsref" (suffix is the
 		// final BIDS entity, never followed by another "_svs" in a reproin
 		// stem). If not present, append "_mrsref" — the writer handles the
