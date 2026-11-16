@@ -4,12 +4,42 @@ Significant changes to the divest package are laid out below for each release.
 
 VERSION 1.3.0
 
+- Upstream improvements up to `dcm2niix` v1.0.20261029, including support for
+  single-voxel MR spectroscopy (converted to NIfTI-MRS), better decoding of
+  JPEG-compressed and enhanced (multi-frame) DICOM, and many vendor-specific
+  improvements to metadata and image splitting.
 - The default value of the `forceStack` argument to `readDicom()` and related
   functions is now `NA`, which corresponds to the default behaviour of
   `dcm2niix`: CT and other X-ray images are stacked irrespective of exposure,
   which often varies between slices, but MR images are stacked only if they
   are compatible. Previously CT series could be split into many images by
   default.
+- MR spectroscopy images read into memory retain the NIfTI-MRS header
+  extension and intent name, as they would in a file.
+- CT series acquired with gantry tilt now produce only the tilt-corrected
+  image. Previously the uncorrected image was also returned.
+- Derived apparent diffusion coefficient (ADC) and overlay (ROI) images are
+  no longer created, for consistency with the handling of other derived
+  images.
+- The interactive series selection menu used by `readDicom()` and
+  `convertDicom()` now also works in a script run from a terminal (e.g., with
+  `Rscript`), when `interactive=TRUE` is given. Selections are now checked for
+  validity, rather than being parsed mostly blind, and the question is asked
+  again if anything is invalid.
+- Acquisition times in image labels (`%t`) are now zero-padded to six digits,
+  as in `dcm2niix`. A time of exactly zero, which typically indicates missing
+  information, is still given as "0".
+- `scanDicom()` now handles invalid paths in the same way as `readDicom()`,
+  with a warning, and paths that don't contain any DICOM files are dropped
+  from the results. An invalid path could previously cause an error. In both
+  functions, a path following an invalid one is now checked properly.
+- Large JSON sidecars are no longer at risk of truncation when images are
+  read into memory, and memory use is lower when reading many series.
+  Temporary files are now also cleaned up after reading.
+- Overlong paths and label formats now produce an error, rather than risking
+  a buffer overflow.
+- The extended package tests now draw on a different set of
+  [QA batteries](https://github.com/neurolabusc/dcm_validate).
 
 ===============================================================================
 
