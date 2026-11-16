@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([divest], [1.2.0], [code@clayden.org])
+AC_INIT([divest], [1.3.0], [code@clayden.org])
 # AC_CONFIG_SRCDIR([ImageList.h])
 
 # Get compiler flags from R
@@ -24,7 +24,7 @@ AC_CHECK_INCLUDES_DEFAULT
 
 # Checks for functions.
 FUNCDEFS=""
-AC_CHECK_FUNC([fmemopen], [FUNCDEFS="-DHAVE_FMEMOPEN"])
+AC_CHECK_FUNC([open_memstream], [FUNCDEFS="-DHAVE_OPEN_MEMSTREAM"])
 
 # Checks for OpenJPEG.
 JPEG2K_FLAGS="-DmyDisableOpenJPEG"
