@@ -59,6 +59,9 @@ jobs:
         name: ${{ matrix.os }}-results
         path: Rcheck
     
+    # Coverage is informative only, so a failure here (e.g., from a covr or
+    # Codecov problem) is reported for the step but doesn't fail the job
     - name: Update test coverage
       if: runner.os == 'Linux'
+      continue-on-error: true
       run: Rscript -e 'covr::codecov()'
