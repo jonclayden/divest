@@ -38,15 +38,6 @@ private:
         jsonSize = 0;
     }
     
-    // Attach the pending sidecar, if any, to an image, and release its buffer
-    void attachJsonTo (Rcpp::RObject &object)
-    {
-        if (jsonHandle_ != NULL && jsonBuffer != NULL)
-            object.attr(".bidsJson") = const_cast<const char *>(jsonBuffer);
-        jsonHandle_ = NULL;
-        freeJson();
-    }
-    
 public:
     // Results of scanning or sorting a directory, which are kept here rather
     // than in TDCMopts, since dcm2niix often copies the latter
@@ -90,17 +81,17 @@ public:
         return jsonHandle_;
     }
 
-    // Attach a pending sidecar to the most recently appended image, for cases
-    // (such as MR spectroscopy) where dcm2niix writes the sidecar afterwards
+    // Attach the pending sidecar, if any, to the most recently appended image,
+    // and release its buffer; this is called by append(), and separately for
+    // cases (such as MR spectroscopy) where dcm2niix writes the sidecar
+    // afterwards
     void attachJson ()
     {
-        if (!images_.empty())
-            attachJsonTo(images_.back());
-        else
-        {
-            jsonHandle_ = NULL;
-            freeJson();
-        }
+        if (!images_.empty() && jsonHandle_ != NULL && jsonBuffer != NULL)
+            images_.back().attr(".bidsJson") = const_cast<const char *>(jsonBuffer);
+        
+        jsonHandle_ = NULL;
+        freeJson();
     }
     
     void append (nifti_image * const image, const std::string &name)
@@ -119,10 +110,8 @@ public:
             deferredAttributes = Rcpp::List();
         }
         
-        // dcm2niix handles closing the file handle
-        attachJsonTo(pointer);
-        
         images_.push_back(pointer);
+        attachJson();
     }
     
     template <typename ValueType>
