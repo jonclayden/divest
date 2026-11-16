@@ -1,8 +1,9 @@
 Package: divest
-Version: 1.2.0
-Date: 2025-03-04
+Version: 1.3.0
+Date: 2026-11-16
 Title: Get Images Out of DICOM Format Quickly
-Authors@R: c(person("Jon", "Clayden", email="code@clayden.org", role=c("aut","cre"), comment=c(ORCID="0000-0002-6608-0619")),
+Authors@R: c(person("Jon", "Clayden", email="code@clayden.org",
+                role=c("aut","cre"), comment=c(ORCID="0000-0002-6608-0619")),
              person("Chris", "Rorden", role="aut"),
              person("Martin J", "Fiedler", role="cph"),
              person("Cong", "Xu", role="cph"),
@@ -18,5 +19,6 @@ License: BSD_3_clause + file LICENCE
 URL: https://github.com/jonclayden/divest
 BugReports: https://github.com/jonclayden/divest/issues
 Encoding: UTF-8
-RoxygenNote: 7.3.2
-Roxygen: list(old_usage=TRUE, markdown=TRUE)
+Config/roxygen2/version: 8.1.1
+Config/roxygen2/markdown: TRUE
+Config/roxygen2/old_usage: TRUE

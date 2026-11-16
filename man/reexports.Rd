@@ -14,6 +14,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{RNifti}{\code{\link[RNifti:bidsJson]{fromBidsJson}}, \code{\link[RNifti]{imageAttributes}}, \code{\link[RNifti:imageAttributes]{imageAttributes<-}}, \code{\link[RNifti:bidsJson]{toBidsJson}}}
+  \item{RNifti}{\code{\link[RNifti:fromBidsJson]{fromBidsJson()}}, \code{\link[RNifti:imageAttributes]{imageAttributes()}}, \code{\link[RNifti:imageAttributes<-]{imageAttributes<-()}}, \code{\link[RNifti:toBidsJson]{toBidsJson()}}}
 }}
 
